@@ -37,6 +37,8 @@
 ##' @param uri A character variable with an Array URI.
 ##' @return Null, invisibly.
 ##' @examples
+##' \dontshow{ctx <- tiledb_ctx(limitTileDBCores())}
+##' \dontrun{
 ##' uri <- tempfile()
 ##' ## turn factor into character
 ##' irisdf <- within(iris, Species <- as.character(Species))
@@ -44,6 +46,7 @@
 ##' arr <- tiledb_dense(uri, as.data.frame=TRUE)
 ##' newdf <- arr[]
 ##' all.equal(iris, newdf)
+##' }
 ##' @export
 fromDataFrame <- function(obj, uri) {
   dims <- dim(obj)

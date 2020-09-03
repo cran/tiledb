@@ -25,6 +25,8 @@ the \code{data.frame}.  Each attribute will be a single column.
 At present, factor variable are converted to character.
 }
 \examples{
+\dontshow{ctx <- tiledb_ctx(limitTileDBCores())}
+\dontrun{
 uri <- tempfile()
 ## turn factor into character
 irisdf <- within(iris, Species <- as.character(Species))
@@ -32,4 +34,5 @@ fromDataFrame(irisdf, uri)
 arr <- tiledb_dense(uri, as.data.frame=TRUE)
 newdf <- arr[]
 all.equal(iris, newdf)
+}
 }

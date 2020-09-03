@@ -30,6 +30,7 @@ setClass("tiledb_ctx",
 #' Retrieve a TileDB context object from the package cache
 #'
 #' @return A TileDB context object
+#' @export
 tiledb_get_context <- function() {
   ## return the ctx entry from the package environment (a lightweight hash)
   ctx <- .pkgenv[["ctx"]]
@@ -37,6 +38,10 @@ tiledb_get_context <- function() {
   ## if null, create a new context (which caches it too) and return it
   if (is.null(ctx)) {
     ctx <- tiledb_ctx(cached=FALSE)
+    ## if we wanted to _globally_ throttle we could do it here
+    ## but as a general rule we do _not_ want to, and prefer
+    ## throttling as an opt in we use in tests only
+    #cfg <- limitTileDBCores(verbose=TRUE)
   }
 
   ctx
@@ -64,6 +69,7 @@ setContext <- function(ctx) tiledb_set_context(ctx)
 #' @param cached (optional) logical switch to force new creation
 #' @return `tiledb_ctx` object
 #' @examples
+#' \dontshow{ctx <- tiledb_ctx(limitTileDBCores())}
 #' # default configuration
 #' ctx <- tiledb_ctx()
 #'
@@ -99,7 +105,7 @@ tiledb_ctx <- function(config = NULL, cached = TRUE) {
 
   tiledb_set_context(ctx)
 
-  return(ctx)
+  invisible(ctx)
 }
 
 #' @rdname generics
@@ -113,6 +119,7 @@ setGeneric("config", function(object, ...) {
 #' @param object tiledb_ctx object
 #' @return `tiledb_config` object associated with the `tiledb_ctx` instance
 #' @examples
+#' \dontshow{ctx <- tiledb_ctx(limitTileDBCores())}
 #' ctx <- tiledb_ctx(c("sm.tile_cache_size" = "10"))
 #' cfg <- config(ctx)
 #' cfg["sm.tile_cache_size"]
@@ -137,6 +144,7 @@ setMethod("config", signature(object = "tiledb_ctx"),
 #' @param scheme URI string scheme ("file", "hdfs", "s3")
 #' @return TRUE if tiledb backend is supported, FALSE otherwise
 #' @examples
+#' \dontshow{ctx <- tiledb_ctx(limitTileDBCores())}
 #' tiledb_is_supported_fs("file")
 #' tiledb_is_supported_fs("s3")
 #'
@@ -151,6 +159,7 @@ tiledb_is_supported_fs <- function(scheme, object = tiledb_get_context()) {
 #' @param key string
 #' @param value string
 #' @examples
+#' \dontshow{ctx <- tiledb_ctx(limitTileDBCores())}
 #' ctx <- tiledb_ctx(c("sm.tile_cache_size" = "10"))
 #' cfg <- tiledb_ctx_set_tag(ctx, "tag", "value")
 #'

@@ -1,3 +1,70 @@
+# 0.8.0
+
+* This release of the R package supports [TileDB 2.0.8](https://github.com/TileDB-Inc/TileDB/releases/tag/2.0.8), but has
+  also been tested against the previous release [TileDB 1.7.7](https://github.com/TileDB-Inc/TileDB/releases/tag/1.7.7).
+
+## Improvements
+
+- A new function `limitTileDBCores()` controls resource use, it is being used in tests (#139)
+
+- The function `tiledb_get_context()` is now exported (#140)
+
+- A new S4 class `tiledb_vfs` provides access to the virtual file system functionality (#140)
+
+- Functionality of `selected_ranges()` was extended (#142)
+
+- More (signed and unsigned) integer types are supported as dimension types in sparse arrays (#143), as well as in dense arrays (#144) and as attributes (#144)
+
+- A new S4 class `tiledb_query` offers access to the query object functionality in the underlying library (#145, #161)
+
+- Examples are running with a lowered thread count setting per CRAN Policies (#152)
+
+- External pointer objects now use explicitly set finalizers (#149)
+
+- Users can explicitly select a TileDB Embedded shared library built to be used (#151)
+
+- Compile-time configuration was refactored and changes (#158)
+
+- Windows builds are now possible also using TileDB Embedded build 2.0.8 (#159, #164)
+
+- Continuous integration now uses Azure for macOS and Linux (#160) and GitHub Actions for Windows (#162,#165)
+
+## Bug Fixes
+
+- Conda builds no longer call `install_name_tool` (#133, #146)
+
+- Downloading the prebuild library accomodates multitple targets per architecture (#150)
+
+- The number of TBB threads will only be set once (#158)
+
+
+# 0.7.1
+
+* This release of the R package supports [TileDB 1.7.7](https://github.com/TileDB-Inc/TileDB/releases/tag/1.7.7) and [TileDB 2.0.5](https://github.com/TileDB-Inc/TileDB/releases/tag/2.0.5)
+
+## Improvements
+
+- Range selection for tiledb_array objects can get/set matrices defining range (#132)
+
+- The `show` methods are now consistently exported and documented (#134)
+
+- TileDB is listed as copyright owner in DESCRIPTION as well (#134)
+
+- The `selected_ranges` method for `tiledb_array` types was improved, and more tests were added (#135)
+
+- C++ source code was rearranged slightly with respect to possible API deprecations in the libary (#136)
+
+- A very simple example for using TileDB Cloud from R was added (#136)
+
+- The helper scripts for the package build are now in the `tools/` directory (#137)
+
+- The (optional) library download now relied on suggested R packages 'jsonlite' and 'curl' (#137)
+
+## Bug Fixes
+
+- A character conversion when retrieving array metadata resulting in an out-of-bounds reads has been corrected (#137)
+
+
 # 0.7.0
 
 * This release of the R package supports [TileDB 1.7.7](https://github.com/TileDB-Inc/TileDB/releases/tag/1.7.7) and [TileDB 2.0.5](https://github.com/TileDB-Inc/TileDB/releases/tag/2.0.5)
@@ -18,7 +85,7 @@
 
 - The pkg-config helper can be used when building from source (#126)
 
-- An introductory vignette was added (#129)
+- An introductory vignette was added (#129, #131)
 
 
 # 0.6.0

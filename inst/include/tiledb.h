@@ -1,9 +1,10 @@
-// compilation is very noise with the deprecation, we cannot use -Wno-deprecated-declarations
-// as CRAN flags it as a non-portable compiler option, and we cannot (easily) remove the code (yet)
-// so silencing it is for now
+
+// sadly we need to define it here too to reach RcppExports.cpp
 #define TILEDB_DEPRECATED
 
 #include <tiledb/tiledb>
+
+#define STRICT_R_HEADERS
 #include "Rcpp.h"
 
 #ifndef __tiledb_h__

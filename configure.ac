@@ -1,6 +1,32 @@
-AC_PREREQ([2.69])
-AC_INIT([TileDB-R], [0.6.0])
+## -*- mode: autoconf; autoconf-indentation: 4; -*-
 
+##  MIT License
+##
+##  Copyright (c) 2017-2020 TileDB Inc.
+##
+##  Permission is hereby granted, free of charge, to any person obtaining a copy
+##  of this software and associated documentation files (the "Software"), to deal
+##  in the Software without restriction, including without limitation the rights
+##  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+##  copies of the Software, and to permit persons to whom the Software is
+##  furnished to do so, subject to the following conditions:
+##
+##  The above copyright notice and this permission notice shall be included in all
+##  copies or substantial portions of the Software.
+##
+##  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+##  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+##  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+##  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+##  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+##  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+##  SOFTWARE.
+
+## require at least autoconf 2.69
+AC_PREREQ([2.69])
+AC_INIT([TileDB-R], [0.8.0])
+
+## this has to come early to affect other queries involving R
 : ${R_HOME=`R RHOME`}
 if test -z "${R_HOME}"; then
     echo "could not determine R_HOME"
@@ -38,7 +64,10 @@ if test x"${have_pkg_config}" = x"no"; then
     AC_SUBST([TILEDB_RPATH], "")
 fi
 
-## Top-level system, recognising SunOS (Solaris), Darwin (macOS), Linux
+## Top-level system, possible values SunOS (Solaris), Darwin (macOS), Linux, ...
+## Note that SunOS is not currently building; we would welcome help from anyone
+## with access to such a system.
+## Various Linux distribution have been tested and work, as do various macOS releases
 uname=`uname`
 #AC_MSG_RESULT([running on ${uname} (${on_macos})...])
 
@@ -46,7 +75,7 @@ uname=`uname`
 ## (and sets by autoconf standards the 'enable_building' variable to 'yes' or 'no')
 AC_ARG_ENABLE([building],
           AC_HELP_STRING([--enable-building],
-                         [build TileDB library locally instead of downloading prebuilt]))
+                         [build TileDB library instead of downloading prebuilt]))
           #[building="${enable_building}"
           # AC_MSG_RESULT([Enabled chosen])],
           #[building="${enable_building}"
@@ -54,10 +83,10 @@ AC_ARG_ENABLE([building],
           #)
 
 ## Allow --with-tiledb if given (though system location is found too)
-## (and sets by autconf standards the 'with_tiledb' variable
+## (and sets by autconf standards the 'with_tiledb' variable)
 AC_ARG_WITH([tiledb],
-            AC_HELP_STRING([--with-tiledb=PREFIX],
-                       [path to installed built of TileDB]),
+            AC_HELP_STRING([--with-tiledb=PATH],
+                       [absolute path to installed built of TileDB]),
             [TILEDB_INCLUDE="-I${with_tiledb}/include ${TILEDB_INCLUDE}"
              TILEDB_LIBS="-L${with_tiledb}/lib ${TILEDB_LIBS}"
              TILEDB_RPATH="-Wl,-rpath,${with_tiledb}/lib"],
@@ -69,6 +98,23 @@ AC_ARG_WITH([tiledb],
 if test ! -z "${with_tiledb}" -a x"${enable_building}" = x"yes"; then
     AC_MSG_ERROR([Conflicting choice of preinstalled TileDB and enabling building TileDB.])
 fi
+
+## Allow --with-download if given (though system location is found too)
+## (and sets by autconf standards the 'with_download' variable)
+AC_ARG_WITH([download],
+            AC_HELP_STRING([--with-download=URL],
+                       [URL override for TileDB library to download]),
+            [TILEDB_LIB_URL="${with_download}"],
+            [])
+
+## Sanity checks
+if test ! -z "${with_tiledb}" -a x"${with_download}" = x"yes"; then
+    AC_MSG_ERROR([Conflicting choice of preinstalled TileDB and enabling download of TileDB library.])
+fi
+if test ! -z "${with_download}" -a x"${enable_building}" = x"yes"; then
+    AC_MSG_ERROR([Conflicting choice of enabling download of TileDB and enabling building of TileDB.])
+fi
+AC_SUBST([TILEDB_LIB_URL], "${with_download}")
 
 ## Setup
 origCPPFLAGS="${CPPFLAGS}"
@@ -93,9 +139,11 @@ else
 fi
 
 ## On Solaris can only build from source
-if test x"${uname}" = x"SunOS"; then
-     enable_building="yes"
-fi
+## But this does not currently work so we will bail out with error instead
+## This can be overridden by selecting --enable-building but is not default
+#if test x"${uname}" = x"SunOS"; then
+#     enable_building="yes"
+#fi
 
 ## to test one can force some selections here
 #have_tiledb="no"
@@ -115,28 +163,31 @@ if test x"${have_tiledb}" = x"no"; then
             AC_MSG_ERROR([please install 'git'])
         fi
         AC_MSG_RESULT([installing TileDB via building locally...])
-        src/tools/buildTileDB.sh
+        tools/buildTileDB.sh
 
     ## case two: download considered
-    ##   - on macOS or Linux a 'fast and slim' build with external library
+    ##   - on macOS or Linux a 'fast and slim' build with external (pinned) library
+    ##   - but if a download URL given, use it
     ##   - otherwise error
     else
-        if test x"${uname}" = x"Linux" -o x"${uname}" = x"Darwin"; then
-            AC_DEFUN([AC_PROG_CURL], [AC_CHECK_PROG(have_curl,curl,yes)])
-            AC_PROG_CURL
-            if test x"${have_curl}" != x"yes"; then
-                AC_MSG_ERROR([please install 'curl'])
-            fi
+        ## download URL given by user
+        if test x"${TILEDB_LIB_URL}" != x; then
+            AC_MSG_RESULT([downloading given TileDB library...])
+            ## we use the source download which takes this argument if one given
+            ## and downloads as the same file name
+            cd inst && ../tools/fetchTileDB.sh url ${TILEDB_LIB_URL} && cd ..
+
+        elif test x"${uname}" = x"Linux" -o x"${uname}" = x"Darwin"; then
             AC_MSG_RESULT([downloading TileDB library...])
 
-            osrel=`src/tools/getOsRelease.sh`
-            AC_MSG_RESULT([installing TileDB for ${osrel} ...])
+            osrel=`tools/getOsRelease.sh`
+            AC_MSG_RESULT([installing TileDB for ${osrel}...])
             if test x"${uname}" = x"Darwin"; then
                 os="macos"
             else
                 os="linux"
             fi
-            cd inst && ../src/tools/fetchTileDB.sh "${os}" && cd ..
+            cd inst && ../tools/fetchTileDB.sh "${os}" && cd ..
 
         ## default case: be unhappy
         else

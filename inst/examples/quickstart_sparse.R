@@ -55,7 +55,7 @@ create_array <- function(array_name) {
     schema = tiledb_array_schema(dom, attrs=c(tiledb_attr("a", type = "INT32")), sparse = TRUE)
 
     # Create the (empty) array on disk.
-    tiledb_array_create(array_name, schema)
+    invisible( tiledb_array_create(array_name, schema) )
 }
 
 write_array <- function(array_name) {
@@ -68,18 +68,32 @@ write_array <- function(array_name) {
 }
 
 read_array <- function(array_name) {
-    # Open the array and read from it.
-    A <- tiledb_sparse(uri = array_name)
-    data <- A[1:2, 2:4]
-    coords <- data[["coords"]]
-    a_vals <- data[["a"]]
-    for (idx in seq_along(a_vals)) {
-        i <- coords[((idx - 1) * 2) + 1]
-        j <- coords[((idx - 1) * 2) + 2]
-        cat(sprintf("Cell (%d,%d) has data %d\n", i, j, a_vals[idx]))
-    }
+    # Open the array and read as a data.frame from it.
+    A <- tiledb_sparse(uri = array_name, as.data.frame=TRUE)
+    # Slice rows 1 and 2, and cols 2, 3 and 4
+    A[1:2, 2:4]
+}
+
+read_via_query_object <- function(array_name) {
+  arr <- tiledb_array(uri)
+  qry <- tiledb_query(arr, "READ")
+
+  rows <- integer(8)
+  cols <- integer(8)
+  values <- integer(8)
+  tiledb_query_set_buffer(qry, "rows", rows)
+  tiledb_query_set_buffer(qry, "cols", cols)
+  tiledb_query_set_buffer(qry, "a", values)
+
+  tiledb_query_submit(qry)
+  tiledb_query_finalize(qry)
+  stopifnot(tiledb_query_status(qry)=="COMPLETE")
+
+  n <- tiledb_query_result_buffer_elements(qry, "a")
+  print(data.frame(rows=rows,cols=cols,a=values)[1:n,])
 }
 
 create_array(uri)
 write_array(uri)
 read_array(uri)
+read_via_query_object(uri)
