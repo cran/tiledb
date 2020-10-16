@@ -1,6 +1,6 @@
 Package: tiledb
 Type: Package
-Version: 0.8.1
+Version: 0.8.2
 Title: Sparse and Dense Multidimensional Array Storage Engine for Data
         Science
 Author: TileDB, Inc.
@@ -30,6 +30,6 @@ VignetteBuilder: knitr
 RoxygenNote: 7.1.1
 Encoding: UTF-8
 NeedsCompilation: yes
-Packaged: 2020-10-07 23:26:09.554298 UTC; edd
+Packaged: 2020-10-16 16:56:06 UTC; edd
 Repository: CRAN
-Date/Publication: 2020-10-08 04:10:02 UTC
+Date/Publication: 2020-10-16 17:20:02 UTC
