@@ -64,15 +64,27 @@ tiledb_dim <- function(name, domain, tile, type, ctx = tiledb_get_context()) {
     type <- ifelse(is.integer(domain), "INT32", "FLOAT64")
   } else if (!type %in% c("INT8", "INT16", "INT32", "INT64",
                           "UINT8", "UINT16", "UINT32", "UINT64",
-                          "FLOAT64",
-                          "DATETIME_DAY", "DATETIME_SEC",
-                          "DATETIME_MS", "DATETIME_US", "DATETIME_NS", "ASCII")) {
-    stop("type argument must be '(U)INT{8,16,32,64}' or 'FLOAT64' or a supported 'DATETIME_*' type.", call.=FALSE)
+                          "FLOAT32", "FLOAT64",
+                          "DATETIME_YEAR","DATETIME_MONTH","DATETIME_WEEK","DATETIME_DAY",
+                          "DATETIME_HR", "DATETIME_MIN", "DATETIME_SEC",
+                          "DATETIME_MS", "DATETIME_US", "DATETIME_NS",
+                          "DATETIME_PS", "DATETIME_FS", "DATETIME_AS",
+                          "ASCII")) {
+    stop("type argument must be '(U)INT{8,16,32,64}', 'FLOAT{32,64}', 'ASCII', or a supported 'DATETIME_*' type.", call.=FALSE)
   }
   if (!type %in% c("ASCII")) {
     if ((typeof(domain) != "integer" && typeof(domain) != "double") || (length(domain) != 2)) {
       stop("domain must be an integer or double vector of length 2")
     }
+  }
+  if (inherits(domain, "nanotime") ||   # not integer64 as we want the conversion only for datetimes
+      type %in% c("DATETIME_PS",        # but also for high precision times we cannot fit into NS
+                  "DATETIME_FS",
+                  "DATETIME_AS")) {
+      w <- getOption("warn")            # store warning levels
+      options("warn" = -1)              # suppress warnings
+      domain <- as.numeric(domain)      # for this lossy conversion
+      options("warn" = w)               # restore warning levels
   }
   if (!is(ctx, "tiledb_ctx")) {
     stop("ctx argument must be a tiledb_ctx")
@@ -209,3 +221,29 @@ dim.tiledb_dim <- function(x) {
   dom <- domain(x)
   return(dom[2L] - dom[1L] + 1L)
 }
+
+
+## Generic in ArraySchema.R
+
+#' Returns the TileDB Filter List object associated with the given TileDB Dimension
+#'
+#' @param object TileDB_Dimension
+#' @return A TileDB_filter_list object
+#' @export
+setMethod("filter_list", "tiledb_dim", function(object) {
+  ptr <- libtiledb_dimension_get_filter_list(object@ptr)
+  return(tiledb_filter_list.from_ptr(ptr))
+})
+
+## Generic in ArraySchema.R
+
+#' Sets the TileDB Filter List for the TileDB Dimension object
+#'
+#' @param x TileDB Dimension
+#' @param value TileDB Filter List
+#' @return The modified TileDB Dimension object
+#' @export
+setReplaceMethod("filter_list", "tiledb_dim", function(x, value) {
+  x@ptr <- libtiledb_dimension_set_filter_list(x@ptr, value@ptr)
+  x
+})

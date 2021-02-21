@@ -43,8 +43,8 @@ uri <- file.path(getOption("TileDB_Data_Path", "."), array_name)
 create_array <- function(array_name) {
     # Check if the array already exists.
     if (tiledb_object_type(array_name) == "ARRAY") {
-        message("Array already exists.")
-        return(invisible(NULL))
+        message("Array already exists, removing to create new one.")
+        tiledb_vfs_remove_dir(array_name)
     }
 
     # The array will be 4x4 with dimensions "rows" and "cols", with domain [1,4].
@@ -52,7 +52,7 @@ create_array <- function(array_name) {
                                   tiledb_dim("cols", c(1L, 4L), 4L, "INT32")))
 
    # The array will be dense with a single attribute "a" so each (i,j) cell can store an integer.
-    schema = tiledb_array_schema(dom, attrs=c(tiledb_attr("a", type = "INT32")), sparse = TRUE)
+    schema <- tiledb_array_schema(dom, attrs=c(tiledb_attr("a", type = "INT32")), sparse = TRUE)
 
     # Create the (empty) array on disk.
     invisible( tiledb_array_create(array_name, schema) )
@@ -63,13 +63,13 @@ write_array <- function(array_name) {
     J <- c(1, 4, 3)
     data <- c(1L, 2L, 3L)
     # Open the array and write to it.
-    A <- tiledb_sparse(uri = array_name)
+    A <- tiledb_array(uri = array_name)
     A[I, J] <- data
 }
 
 read_array <- function(array_name) {
     # Open the array and read as a data.frame from it.
-    A <- tiledb_sparse(uri = array_name, as.data.frame=TRUE)
+    A <- tiledb_array(uri = array_name, as.data.frame=TRUE)
     # Slice rows 1 and 2, and cols 2, 3 and 4
     A[1:2, 2:4]
 }

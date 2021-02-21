@@ -27,6 +27,14 @@ based on refactored implementation utilising newer TileDB features.
 \item{\code{selected_ranges}}{An optional list with matrices where each matrix i
 describes the (min,max) pair of ranges for dimension i}
 
+\item{\code{query_layout}}{An optional character value}
+
+\item{\code{datetimes_as_int64}}{A logical value}
+
+\item{\code{encryption_key}}{A character value}
+
+\item{\code{timestamp}}{A POSIXct datetime variable}
+
 \item{\code{ptr}}{External pointer to the underlying implementation}
 }}
 

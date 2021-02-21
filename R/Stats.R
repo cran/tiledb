@@ -20,31 +20,34 @@
 #  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 #  SOFTWARE.
 
-#' Enable stats counters
-#' @concept stats
+#' Enable internal TileDB statistics counters
+#'
+#' This function starts the collection of internal statistics.
 #' @export
 tiledb_stats_enable <- function() {
   libtiledb_stats_enable()
 }
 
-#' Disable stats counters
-#' @concept stats
+#' Disable internal TileDB statistics counters
+#'
+#' This function ends the collection of internal statistics.
 #' @export
 tiledb_stats_disable <- function() {
   libtiledb_stats_disable()
 }
 
-#' Reset stats counters
-#' @concept stats
+#' Reset internal TileDB statistics counters
+#'
+#' This function resets the counters for internal statistics.
 #' @export
 tiledb_stats_reset <- function() {
   libtiledb_stats_reset()
 }
 
-#' Dump stats to file
+#' Dumps internal TileDB statistics to file
 #'
-#' @param path to stats file
-#' @concept stats
+#' @param path Character variable with path to stats file;
+#' if the empty string is passed then the result is displayed on stdout.
 #' @examples
 #' \dontshow{ctx <- tiledb_ctx(limitTileDBCores())}
 #' pth <- tempfile()
@@ -56,8 +59,49 @@ tiledb_stats_dump <- function(path) {
   libtiledb_stats_dump(path)
 }
 
-#' @rdname tiledb_stats_dump
+#' Print internal TileDB statistics
+#'
+#' This function is a convenience wrapper for \code{tiledb_stats_dump}.
 #' @export
 tiledb_stats_print <- function() {
   libtiledb_stats_dump("")
+}
+
+#' Dumps internal TileDB statistics as JSON to file
+#'
+#' This function requires TileDB Embedded 2.0.3 or later.
+#' @param path Character variable with path to stats file;
+#' if the empty string is passed then the result is displayed on stdout.
+#' @examples
+#' \dontshow{ctx <- tiledb_ctx(limitTileDBCores())}
+#' if (tiledb_version(TRUE) >= "2.0.3") {
+#'   pth <- tempfile()
+#'   tiledb_stats_raw_dump(pth)
+#'   cat(readLines(pth)[1:10], sep = "\n")
+#' }
+#' @export
+tiledb_stats_raw_dump <- function(path) {
+  if (tiledb_version(TRUE) < "2.0.3") stop("Raw statistics are available with TileDB Embedded verion 2.0.3 or later")
+  libtiledb_stats_raw_dump(path)
+}
+
+#' Print internal TileDB statistics as JSON
+#'
+#' This function is a convenience wrapper for \code{tiledb_stats_raw_dump}.
+#' It required TileDB Embedded 2.0.3 or later.
+#' @export
+tiledb_stats_raw_print <- function() {
+  if (tiledb_version(TRUE) < "2.0.3") stop("Raw statistics are available with TileDB Embedded verion 2.0.3 or later")
+  libtiledb_stats_raw_dump("")
+}
+
+#' Gets internal TileDB statistics as JSON string
+#'
+#' This function is a convenience wrapper for \code{tiledb_stats_raw_dump}
+#' and returns the result as a JSON string.
+#' It required TileDB Embedded 2.0.3 or later.
+#' @export
+tiledb_stats_raw_get <- function() {
+  if (tiledb_version(TRUE) < "2.0.3") stop("Raw statistics are available with TileDB Embedded verion 2.0.3 or later")
+  libtiledb_stats_raw_get()
 }

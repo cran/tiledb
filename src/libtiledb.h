@@ -24,7 +24,7 @@
 #define __libtiledb_h__
 
 // in inst/include so that Rcpp code generation can use the types for glue code
-#include <tiledb.h>
+#include "tiledb.h"
 
 // Version
 Rcpp::NumericVector tiledb_version();
@@ -48,5 +48,23 @@ Rcpp::NumericVector makeInteger64(const std::vector<int64_t>& vec);
 int64_t makeScalarInteger64(const double val);
 std::vector<int64_t> getInt64Vector(Rcpp::NumericVector vec);
 bool isInteger64(Rcpp::NumericVector v);
+bool is_datetime_column(const tiledb_datatype_t dtype);
+
+// duration helpers
+std::vector<int64_t> dates_to_int64(Rcpp::DateVector dv, tiledb_datatype_t dtype);
+Rcpp::DateVector int64_to_dates(std::vector<int64_t>, tiledb_datatype_t dtype);
+std::vector<int64_t> datetimes_to_int64(Rcpp::DatetimeVector dv, tiledb_datatype_t dtype);
+Rcpp::DatetimeVector int64_to_datetimes(std::vector<int64_t> iv, tiledb_datatype_t dtype);
+std::vector<int64_t> subnano_to_int64(NumericVector nv, tiledb_datatype_t dtype);
+Rcpp::NumericVector int64_to_subnano(std::vector<int64_t> iv, tiledb_datatype_t dtype);
+
+// nullable helpers
+void getValidityMapFromInteger(Rcpp::IntegerVector & vec, std::vector<uint8_t> & map);
+void setValidityMapForInteger(Rcpp::IntegerVector & vec, const std::vector<uint8_t> & map);
+void getValidityMapFromNumeric(Rcpp::NumericVector & vec, std::vector<uint8_t> & map);
+void setValidityMapForNumeric(Rcpp::NumericVector & vec, const std::vector<uint8_t> & map);
+void getValidityMapFromInt64(Rcpp::NumericVector & vec, std::vector<uint8_t> & map);
+void setValidityMapForInt64(std::vector<int64_t> & vec, const std::vector<uint8_t> & map);
+
 
 #endif

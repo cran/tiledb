@@ -12,6 +12,10 @@ tiledb_array(
   attrs = character(),
   extended = TRUE,
   selected_ranges = list(),
+  query_layout = character(),
+  datetimes_as_int64 = FALSE,
+  encryption_key = character(),
+  timestamp = as.POSIXct(double(), origin = "1970-01-01"),
   ctx = tiledb_get_context()
 )
 }
@@ -30,13 +34,26 @@ empty implying all are selected}
 \item{extended}{optional logical switch selecting wide \sQuote{data.frame}
 format, defaults to "TRUE"}
 
-\item{selected_ranges}{An optional list with matrices where each matrix i
+\item{selected_ranges}{optional A list with matrices where each matrix i
 describes the (min,max) pair of ranges for dimension i}
+
+\item{query_layout}{optional A value for the TileDB query layout, defaults to
+an empty character variable indicating no special layout is set}
+
+\item{datetimes_as_int64}{optional A logical value selecting date and datetime value
+representation as \sQuote{raw} \code{integer64} and not as \code{Date},
+\code{POSIXct} or \code{nanotime} objects.}
+
+\item{encryption_key}{optional A character value with an AES-256 encryption key
+in case the array was written with encryption.}
+
+\item{timestamp}{optional A POSIXct Datetime value determining where in time the array is
+to be openened.}
 
 \item{ctx}{tiledb_ctx (optional)}
 }
 \value{
-tiledb_sparse array object
+tiledb_array object
 }
 \description{
 tiledb_array returns a new object. This class is experimental.

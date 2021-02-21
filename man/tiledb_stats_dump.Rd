@@ -2,18 +2,16 @@
 % Please edit documentation in R/Stats.R
 \name{tiledb_stats_dump}
 \alias{tiledb_stats_dump}
-\alias{tiledb_stats_print}
-\title{Dump stats to file}
+\title{Dumps internal TileDB statistics to file}
 \usage{
 tiledb_stats_dump(path)
-
-tiledb_stats_print()
 }
 \arguments{
-\item{path}{to stats file}
+\item{path}{Character variable with path to stats file;
+if the empty string is passed then the result is displayed on stdout.}
 }
 \description{
-Dump stats to file
+Dumps internal TileDB statistics to file
 }
 \examples{
 \dontshow{ctx <- tiledb_ctx(limitTileDBCores())}
@@ -22,4 +20,3 @@ tiledb_stats_dump(pth)
 cat(readLines(pth)[1:10], sep = "\n")
 
 }
-\concept{stats}

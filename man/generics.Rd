@@ -8,17 +8,15 @@
 \alias{cell_order}
 \alias{tile_order}
 \alias{filter_list}
+\alias{filter_list<-}
 \alias{is.sparse}
 \alias{tiledb_ndim}
 \alias{name}
 \alias{datatype}
-\alias{cell_val_num}
 \alias{config}
 \alias{schema}
 \alias{tile}
 \alias{is.integral}
-\alias{set_max_chunk_size}
-\alias{max_chunk_size}
 \alias{nfilters}
 \alias{generics}
 \title{Generic Methods}
@@ -35,6 +33,8 @@ tile_order(object, ...)
 
 filter_list(object, ...)
 
+filter_list(x) <- value
+
 is.sparse(object, ...)
 
 tiledb_ndim(object, ...)
@@ -42,8 +42,6 @@ tiledb_ndim(object, ...)
 name(object)
 
 datatype(object)
-
-cell_val_num(object)
 
 config(object, ...)
 
@@ -53,10 +51,6 @@ tile(object)
 
 is.integral(object)
 
-set_max_chunk_size(object, value)
-
-max_chunk_size(object)
-
 nfilters(object)
 }
 \arguments{
@@ -65,6 +59,8 @@ nfilters(object)
 \item{...}{Variable argument}
 
 \item{idx}{An index argument}
+
+\item{x}{A TileDB Object}
 
 \item{value}{A value to be assigned}
 }
