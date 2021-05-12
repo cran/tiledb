@@ -106,16 +106,25 @@ fromDataFrame <- function(obj, uri, col_index=NULL, sparse=FALSE, allows_dups=sp
         atrobj <- obj[, -col_index, drop=FALSE]
         useobj <- cbind(dimobj, atrobj)
 
+        if (any(is.na(dimobj)))
+            stop("Nullable columns are not supported as dimension columns.", call. = FALSE)
+
         makeDim <- function(ind) {
             idxcol <- dimobj[,ind]
             idxnam <- colnames(dimobj)[ind]
-            if (debug) cat("Looking at col_index =", ind, ":", idxnam, "\n")
             col_domain <- if (is.null(tile_domain)) c(min(idxcol), max(idxcol)) else tile_domain
             col_extent <- if (is.null(tile_extent)) dims[1] else tile_extent
+            if (!inherits(idxcol, "character")) {
+                dom_range <- diff(as.numeric(range(col_domain))) + 1
+                col_extent <- min(dom_range, col_extent)
+            }
             dtype <- "INT32"                # default
             if (inherits(idxcol, "POSIXt")) {
                 dtype <- "DATETIME_US"
                 col_domain <- as.numeric(col_domain) * 1e6 	# int64 used
+            } else if (inherits(idxcol, "Date")) {
+                dtype <- "DATETIME_DAY"
+                col_extent <- as.numeric(col_extent) # to not trigger INT32 test
             } else if (inherits(idxcol, "numeric")) {
                 dtype <- "FLOAT64"
                 col_extent <- as.numeric(col_extent)
@@ -129,8 +138,16 @@ fromDataFrame <- function(obj, uri, col_index=NULL, sparse=FALSE, allows_dups=sp
                 dtype <- "ASCII"
                 col_extent <- NULL
                 col_domain <- c(NULL, NULL)
+            } else if (dtype == "INT32") {
+                col_extent <- as.integer(col_extent)
             }
 
+            if (debug) {
+                cat(sprintf("Setting domain name %s type %s domain (%s,%s) extent %s\n", idxnam, dtype,
+                            ifelse(is.null(col_domain[1]), "null", format(col_domain[1])),
+                            ifelse(is.null(col_domain[2]), "null", format(col_domain[2])),
+                            ifelse(is.null(col_extent), "null", format(col_extent))))
+            }
             tiledb_dim(name = idxnam,
                        domain = col_domain,
                        tile = col_extent,
@@ -163,6 +180,9 @@ fromDataFrame <- function(obj, uri, col_index=NULL, sparse=FALSE, allows_dups=sp
             tp <- "INT64"
         else
             stop("Currently unsupported type: ", cl)
+        if (debug) {
+            cat(sprintf("Setting attribute name %s type %s\n", colnames(obj)[ind], tp))
+        }
         tiledb_attr(colnames(obj)[ind],
                     type = tp,
                     ncells = ifelse(tp=="CHAR",NA_integer_,1),
@@ -176,10 +196,8 @@ fromDataFrame <- function(obj, uri, col_index=NULL, sparse=FALSE, allows_dups=sp
     schema <- tiledb_array_schema(dom, attrs = attributes,
                                   cell_order = cell_order, tile_order = tile_order,
                                   sparse=sparse, capacity=capacity)
-    if (debug) print(schema)
-    tiledb_array_create(uri, schema)
-
     allows_dups(schema) <- allows_dups
+    tiledb_array_create(uri, schema)
 
     df <- tiledb_array(uri)
     ## when setting an index when likely want 'sparse write to dense array

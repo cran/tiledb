@@ -33,7 +33,7 @@ expect_equal(irisdf, newdf[,-1])
 arr <- tiledb_array(uri, as.data.frame=TRUE,
                     attrs = c("Petal.Length", "Petal.Width"))
 newdf <- arr[]
-expect_equal(iris[, c("Petal.Length", "Petal.Width")], newdf[,-1])
+expect_equal(iris[, c("Petal.Length", "Petal.Width")], newdf)
 
 
 ## test list
@@ -70,7 +70,6 @@ expect_equal(df, newdf[,-1])
 
 
 ## test dense with non-default index columm
-#exit_file("not finished")
 uri <- tempfile()
 set.seed(42)
 rows <- 50L
@@ -85,7 +84,7 @@ chk <- arr[]
 if (getRversion() < '4.0.0') chk$chars <- as.character(chk$chars)
 expect_equal(df, chk[,-1])              # omit first col which is added
 
-if (tiledb_version(TRUE) < "2.1.0") exit_file("Remaining tests required TileDB 2.1.0 or later")
+if (tiledb_version(TRUE) < "2.1.0") exit_file("Remaining tests require TileDB 2.1.0 or later")
 
 if (dir.exists(uri)) unlink(uri, recursive=TRUE)
 fromDataFrame(df, uri, col_index=1)
@@ -233,3 +232,39 @@ if (getRversion() < '4.0.0') {
     val$B <- as.character(val$B)
 }
 expect_equal(dat, val)
+
+## array with char only columns in dimension and attribute, used to error before #217
+if (tiledb_version(TRUE) < "2.2.0") exit_file("Remaining tests require TileDB 2.2.0 or later")
+N <- 20
+D <- data.frame(sample=paste(LETTERS[1:N], as.character(sort(trunc(runif(N, 100, 200)))), sep=""),
+                header=paste(LETTERS[1:N], as.character(sort(trunc(runif(N, 10000, 20000)))), sep=""),
+                stringsAsFactors=FALSE)
+uri <- tempfile()
+fromDataFrame(D, uri, col_index=1, sparse=TRUE)
+chk <- tiledb_array(uri, as.data.frame=TRUE)
+if (getRversion() < '4.0.0') {
+    chk$sample <- as.character(chk$sample)
+    chk$header <- as.character(chk$header)
+}
+expect_equal(D, chk[])
+
+## sparse array can have duplicate values in index column
+df <- data.frame(
+  index = c(1, 1, 3),
+  char = c("a", "a", "c"),
+  stringsAsFactors = FALSE
+)
+
+uri <- tempfile()
+expect_error(
+    fromDataFrame(df, uri, col_index=1, sparse=TRUE, allows_dups=FALSE)
+)
+
+uri <- tempfile()
+expect_silent(
+    arr <- fromDataFrame(df, uri, col_index=1, sparse=TRUE, allows_dups=TRUE)
+)
+
+arr <- tiledb_array(uri, as.data.frame=TRUE)
+chk <- arr[]
+expect_equal(df, chk)

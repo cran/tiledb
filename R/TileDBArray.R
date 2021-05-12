@@ -39,6 +39,7 @@
 #' @slot datetimes_as_int64 A logical value
 #' @slot encryption_key A character value
 #' @slot timestamp A POSIXct datetime variable
+#' @slot as.matrix A logical value
 #' @slot ptr External pointer to the underlying implementation
 #' @exportClass tiledb_array
 setClass("tiledb_array",
@@ -53,6 +54,7 @@ setClass("tiledb_array",
                       datetimes_as_int64 = "logical",
                       encryption_key = "character",
                       timestamp = "POSIXct",
+                      as.matrix = "logical",
                       ptr = "externalptr"))
 
 #' Constructs a tiledb_array object backed by a persisted tiledb array uri
@@ -78,6 +80,8 @@ setClass("tiledb_array",
 #' in case the array was written with encryption.
 #' @param timestamp optional A POSIXct Datetime value determining where in time the array is
 #' to be openened.
+#' @param as.matrix optional logical switch, defaults to "FALSE"; currently limited to dense
+#' matrices; in the case of multiple attributes in query lists of matrices are returned
 #' @param ctx tiledb_ctx (optional)
 #' @return tiledb_array object
 #' @export
@@ -92,12 +96,17 @@ tiledb_array <- function(uri,
                          datetimes_as_int64 = FALSE,
                          encryption_key = character(),
                          timestamp = as.POSIXct(double(), origin="1970-01-01"),
+                         as.matrix = FALSE,
                          ctx = tiledb_get_context()) {
   query_type = match.arg(query_type)
   if (!is(ctx, "tiledb_ctx"))
     stop("argument ctx must be a tiledb_ctx", call. = FALSE)
   if (missing(uri) || !is.scalar(uri, "character"))
-    stop("argument uri must be a string scalar", call.=FALSE)
+    stop("argument uri must be a string scalar", call. = FALSE)
+  if (as.data.frame && as.matrix)
+    stop("arguments as.data.frame and as.matrix cannot be selected togethers", call. = FALSE)
+  if (isTRUE(is.sparse) && as.matrix)
+    stop("argument as.matrix cannot be selected for sparse arrays", call. = FALSE)
 
   if (length(encryption_key) > 0) {
     if (!is.character(encryption_key))
@@ -119,7 +128,11 @@ tiledb_array <- function(uri,
   is_sparse_status <- libtiledb_array_schema_sparse(schema_xptr)
   if (!is.na(is.sparse) && is.sparse != is_sparse_status) {
     libtiledb_array_close(array_xptr)
-    stop("sparse array selected but dense array found", call. = FALSE)
+    if (is_sparse_status) {
+      stop("dense array selected but sparse array found", call. = FALSE)
+    } else {
+      stop("sparse array selected but dense array found", call. = FALSE)
+    }
   }
   is.sparse <- is_sparse_status
   array_xptr <- libtiledb_array_close(array_xptr)
@@ -135,6 +148,7 @@ tiledb_array <- function(uri,
       datetimes_as_int64 = datetimes_as_int64,
       encryption_key = encryption_key,
       timestamp = timestamp,
+      as.matrix = as.matrix,
       ptr = array_xptr)
 }
 
@@ -195,6 +209,7 @@ setMethod("show", signature = "tiledb_array",
      ,"  datetimes_as_int64 = ", if (object@datetimes_as_int64) "TRUE" else "FALSE", "\n"
      ,"  encryption_key     = ", if (length(object@encryption_key) == 0) "(none)" else "(set)", "\n"
      ,"  timestamp          = ", if (length(object@timestamp) == 0) "(none)" else format(object@timestamp), "\n"
+     ,"  as.matrix          = ", if (object@as.matrix) "TRUE" else "FALSE", "\n"
      ,sep="")
 })
 
@@ -270,6 +285,11 @@ setValidity("tiledb_array", function(object) {
     msg <- c(msg, "The 'timestamp' slot does not contain a POSIXct value.")
   }
 
+  if (!is.logical(object@as.matrix)) {
+    valid <- FALSE
+    msg <- c(msg, "The 'as.matrix' slot does not contain a logical value.")
+  }
+
   if (!is(object@ptr, "externalptr")) {
     valid <- FALSE
     msg <- c(msg, "The 'ptr' slot does not contain an external pointer.")
@@ -278,6 +298,37 @@ setValidity("tiledb_array", function(object) {
   if (valid) TRUE else msg
 
 })
+
+## Internal helper function to map DATETIME_* data to the internal representation (where
+## we mostly follow NumPy). An example is DATETIME_YEAR where the current year (2021) is
+## encoded as the offset relative to the _year_ of the epoch, i.e. 51.  When an R user submits
+## a date type as a min or max value for a range, if would likely be as.Date("2021-01-01")
+## which, being an R date, has an internal representation of _days_ since the epoch, i.e.
+## as.numeric(as.Date("2021-01-01")) yields 18628.
+##
+## We also convert to integer64 because that is
+.mapDatetime2integer64 <- function(val, dtype) {
+    ## in case it is not a datetime type, or already an int64, return unchanged
+    if (!grepl("^DATETIME_", dtype) || inherits(val, "integer64"))
+        return(val)
+
+    val <- switch(dtype,
+                  "DATETIME_YEAR" = as.numeric(strftime(val, "%Y")) - 1970,
+                  "DATETIME_MONTH" = 12*(as.numeric(strftime(val, "%Y")) - 1970) + as.numeric(strftime(val, "%m")) - 1,
+                  "DATETIME_WEEK" = as.numeric(val)/7,
+                  "DATETIME_DAY" = as.numeric(val),
+                  "DATETIME_HR" = as.numeric(val)/3600,
+                  "DATETIME_MIN" = as.numeric(val)/60,
+                  "DATETIME_SEC" = as.numeric(val),
+                  "DATETIME_MS" = as.numeric(val) * 1e3,
+                  "DATETIME_US" = as.numeric(val) * 1e6,
+                  "DATETIME_NS" = as.numeric(val),
+                  "DATETIME_PS" = as.numeric(val) * 1e3,
+                  "DATETIME_FS" = as.numeric(val) * 1e6,
+                  "DATETIME_AS" = as.numeric(val) * 1e9)
+    bit64::as.integer64(val)
+}
+
 
 #' Returns a TileDB array, allowing for specific subset ranges.
 #'
@@ -294,7 +345,7 @@ setValidity("tiledb_array", function(object) {
 #' ranges.
 #' @param ... Extra parameters for method signature, currently unused.
 #' @param drop Optional logical switch to drop dimensions, default FALSE, currently unused.
-#' @return An element from the sparse array
+#' @return The resulting elements in the selected format
 #' @import nanotime
 #' @aliases [,tiledb_array
 #' @aliases [,tiledb_array-method
@@ -315,6 +366,8 @@ setMethod("[", "tiledb_array",
   asint64 <- x@datetimes_as_int64
   enckey <- x@encryption_key
   tstamp <- x@timestamp
+
+  sparse <- libtiledb_array_schema_sparse(sch@ptr)
 
   if (length(enckey) > 0) {
     if (length(tstamp) > 0) {
@@ -343,8 +396,8 @@ setMethod("[", "tiledb_array",
   attrvarnum <- unname(sapply(attrs, function(a) libtiledb_attribute_get_cell_val_num(a@ptr)))
   attrnullable <- unname(sapply(attrs, function(a) libtiledb_attribute_get_nullable(a@ptr)))
 
-  if (length(x@attrs) != 0) {
-    ind <- match(x@attrs, attrnames)
+  if (length(sel) != 0) {
+    ind <- match(sel, attrnames)
     if (length(ind) == 0) {
       stop("Only non-existing columns selected.", call.=FALSE)
     }
@@ -389,62 +442,65 @@ setMethod("[", "tiledb_array",
   ## ranges seem to interfere with the byte/element adjustment below so set up toggle
   rangeunset <- TRUE
 
-  ## set default range(s) on first dimension if nothing is specified
-  if (is.null(i) &&
-      (length(x@selected_ranges) == 0 ||
-       (length(x@selected_ranges) >= 1 && is.null(x@selected_ranges[[1]])))) {
-    ## domain values can currently be eg (0,0) rather than a flag, so check explicitly
-    #domdim <- domain(dimensions(dom)[[1]])
-    if (nonemptydom[[1]][1] != nonemptydom[[1]][2]) # || nonemptydom[[1]][1] > domdim[1])
-      qryptr <- libtiledb_query_add_range_with_type(qryptr, 0, dimtypes[1],
-                                                    nonemptydom[[1]][1], nonemptydom[[1]][2])
-      rangeunset <- FALSE
+  ## ensure selected_ranges, if submitted, is of correct length
+  if (length(x@selected_ranges) != 0 &&
+      length(x@selected_ranges) != length(dimnames) &&
+      is.null(names(x@selected_ranges))) {
+      stop(paste0("If ranges are selected by index alone (and not named), ",
+                  "one is required for each dimension."), call. = FALSE)
   }
-  ## if we have is, use it
+
+  ## expand a shorter-but-named selected_ranges list
+  if (   (length(x@selected_ranges) < length(dimnames))
+      && (!is.null(names(x@selected_ranges)))          ) {
+      fulllist <- vector(mode="list", length=length(dimnames))
+      ind <- match(names(x@selected_ranges), dimnames)
+      if (any(is.na(ind))) stop("Name for selected ranges does not match dimension names.")
+      for (ii in seq_len(length(ind))) {
+          fulllist[[ ind[ii] ]] <- x@selected_ranges[[ii]]
+      }
+      x@selected_ranges <- fulllist
+  }
+
+  ## if selected_ranges is still an empty list, make it an explicit one
+  if (length(x@selected_ranges) == 0) {
+      x@selected_ranges <- vector(mode="list", length=length(dimnames))
+  }
+
   if (!is.null(i)) {
-    ##if (!identical(eval(is[[1]]),list)) stop("The row argument must be a list.")
-    if (length(i) == 0) stop("No content to parse in row argument.")
-    for (ii in 1:length(i)) {
-      el <- i[[ii]]
-      qryptr <- libtiledb_query_add_range_with_type(qryptr, 0, dimtypes[1],
-                                                    min(eval(el)), max(eval(el)))
-    }
-    rangeunset <- FALSE
+      if (!is.null(x@selected_ranges[[1]])) {
+          stop("Cannot set both 'i' and first element of 'selected_ranges'.", call. = FALSE)
+      }
+      x@selected_ranges[[1]] <- i
   }
 
-  ## set range(s) on second dimension
-  if (is.null(j) &&
-      (length(x@selected_ranges) == 0 ||
-       (length(x@selected_ranges) >= 2 && is.null(x@selected_ranges[[2]])))) {
-    if (length(nonemptydom) == 2) {
-      ## domain values can currently be eg (0,0) rather than a flag, so check explicitly
-      #domdim <- domain(dimensions(dom)[[2]])
-      if (nonemptydom[[2]][1] != nonemptydom[[2]][2]) # || nonemptydom[[2]][1] > domdim[1])
-        if (nonemptydom[[2]][1] != nonemptydom[[2]][2])
-          qryptr <- libtiledb_query_add_range_with_type(qryptr, 1, dimtypes[2],
-                                                        nonemptydom[[2]][1], nonemptydom[[2]][2])
-      rangeunset <- FALSE
-    }
-  }
-
-  ## if we have js, use it
   if (!is.null(j)) {
-    #if (!identical(eval(js[[1]]),list)) stop("The col argument must be a list.")
-    if (length(j) == 0) stop("No content to parse in col argument.")
-    for (ii in 1:length(j)) {
-      el <- j[[ii]]
-      qryptr <- libtiledb_query_add_range_with_type(qryptr, 1, dimtypes[2],
-                                                    min(eval(el)), max(eval(el)))
-      rangeunset <- FALSE
-    }
+      if (!is.null(x@selected_ranges[[2]])) {
+          stop("Cannot set both 'j' and second element of 'selected_ranges'.", call. = FALSE)
+      }
+      x@selected_ranges[[2]] <- j
   }
 
   ## if ranges selected, use those
   for (k in seq_len(length(x@selected_ranges))) {
-    if (!is.null(x@selected_ranges[[k]])) {
+    if (is.null(x@selected_ranges[[k]])) {
+      #cat("Adding null dim", k, "on", dimtypes[[k]], "\n")
+      vec <- .mapDatetime2integer64(nonemptydom[[k]], dimtypes[k])
+      if (vec[1] != 0 && vec[2] != 0) { # corner case of A[] on empty array
+          qryptr <- libtiledb_query_add_range_with_type(qryptr, k-1, dimtypes[k], vec[1], vec[2])
+          rangeunset <- FALSE
+      }
+    } else if (is.null(nrow(x@selected_ranges[[k]]))) {
+      #cat("Adding nrow null dim", k, "on", dimtypes[[k]], "\n")
+      vec <- x@selected_ranges[[k]]
+      qryptr <- libtiledb_query_add_range_with_type(qryptr, k-1, dimtypes[k], min(vec), max(vec))
+      rangeunset <- FALSE
+    } else {
+      #cat("Adding non-zero dim", k, "on", dimtypes[[k]], "\n")
       m <- x@selected_ranges[[k]]
       for (i in seq_len(nrow(m))) {
-        qryptr <- libtiledb_query_add_range_with_type(qryptr, k-1, dimtypes[k], m[i,1], m[i,2])
+        vec <- .mapDatetime2integer64(c(m[i,1], m[i,2]), dimtypes[k])
+        qryptr <- libtiledb_query_add_range_with_type(qryptr, k-1, dimtypes[k], vec[1], vec[2])
       }
       rangeunset <- FALSE
     }
@@ -493,7 +549,6 @@ setMethod("[", "tiledb_array",
   ressizes <- mapply(getEstimatedSize, allnames, allvarnum, allnullable, alltypes,
                      MoreArgs=list(qryptr=qryptr), SIMPLIFY=TRUE)
   resrv <- max(1, ressizes) # ensure >0 for correct handling of zero-length outputs
-
   ## allocate and set buffers
   getBuffer <- function(name, type, varnum, nullable, resrv, qryptr, arrptr) {
       if (is.na(varnum)) {
@@ -526,7 +581,11 @@ setMethod("[", "tiledb_array",
       libtiledb_query_result_buffer_elements(qryptr, name)
   }
   estsz <- mapply(getResultSize, allnames, allvarnum, MoreArgs=list(qryptr=qryptr), SIMPLIFY=TRUE)
-  resrv <- max(estsz, na.rm=TRUE)
+  if (any(!is.na(estsz))) {
+      resrv <- max(estsz, na.rm=TRUE)
+  } else {
+      resrv <- resrv/8                  # character case where bytesize of offset vector was used
+  }
 
   ## get results
   getResult <- function(buf, name, varnum, resrv, qryptr) {
@@ -544,13 +603,41 @@ setMethod("[", "tiledb_array",
   res <- data.frame(reslist)[seq_len(resrv),]
   colnames(res) <- allnames
 
-  ## reduce output if extended is false
-  if (!x@extended) {
-    res <- res[, attrnames]
+  ## reduce output if extended is false, or attrs given
+  if (!x@extended || length(sel) > 0) {
+      res <- res[, if (sparse) allnames else attrnames]
+      k <- match("__tiledb_rows", colnames(res))
+      if (is.finite(k)) {
+          res <- res[, -k]
+      }
   }
 
-  if (!x@as.data.frame) {
+  if (!x@as.data.frame && !x@as.matrix) {
     res <- as.list(res)
+  }
+
+  if (x@as.matrix) {
+    if (ncol(res) < 3) {
+      message("ignoring as.matrix argument with insufficient result set")
+    } else if (!is.null(i)) {
+      message("case of row selection not supported for accessing as.matrix")
+    } else if (!is.null(j)) {
+      message("case of column selection not supported for accessing as.matrix")
+    } else if (ncol(res) == 3) {
+      mat <- matrix(, nrow=max(res[,1]), ncol=max(res[,2]))
+      mat[ cbind( res[,1], res[,2] ) ] <- res[,3]
+      res <- mat
+    } else {                            # case of ncol > 3
+      k <- ncol(res) - 2
+      lst <- vector(mode = "list", length = k)
+      for (i in seq_len(k)) {
+         mat <- matrix(, nrow=max(res[,1]), ncol=max(res[,2]))
+         mat[ cbind( res[,1], res[,2] ) ] <- res[, 2 + i]
+         lst[[i]] <- mat
+      }
+      names(lst) <- tail(colnames(res), k)
+      res <- lst
+    }
   }
 
   invisible(res)
@@ -599,6 +686,7 @@ setMethod("[<-", "tiledb_array",
       return(x)
     }
   }
+  if (is.null(names(value))) stop("No column names supplied", call. = FALSE)
 
   ## add defaults
   if (missing(i)) i <- NULL
@@ -721,7 +809,7 @@ setMethod("[<-", "tiledb_array",
     qryptr <- libtiledb_query(ctx@ptr, arrptr, "WRITE")
     qryptr <- libtiledb_query_set_layout(qryptr,
                                          if (length(layout) > 0) layout
-                                         else { if (sparse) "UNORDERED" else "ROW_MAJOR" })
+                                         else { if (sparse) "UNORDERED" else "COL_MAJOR" })
 
     buflist <- vector(mode="list", length=nc)
 
@@ -748,7 +836,7 @@ setMethod("[<-", "tiledb_array",
           }
       } else {
         nr <- NROW(value[[i]])
-        #cat("Alloc buf", i, " ", colnam, ":", alltypes[i], "nr:", nr, "null:", allnullable[i], "\n")
+        #cat("Alloc buf", i, " ", colnam, ":", alltypes[i], "nr:", nr, "null:", allnullable[i], "asint64:", asint64, "\n")
         buflist[[i]] <- libtiledb_query_buffer_alloc_ptr(arrptr, alltypes[i], nr, allnullable[i])
         buflist[[i]] <- libtiledb_query_buffer_assign_ptr(buflist[[i]], alltypes[i], value[[i]], asint64)
         qryptr <- libtiledb_query_set_buffer_ptr(qryptr, colnam, buflist[[i]])
@@ -896,7 +984,8 @@ setGeneric("selected_ranges<-", function(x, value) standardGeneric("selected_ran
 #' A \code{tiledb_array} object can have a range selection for each dimension
 #' attribute. This methods returns the selection value for \sQuote{selected_ranges}
 #' and returns a list (with one element per dimension) of two-column matrices where
-#' each row describes one pair of minimum and maximum values.
+#' each row describes one pair of minimum and maximum values. Alternatively, the list
+#' can be named with the names providing the match to the corresponding dimension.
 #' @param object A \code{tiledb_array} object
 #' @return A list which can contain a matrix for each dimension
 #' @export
@@ -908,7 +997,8 @@ setMethod("selected_ranges", signature = "tiledb_array",
 #' A \code{tiledb_array} object can have a range selection for each dimension
 #' attribute. This methods sets the selection value for \sQuote{selected_ranges}
 #' which is a list (with one element per dimension) of two-column matrices where
-#' each row describes one pair of minimum and maximum values.
+#' each row describes one pair of minimum and maximum values. Alternatively, the list
+#' can be named with the names providing the match to the corresponding dimension.
 #' @param x A \code{tiledb_array} object
 #' @param value A list of two-column matrices where each list element \sQuote{i}
 #' corresponds to the dimension attribute \sQuote{i}. The matrices can contain rows
