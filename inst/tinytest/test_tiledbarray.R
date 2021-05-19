@@ -199,7 +199,7 @@ dat <- readRDS(system.file("sampledata", "bankSample.rds", package="tiledb"))
 dir.create(tmpuri <- tempfile())
 fromDataFrame(dat[,-1], tmpuri)
 
-arr <- tiledb_array(tmpuri, as.data.frame=TRUE)
+arr <- tiledb_array(tmpuri, as.data.frame=TRUE, extended=FALSE)
 expect_true(length(attrs(arr)) == 0)
 
 sels <-  c("age", "job", "education", "duration")
@@ -1055,9 +1055,20 @@ expect_equal(mat, mat2)                 # check round-turn
 
 ## check no double selection
 expect_error(tiledb_array(tmp, as.data.frame=TRUE, as.matrix=TRUE))
-## check normal data.frame return when row col select
-expect_true(is.data.frame(suppressMessages(arr2[1:2,])))
-expect_true(is.data.frame(suppressMessages(arr2[,3])))
+## check matrix return and not data.frame return when row col select
+expect_false(is.data.frame(suppressMessages(arr2[1:2,])))
+expect_true(is.matrix(suppressMessages(arr2[1:2,])))
+expect_false(is.data.frame(suppressMessages(arr2[,3])))
+expect_true(is.matrix(suppressMessages(arr2[,3])))
+## selections via i and j
+expect_equal(arr2[1:2,], cbind( c(1,2), c(6,7), c(11,12), c(16,17)))
+expect_equal(arr2[,3], cbind(11:15) )
+## more complex selection with holes via selected_ranges()
+selected_ranges(arr2) <- list(cbind(c(1,4),c(2,5)), cbind(2,3))
+expect_equal(arr2[], cbind(c(6,7,9,10), c(11,12,14,15)))
+selected_ranges(arr2) <- list(cbind(c(1,4),c(2,5)), cbind(2,2))
+expect_equal(arr2[], cbind(c(6,7,9,10)))
+
 
 arr3 <- tiledb_array(tmp, as.data.frame=TRUE)
 df1 <- arr3[]
@@ -1076,3 +1087,44 @@ expect_true(is.list(res))
 expect_equal(length(res), 2L)
 expect_equal(res$vals, mat)
 expect_equal(res$vals2, 10*mat)
+
+## PR #245 (variant of examples/ex_1.R)
+uri <- tempfile()
+dom <- tiledb_domain(dims = c(tiledb_dim("rows", c(1L, 10L), 10L, "INT32"),
+                              tiledb_dim("cols", c(1L, 5L), 5L, "INT32")))
+schema <- tiledb_array_schema(dom,
+                              attrs = c(tiledb_attr("a", type = "INT32"),
+                                        tiledb_attr("b", type = "FLOAT64"),
+                                        tiledb_attr("c", type = "CHAR", ncells=NA_integer_)),
+                              cell_order = "ROW_MAJOR", tile_order = "ROW_MAJOR")
+tiledb_array_create(uri, schema)
+data <- list(a=array(seq(1:50), dim = c(10,5)),
+             b=array(as.double(seq(101,by=0.5,length=50)), dim = c(10,5)),
+             c=array(c(letters[1:26], "brown", "fox", LETTERS[1:22]), dim = c(10,5)))
+A <- tiledb_array(uri)
+A[] <- data
+obj <- tiledb_array(uri, attrs="a", as.data.frame=TRUE)
+res <- obj[]
+expect_equal(colnames(res), c("rows", "cols", "a")) 	# this was the PR issues
+obj <- tiledb_array(uri, attrs="a", as.matrix=TRUE)     # this is the preferred accessor here
+expect_equal(obj[], data[["a"]])
+obj <- tiledb_array(uri, as.matrix=TRUE)     			# test all three matrices
+res <- obj[]
+expect_equal(res[["a"]], data[["a"]])
+expect_equal(res[["b"]], data[["b"]])
+expect_equal(res[["c"]], data[["c"]])
+
+## PR #246
+N <- 25L
+K <- 4L
+uri <- tempfile()
+schema <- tiledb_array_schema(tiledb_domain(dims=c(tiledb_dim("d1", c(1L, N), tile=N, type="INT32"),
+                                                   tiledb_dim("d2", c(1L, K), tile=K, type="INT32"))),
+                              sparse=FALSE,
+                              attrs=tiledb_attr("x", type="FLOAT64"))
+tiledb_array_create(uri, schema)
+obj <- tiledb_array(uri, attrs="x", query_type="WRITE")
+M <- matrix(runif(N*K), N, K)
+obj[] <- M                              # prior to #246 this write had a write data type
+chk <- tiledb_array(uri, as.matrix=TRUE)
+expect_equal(chk[], M)

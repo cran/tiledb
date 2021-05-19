@@ -104,7 +104,7 @@ tiledb_array <- function(uri,
   if (missing(uri) || !is.scalar(uri, "character"))
     stop("argument uri must be a string scalar", call. = FALSE)
   if (as.data.frame && as.matrix)
-    stop("arguments as.data.frame and as.matrix cannot be selected togethers", call. = FALSE)
+    stop("arguments as.data.frame and as.matrix cannot be selected together", call. = FALSE)
   if (isTRUE(is.sparse) && as.matrix)
     stop("argument as.matrix cannot be selected for sparse arrays", call. = FALSE)
 
@@ -288,6 +288,11 @@ setValidity("tiledb_array", function(object) {
   if (!is.logical(object@as.matrix)) {
     valid <- FALSE
     msg <- c(msg, "The 'as.matrix' slot does not contain a logical value.")
+  }
+
+  if (object@as.data.frame && object@as.matrix) {
+    valid <- FALSE
+    msg <- c(msg, "The 'as.data.frame' and 'as.matrix' slots cannot be both set to 'TRUE'.")
   }
 
   if (!is(object@ptr, "externalptr")) {
@@ -604,8 +609,10 @@ setMethod("[", "tiledb_array",
   colnames(res) <- allnames
 
   ## reduce output if extended is false, or attrs given
-  if (!x@extended || length(sel) > 0) {
-      res <- res[, if (sparse) allnames else attrnames]
+  if (!x@extended) {
+      if (length(sel) > 0) {
+          res <- res[, if (sparse) allnames else attrnames]
+      }
       k <- match("__tiledb_rows", colnames(res))
       if (is.finite(k)) {
           res <- res[, -k]
@@ -617,13 +624,22 @@ setMethod("[", "tiledb_array",
   }
 
   if (x@as.matrix) {
+    k <- match("__tiledb_rows", colnames(res))
+    if (is.finite(k)) {
+       res <- res[, -k]
+    }
     if (ncol(res) < 3) {
-      message("ignoring as.matrix argument with insufficient result set")
-    } else if (!is.null(i)) {
-      message("case of row selection not supported for accessing as.matrix")
-    } else if (!is.null(j)) {
-      message("case of column selection not supported for accessing as.matrix")
-    } else if (ncol(res) == 3) {
+      stop("Seeing as.matrix argument with insufficient result set")
+    }
+    if (!identical(unique(res[,1]), seq(1, length(unique(res[,1]))))) {
+        cur <- unique(res[,1])
+        for (l in seq_len(length(cur))) res[ which(res[,1] == cur[l]), 1 ] <- l
+    }
+    if (!identical(unique(res[,2]), seq(1, length(unique(res[,2]))))) {
+        cur <- unique(res[,2])
+        for (l in seq_len(length(cur))) res[ which(res[,2] == cur[l]), 2 ] <- l
+    }
+    if (ncol(res) == 3) {
       mat <- matrix(, nrow=max(res[,1]), ncol=max(res[,2]))
       mat[ cbind( res[,1], res[,2] ) ] <- res[,3]
       res <- mat
@@ -767,6 +783,8 @@ setMethod("[<-", "tiledb_array",
       value <- data.frame(x=as.matrix(value)[seq(1, d[1]*d[2])])
       colnames(value) <- attrnames
       allnames <- attrnames
+      alltypes <- attrtypes
+      allnullable <- attrnullable
     }
 
   ## Case 4: dense, list on RHS e.g. the ex_1.R example
@@ -1185,3 +1203,42 @@ tiledb_array_get_non_empty_domain_from_name <- function(arr, name) {
 
   tiledb_array_get_non_empty_domain_from_index(arr, idx)
 }
+
+
+#' @rdname return.matrix-tiledb_array-method
+#' @param ... Currently unused
+#' @export
+setGeneric("return.matrix", function(object, ...) standardGeneric("return.matrix"))
+
+#' Retrieve matrix.frame return toggle
+#'
+#' A \code{tiledb_array} object can be returned as an array (or list of arrays),
+#' or, if select, as a \code{data.frame} or as a \code{matrix}. This methods returns
+#' the selection value for the \code{matrix} selection.
+#' @param object A \code{tiledb_array} object
+#' @return A logical value indicating whether \code{matrix} return is selected
+#' @export
+setMethod("return.matrix",
+          signature = "tiledb_array",
+          function(object) object@as.matrix)
+
+#' @rdname return.matrix-set-tiledb_array-method
+#' @export
+setGeneric("return.matrix<-", function(x, value) standardGeneric("return.matrix<-"))
+
+#' Set marix return toggle
+#'
+#' A \code{tiledb_array} object can be returned as an array (or list of arrays),
+#' or, if select, as a \code{data.frame} or a \code{matrix}. This methods sets the
+#' selection value for a \code{matrix}.
+#' @param x A \code{tiledb_array} object
+#' @param value A logical value with the selection
+#' @return The modified \code{tiledb_array} array object
+#' @export
+setReplaceMethod("return.matrix",
+                 signature = "tiledb_array",
+                 function(x, value) {
+  x@as.matrix <- value
+  validObject(x)
+  x
+})
