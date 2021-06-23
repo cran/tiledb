@@ -1,4 +1,23 @@
-# tiledb 0.9.2
+# tiledb 0.9.4
+
+* This release of the R package builds against [TileDB 2.3.1](https://github.com/TileDB-Inc/TileDB/releases/tag/2.3.1), but has also been tested against previous releases and the development version.
+
+## Improvements
+
+* The build defaults to TileDB Embedded 2.3.* (unless another version is found during build, or explicitly selected) (#258, #264)
+
+* Query condition support is available for TileDB 2.3.0 or later, allowing (possibly multiple) numerical constraints on attributes (#261)
+
+* Multi-dimensional arrays can now be returned from (dense) arrays via a new option (#263)
+
+* The package is now natively supported on Arm64 ("M1") macOS system (#264)
+
+## Bug Fixes
+
+* Dense arrays with more than two dimensions can now be written (#260)
+
+
+# tiledb 0.9.3
 
 * This release of the R package builds against [TileDB 2.2.9](https://github.com/TileDB-Inc/TileDB/releases/tag/2.2.9), but has also been tested against previous releases as well as the development version.
 
