@@ -733,27 +733,27 @@ res <- tiledb:::libtiledb_array_close(arrptr)
 #  # estimated size of a variable-length attribute in dense or sparse array
 #  sz <- tiledb_query_get_est_result_size_var(qry, "b")
 
-## ----timetravel, eval=notWindows----------------------------------------------
-# time traveling is currently only accessible via the lower-level API
-# we use the R Datetime type; internally TileDB uses milliseconds since epoch
-tstamp <- Sys.time() - 60*60 # one hour ago
-
-ctx <- tiledb_ctx()
-arrptr <- tiledb:::libtiledb_array_open_at(ctx@ptr, uridense, "READ", tstamp)
-subarr <- c(1L,2L, 2L,4L)
-qryptr <- tiledb:::libtiledb_query(ctx@ptr, arrptr, "READ")
-qryptr <- tiledb:::libtiledb_query_set_subarray(qryptr, subarr)
-qryptr <- tiledb:::libtiledb_query_set_layout(qryptr, "COL_MAJOR")
-a <- integer(6)  # reserve space
-qryptr <- tiledb:::libtiledb_query_set_buffer(qryptr, "a", a)
-qryptr <- tiledb:::libtiledb_query_submit(qryptr)
-res <- tiledb:::libtiledb_array_close(arrptr)
-a
-
-# we can do the same with encrypted arrays
-encryption_key <- "0123456789abcdeF0123456789abcdeF"
-arrptr <- tiledb:::libtiledb_array_open_at_with_key(ctx@ptr, uridensewkey, "READ",
-                                                    encryption_key, tstamp)
+## ----timetravel, eval=FALSE---------------------------------------------------
+#  # time traveling is currently only accessible via the lower-level API
+#  # we use the R Datetime type; internally TileDB uses milliseconds since epoch
+#  tstamp <- Sys.time() - 60*60 # one hour ago
+#  
+#  ctx <- tiledb_ctx()
+#  arrptr <- tiledb:::libtiledb_array_open_at(ctx@ptr, uridense, "READ", tstamp)
+#  subarr <- c(1L,2L, 2L,4L)
+#  qryptr <- tiledb:::libtiledb_query(ctx@ptr, arrptr, "READ")
+#  qryptr <- tiledb:::libtiledb_query_set_subarray(qryptr, subarr)
+#  qryptr <- tiledb:::libtiledb_query_set_layout(qryptr, "COL_MAJOR")
+#  a <- integer(6)  # reserve space
+#  qryptr <- tiledb:::libtiledb_query_set_buffer(qryptr, "a", a)
+#  qryptr <- tiledb:::libtiledb_query_submit(qryptr)
+#  res <- tiledb:::libtiledb_array_close(arrptr)
+#  a
+#  
+#  # we can do the same with encrypted arrays
+#  encryption_key <- "0123456789abcdeF0123456789abcdeF"
+#  arrptr <- tiledb:::libtiledb_array_open_at_with_key(ctx@ptr, uridensewkey, "READ",
+#                                                      encryption_key, tstamp)
 
 ## ----asyncquery, eval=FALSE---------------------------------------------------
 #  #  ... create read or write query

@@ -94,7 +94,7 @@ expect_equal(nrow(ndf), 10)
 tiledb_array_close(arr)
 rm(qry)
 
-## check b == 115.5 (yes, yes, yes, we know EQ dicey on floats; can remove this if it croaks)
+## check b == 115.5 (yes, yes, yes, we know EQ is dicey on floats; can remove this if it croaks)
 qry <- tiledb_query(arr, "READ")
 rows <- integer(20)
 cola <- integer(20)
@@ -159,3 +159,75 @@ res <- arr2[]
 expect_equal(NROW(res), 34L)
 expect_true(all(res$bill_length_mm < 40))
 expect_true(all(res$year == 2009))
+
+unlink(uri, recursive=TRUE)
+
+## parse query condition support
+uri <- tempfile()
+fromDataFrame(penguins, uri, sparse=TRUE)
+qc <- parse_query_condition(year == 2009)
+arrwithqc <- tiledb_array(uri, as.data.frame=TRUE, query_condition=qc)
+res <- arrwithqc[]
+expect_equal(NROW(res), 120L)    # year 2009 only -> 120 rows
+expect_true(all(res$year == 2009))
+
+qc2 <- parse_query_condition(year == 2009 && bill_length_mm <= 39.99)
+arrwithqc2 <- tiledb_array(uri, as.data.frame=TRUE, query_condition=qc2)
+res <- arrwithqc2[]
+expect_equal(NROW(res), 34L)
+expect_true(all(res$bill_length_mm < 40))
+expect_true(all(res$year == 2009))
+
+unlink(uri, recursive=TRUE)
+
+## qc and string_ascii
+uri <- tempfile()
+fromDataFrame(na.omit(penguins), uri, sparse=TRUE)
+qc3 <- parse_query_condition(sex == "male")
+arrwithqc3 <- tiledb_array(uri, as.data.frame=TRUE, query_condition=qc3)
+res <- arrwithqc3[]
+expect_equal(NROW(res), 168L)
+expect_true(all(res$sex == "male"))
+
+qc <- tiledb_query_condition_init("sex", "female", "ASCII", "EQ")
+arrwithqc <- tiledb_array(uri, as.data.frame=TRUE, query_condition=qc)
+res <- arrwithqc[]
+expect_equal(NROW(res), 165L)
+expect_true(all(res$sex != "male"))
+
+## check type inference for edge cases
+edgecases <- data.frame(x1 = "a1", x2 = 1L, x3 = "_1", x4 = "1.1.1")
+
+uri <- tempfile()
+fromDataFrame(edgecases, uri, sparse=TRUE)
+
+qcx1 <- tiledb::parse_query_condition(x1 == "a1")
+arrx1 <- tiledb_array(uri, as.data.frame=TRUE, query_condition=qcx1)
+res <- arrx1[]
+expect_equal(res$x1, "a1")
+
+qcx2 <- tiledb::parse_query_condition(x2 == 1L)
+arrx2 <- tiledb_array(uri, as.data.frame=TRUE, query_condition=qcx2)
+res <- arrx2[]
+expect_equal(res$x2, 1L)
+
+qcx3 <- tiledb::parse_query_condition(x3 == "_1")
+arrx3 <- tiledb_array(uri, as.data.frame=TRUE, query_condition=qcx3)
+expect_equal(arrx3[]$x3, "_1")
+
+qcx4 <- tiledb::parse_query_condition(x4 == "1.1.1")
+arrx4 <- tiledb_array(uri, as.data.frame=TRUE, query_condition=qcx4)
+expect_equal(arrx4[]$x4, "1.1.1")
+
+
+## edge case of text only array
+df <- data.frame(abb = state.abb,		# builtin-data
+                 region = state.region,	# idem
+                 name = state.name)     # idem
+uri <- tempfile()
+fromDataFrame(df, uri, col_index="abb", sparse=TRUE)
+fullarr <- tiledb_array(uri, as.data.frame=TRUE)[]
+expect_equal(dim(fullarr), c(50,3))
+subarr <- tiledb_array(uri, as.data.frame=TRUE,
+                       query_condition=parse_query_condition(region == "Northeast"))[]
+expect_equal(dim(subarr), c(9,3))

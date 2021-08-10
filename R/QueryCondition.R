@@ -92,3 +92,68 @@ tiledb_query_condition_combine <- function(lhs, rhs, op) {
     qc@init <- TRUE
     invisible(qc)
 }
+
+#' Create a 'tiledb_query_condition' object from an expression
+#'
+#' The grammar for query conditions is at present constraint to six operators
+#' and three boolean types.
+#'
+#' @param expr An expression that is understood by the TileDB grammar for
+#' query conditions.
+#' @param debug A boolean toogle to enable more verbose operations, defaults
+#' to 'FALSE'.
+#' @return A `tiledb_query_condition` object
+#' @export
+parse_query_condition <- function(expr, debug=FALSE) {
+    .isComparisonOperator <- function(x) as.character(x) %in% c(">", ">=", "<", "<=", "==", "!=")
+    .isBooleanOperator <- function(x) as.character(x) %in% c("&&", "||", "!")
+    .isAscii <- function(x) grepl("^[[:alnum:]_]+$", x)
+    .isInteger <- function(x) grepl("^[[:digit:]]+$", as.character(x))
+    .isDouble <- function(x) grepl("^[[:digit:]\\.]+$", as.character(x)) && length(grepRaw(".", as.character(x), fixed = TRUE, all = TRUE)) == 1
+    .getType <- function(x) {
+        if (isTRUE(.isInteger(x))) "INT32"
+        else if (isTRUE(.isDouble(x))) "FLOAT64"
+        else "ASCII"
+    }
+    .mapOpToCharacter <- function(x) switch(x,
+                                            `>`  = "GT",
+                                            `>=` = "GE",
+                                            `<`  = "LT",
+                                            `<=` = "LE",
+                                            `==` = "EQ",
+                                            `!=` = "NE")
+    .mapBoolToCharacter <- function(x) switch(x,
+                                              `&&` = "AND",
+                                              `||` = "OR",
+                                              `!`  = "NOT")
+    .makeExpr <- function(x) {
+        if (is.symbol(x)) {
+            stop("Unexpected symbol in expression: ", format(x))
+        } else if (.isBooleanOperator(x[1])) {
+            if (debug) cat("-- [", as.character(x[2]), "]",
+                           " ", as.character(x[1]),
+                           " [", as.character(x[3]), "]\n", sep="")
+            .makeExpr(x[[2]])
+            .makeExpr(x[[3]])
+            tiledb_query_condition_combine(.makeExpr(x[[2]]),
+                                           .makeExpr(x[[3]]),
+                                           .mapBoolToCharacter(as.character(x[1])))
+
+        } else if (.isComparisonOperator(x[1])) {
+            if (debug) cat("   [",as.character(x[2]),"] ",
+                           as.character(x[1]), " (aka ", .mapOpToCharacter(as.character(x[1])), ")",
+                           " [",as.character(x[3]), "] ", .getType(x[3]), "\n", sep="")
+            ch <- as.character(x[3])
+            dtype <- .getType(ch)
+            tiledb_query_condition_init(attr = as.character(x[2]), # still need to check again schema
+                                        value = if (dtype == "ASCII") ch else as.numeric(ch),
+                                        dtype = dtype,
+                                        op = .mapOpToCharacter(as.character(x[1])))
+        } else {
+            stop("Unexpected token in expression: ", format(x))
+        }
+    }
+
+    e <- substitute(expr)
+    .makeExpr(e)
+}

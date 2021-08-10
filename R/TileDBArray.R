@@ -38,10 +38,12 @@
 #' @slot query_layout An optional character value
 #' @slot datetimes_as_int64 A logical value
 #' @slot encryption_key A character value
-#' @slot timestamp A POSIXct datetime variable
+#' @slot timestamp A POSIXct datetime variable (deprecated, use timestamp_start)
 #' @slot as.matrix A logical value
 #' @slot as.array A logical value
 #' @slot query_condition A Query Condition object
+#' @slot timestamp_start A POSIXct datetime variable for the inclusive interval start
+#' @slot timestamp_end A POSIXct datetime variable for the inclusive interval start
 #' @slot ptr External pointer to the underlying implementation
 #' @exportClass tiledb_array
 setClass("tiledb_array",
@@ -59,6 +61,8 @@ setClass("tiledb_array",
                       as.matrix = "logical",
                       as.array = "logical",
                       query_condition = "tiledb_query_condition",
+                      timestamp_start = "POSIXct",
+                      timestamp_end = "POSIXct",
                       ptr = "externalptr"))
 
 #' Constructs a tiledb_array object backed by a persisted tiledb array uri
@@ -83,13 +87,17 @@ setClass("tiledb_array",
 #' @param encryption_key optional A character value with an AES-256 encryption key
 #' in case the array was written with encryption.
 #' @param timestamp optional A POSIXct Datetime value determining where in time the array is
-#' to be openened.
+#' to be openened. Deprecated, use \sQuote{timestamp_start} instead
 #' @param as.matrix optional logical switch, defaults to "FALSE"; currently limited to dense
 #' matrices; in the case of multiple attributes in query a list of matrices is returned
 #' @param as.array optional logical switch, defaults to "FALSE"; in the case of multiple
 #' attributes in query a list of arrays is returned
 #' @param query_condition optional \code{tiledb_query_condition} object, by default uninitialized
 #' without a condition; this functionality requires TileDB 2.3.0 or later
+#' @param timestamp_start optional A POSIXct Datetime value determining the inclusive time point
+#' at which the array is to be openened. No fragments written earlier will be considered.
+#' @param timestamp_end optional A POSIXct Datetime value determining the inclusive time point
+#' until which the array is to be openened. No fragments written earlier later be considered.
 #' @param ctx tiledb_ctx (optional)
 #' @return tiledb_array object
 #' @export
@@ -107,6 +115,8 @@ tiledb_array <- function(uri,
                          as.matrix = FALSE,
                          as.array = FALSE,
                          query_condition = new("tiledb_query_condition"),
+                         timestamp_start = as.POSIXct(double(), origin="1970-01-01"),
+                         timestamp_end = as.POSIXct(double(), origin="1970-01-01"),
                          ctx = tiledb_get_context()) {
   query_type = match.arg(query_type)
   if (!is(ctx, "tiledb_ctx"))
@@ -134,6 +144,16 @@ tiledb_array <- function(uri,
       array_xptr <- libtiledb_array_open(ctx@ptr, uri, query_type)
     }
   }
+
+  if (length(timestamp) > 0)
+      .Deprecated(msg="Use 'timestamp_start' (and maybe 'timestamp_end') instead of 'timestamp'.")
+  if (length(timestamp_start) > 0) {
+      libtiledb_array_set_open_timestamp_start(array_xptr, timestamp_start)
+  }
+  if (length(timestamp_end) > 0) {
+      libtiledb_array_set_open_timestamp_end(array_xptr, timestamp_end)
+  }
+
   schema_xptr <- libtiledb_array_get_schema(array_xptr)
   is_sparse_status <- libtiledb_array_schema_sparse(schema_xptr)
   if (!is.na(is.sparse) && is.sparse != is_sparse_status) {
@@ -161,6 +181,8 @@ tiledb_array <- function(uri,
       as.matrix = as.matrix,
       as.array = as.array,
       query_condition = query_condition,
+      timestamp_start = timestamp_start,
+      timestamp_end = timestamp_end,
       ptr = array_xptr)
 }
 
@@ -224,6 +246,8 @@ setMethod("show", signature = "tiledb_array",
      ,"  as.matrix          = ", if (object@as.matrix) "TRUE" else "FALSE", "\n"
      ,"  as.array           = ", if (object@as.array) "TRUE" else "FALSE", "\n"
      ,"  query_condition    = ", if (isTRUE(object@query_condition@init)) "(set)" else "(none)", "\n"
+     ,"  timestamp_start    = ", if (length(object@timestamp_start) == 0) "(none)" else format(object@timestamp_start), "\n"
+     ,"  timestamp_end      = ", if (length(object@timestamp_end) == 0) "(none)" else format(object@timestamp_end), "\n"
      ,sep="")
 })
 
@@ -319,6 +343,16 @@ setValidity("tiledb_array", function(object) {
     msg <- c(msg, "The 'query_condition' slot does not contain a query condition object.")
   }
 
+  if (!inherits(object@timestamp_start, "POSIXct")) {
+    valid <- FALSE
+    msg <- c(msg, "The 'timestamp_start' slot does not contain a POSIXct value.")
+  }
+
+  if (!inherits(object@timestamp_end, "POSIXct")) {
+    valid <- FALSE
+    msg <- c(msg, "The 'timestamp_end' slot does not contain a POSIXct value.")
+  }
+
   if (!is(object@ptr, "externalptr")) {
     valid <- FALSE
     msg <- c(msg, "The 'ptr' slot does not contain an external pointer.")
@@ -398,21 +432,6 @@ setMethod("[", "tiledb_array",
 
   sparse <- libtiledb_array_schema_sparse(sch@ptr)
 
-  if (length(enckey) > 0) {
-    if (length(tstamp) > 0) {
-      x@ptr <- libtiledb_array_open_at_with_key(ctx@ptr, uri, "READ", enckey, tstamp)
-    } else {
-      x@ptr <- libtiledb_array_open_with_key(ctx@ptr, uri, "READ", enckey)
-    }
-  } else {
-    if (length(tstamp) > 0) {
-      x@ptr <- libtiledb_array_open_at(ctx@ptr, uri, "READ", tstamp)
-    } else {
-      x@ptr <- libtiledb_array_open(ctx@ptr, uri, "READ")
-    }
-  }
-  on.exit(libtiledb_array_close(x@ptr))
-
   dims <- tiledb::dimensions(dom)
   dimnames <- sapply(dims, function(d) libtiledb_dim_get_name(d@ptr))
   dimtypes <- sapply(dims, function(d) libtiledb_dim_get_datatype(d@ptr))
@@ -453,6 +472,15 @@ setMethod("[", "tiledb_array",
     } else {
       arrptr <- libtiledb_array_open(ctx@ptr, uri, "READ")
     }
+  }
+  if (length(x@timestamp_start) > 0) {
+      arrptr <- libtiledb_array_set_open_timestamp_start(arrptr, x@timestamp_start)
+  }
+  if (length(x@timestamp_end) > 0) {
+      arrptr <- libtiledb_array_set_open_timestamp_end(arrptr, x@timestamp_end)
+  }
+  if (length(x@timestamp_start) > 0 || length(x@timestamp_end) > 0) {
+      arrptr <- libtiledb_array_reopen(arrptr)
   }
 
   ## helper function to sweep over names and types of domain
@@ -617,7 +645,7 @@ setMethod("[", "tiledb_array",
   ## retrieve actual result size (from fixed size element columns)
   getResultSize <- function(name, varnum, qryptr) {
     if (is.na(varnum))                  # symbols come up with higher count
-      varnum
+      libtiledb_query_result_buffer_elements(qryptr, name, 0)
     else
       libtiledb_query_result_buffer_elements(qryptr, name)
   }
@@ -631,15 +659,15 @@ setMethod("[", "tiledb_array",
   ## get results
   getResult <- function(buf, name, varnum, resrv, qryptr) {
     if (is.na(varnum)) {
-      sz <- libtiledb_query_result_buffer_elements(qryptr, name)
-      libtiledb_query_get_buffer_var_char(buf, resrv, sz)[,1]
+      sz <- libtiledb_query_result_buffer_elements(qryptr, name, 0)
+      len <- libtiledb_query_result_buffer_elements(qryptr, name, 1)
+      libtiledb_query_get_buffer_var_char(buf, sz, len)[,1]
     } else {
       libtiledb_query_get_buffer_ptr(buf, asint64)
     }
   }
   reslist <- mapply(getResult, buflist, allnames, allvarnum,
                     MoreArgs=list(resrv=resrv, qryptr=qryptr), SIMPLIFY=FALSE)
-
   ## convert list into data.frame (cheaply) and subset
   res <- data.frame(reslist)[seq_len(resrv),]
   colnames(res) <- allnames
@@ -862,20 +890,24 @@ setMethod("[<-", "tiledb_array",
 
   if (all.equal(sort(allnames),sort(nm))) {
 
-    if (length(enckey) > 0) {
-      if (length(tstamp) > 0) {
-        arrptr <- libtiledb_array_open_at_with_key(ctx@ptr, uri, "WRITE", enckey, tstamp)
+    if (libtiledb_array_is_open_for_writing(x@ptr)) { 			# if open for writing
+      arrptr <- x@ptr                                           #   use array
+    } else {                                                    # else open appropriately
+      if (length(enckey) > 0) {
+        if (length(tstamp) > 0) {
+          arrptr <- libtiledb_array_open_at_with_key(ctx@ptr, uri, "WRITE", enckey, tstamp)
+        } else {
+          arrptr <- libtiledb_array_open_with_key(ctx@ptr, uri, "WRITE", enckey)
+        }
       } else {
-        arrptr <- libtiledb_array_open_with_key(ctx@ptr, uri, "WRITE", enckey)
+        if (length(tstamp) > 0) {
+          arrptr <- libtiledb_array_open_at(ctx@ptr, uri, "WRITE", tstamp)
+        } else {
+          arrptr <- libtiledb_array_open(ctx@ptr, uri, "WRITE")
+        }
       }
-    } else {
-      if (length(tstamp) > 0) {
-        arrptr <- libtiledb_array_open_at(ctx@ptr, uri, "WRITE", tstamp)
-      } else {
-        arrptr <- libtiledb_array_open(ctx@ptr, uri, "WRITE")
-      }
-    }
 
+    }
 
     qryptr <- libtiledb_query(ctx@ptr, arrptr, "WRITE")
     qryptr <- libtiledb_query_set_layout(qryptr,
@@ -1180,33 +1212,83 @@ setReplaceMethod("datetimes_as_int64",
 
 #' Consolidate fragments of a TileDB Array
 #'
-#' This function invokes a consolidation operation. Parameters can be set via
-#' an option configuration object.
+#' This function invokes a consolidation operation. Parameters affecting the operation
+#' can be set via an optional configuration object. Start and end timestamps can also be
+#' set directly.
 #' @param uri A character value with the URI of a TileDB Array
+#' @param start_time An optional timestamp value, if missing config default is used
+#' @param end_time An optional timestamp value, if missing config default is used
 #' @param cfg An optional TileDB Configuration object
 #' @param ctx An option TileDB Context object
-#' @return \code{NULL} is returned invisibly
+#' @return NULL is returned invisibly
 #' @export
-array_consolidate <- function(uri, cfg = NULL, ctx = tiledb_get_context()) {
-  libtiledb_array_consolidate(ctx = ctx@ptr, uri = uri,
-                              # C++ code has Nullable and can instantiate but needs S4 XPtr
-                              cfgptr = if (is.null(cfg)) cfg else cfg@ptr)
+array_consolidate <- function(uri, cfg = NULL,
+                              start_time, end_time,
+                              ctx = tiledb_get_context()) {
+    if (is.null(cfg)) {
+        cfg <- tiledb_config()
+    }
+
+    if (!missing(start_time)) {
+        stopifnot(`start_time must be datetime object` = inherits(start_time, "POSIXt"),
+                  `TileDB 2.3.0 or later is required`  = tiledb_version(TRUE) >= "2.3.0")
+        start_time_int64 <- bit64::as.integer64(as.numeric(start_time) * 1000)
+        cfg["sm.consolidation.timestamp_start"] = as.character(start_time_int64)
+    }
+
+    if (!missing(end_time)) {
+        stopifnot(`end_time must be datetime object`  = inherits(end_time, "POSIXt"),
+                  `TileDB 2.3.0 or later is required` = tiledb_version(TRUE) >= "2.3.0")
+        end_time_int64 <- bit64::as.integer64(as.numeric(end_time) * 1000)
+        cfg["sm.consolidation.timestamp_end"] = as.character(end_time_int64)
+    }
+
+    ctx <- tiledb_ctx(cfg)
+
+    libtiledb_array_consolidate(ctx = ctx@ptr, uri = uri, cfgptr = cfg@ptr)
 }
 
-#' After consolidation, remove consilidated fragments of a TileDB Array
+#' After consolidation, remove consolidated fragments of a TileDB Array
 #'
 #' This function can remove fragments following a consolidation step. Note that vacuuming
 #' should \emph{not} be run if one intends to use the TileDB \emph{time-traveling} feature
-#' of opening arrays at particular timestamps
+#' of opening arrays at particular timestamps.
+#'
+#' Parameters affecting the operation can be set via an optional configuration object.
+#' Start and end timestamps can also be set directly.
+#'
 #' @param uri A character value with the URI of a TileDB Array
+#' @param start_time An optional timestamp value, if missing config default is used
+#' @param end_time An optional timestamp value, if missing config default is used
 #' @param cfg An optional TileDB Configuration object
 #' @param ctx An option TileDB Context object
-#' @return \code{NULL} is returned invisibly
+#' @return NULL is returned invisibly
 #' @export
-array_vacuum <- function(uri, cfg = NULL, ctx = tiledb_get_context()) {
-    libtiledb_array_vacuum(ctx = ctx@ptr, uri = uri,
-                           # C++ code has Nullable and can instantiate but needs S4 XPtr
-                           cfgptr = if (is.null(cfg)) cfg else cfg@ptr)
+array_vacuum <- function(uri, cfg = NULL,
+                         start_time, end_time,
+                         ctx = tiledb_get_context()) {
+
+    if (is.null(cfg)) {
+        cfg <- tiledb_config()
+    }
+
+    if (!missing(start_time)) {
+        stopifnot(`start_time must be datetime object` = inherits(start_time, "POSIXt"),
+                  `TileDB 2.3.0 or later is required`  = tiledb_version(TRUE) >= "2.3.0")
+        start_time_int64 <- bit64::as.integer64(as.numeric(start_time) * 1000)
+        cfg["sm.consolidation.timestamp_start"] = as.character(start_time_int64)
+    }
+
+    if (!missing(end_time)) {
+        stopifnot(`end_time must be datetime object` = inherits(end_time, "POSIXt"),
+                  `TileDB 2.3.0 or later is required` = tiledb_version(TRUE) >= "2.3.0")
+        end_time_int64 <- bit64::as.integer64(as.numeric(end_time) * 1000)
+        cfg["sm.consolidation.timestamp_end"] = as.character(end_time_int64)
+    }
+
+    ctx <- tiledb_ctx(cfg)
+
+    libtiledb_array_vacuum(ctx = ctx@ptr, uri = uri, cfgptr = cfg@ptr)
 }
 
 #' Get the non-empty domain from a TileDB Array by index
