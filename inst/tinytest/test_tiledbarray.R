@@ -3,10 +3,14 @@ library(tiledb)
 
 isOldWindows <- Sys.info()[["sysname"]] == "Windows" && grepl('Windows Server 2008', osVersion)
 if (isOldWindows) exit_file("skip this file on old Windows releases")
+isMacOS <- (Sys.info()['sysname'] == "Darwin")
 
 ctx <- tiledb_ctx(limitTileDBCores())
 
 if (tiledb_version(TRUE) < "2.0.0") exit_file("TileDB Array types required TileDB 2.0.* or greater")
+
+hasDataTable <- requireNamespace("data.table", quietly=TRUE)
+hasTibble <- requireNamespace("tibble", quietly=TRUE)
 
 #test_that("test tiledb_array read/write sparse array with heterogenous date domains", {
 op <- options()
@@ -133,7 +137,7 @@ arr[] <- dat
 
 newarr <- tiledb_array(tmpuri, as.data.frame=TRUE)
 newdat <- newarr[]
-expect_equal(dat, newdat)
+expect_equivalent(dat, newdat)
 
 unlink(tmpuri, recursive = TRUE)
 options(op)
@@ -1016,7 +1020,9 @@ now1 <- Sys.time()
 A <- tiledb_array(uri = tmp, timestamp=now1)
 A[I, J] <- data
 
-Sys.sleep(1)
+twot <- 1 + isMacOS*5
+onet <- twot/2
+Sys.sleep(twot)
 
 now2 <- Sys.time()
 I <- c(8, 6, 9)
@@ -1025,13 +1031,13 @@ data <- c(11L, 22L, 33L)
 A <- tiledb_array(uri = tmp, timestamp=now2)
 A[I, J] <- data
 
-A <- tiledb_array(uri = tmp, as.data.frame=TRUE, timestamp=now1 - 0.5)
+A <- tiledb_array(uri = tmp, as.data.frame=TRUE, timestamp=now1 - onet)
 expect_equal(nrow(A[]), 0)
-A <- tiledb_array(uri = tmp, as.data.frame=TRUE, timestamp=now1 + 0.5)
+A <- tiledb_array(uri = tmp, as.data.frame=TRUE, timestamp=now1 + onet)
 expect_equal(nrow(A[]), 3)
-A <- tiledb_array(uri = tmp, as.data.frame=TRUE, timestamp=now2 - 0.5)
+A <- tiledb_array(uri = tmp, as.data.frame=TRUE, timestamp=now2 - onet)
 expect_equal(nrow(A[]), 3)
-A <- tiledb_array(uri = tmp, as.data.frame=TRUE, timestamp=now2 + 0.5)
+A <- tiledb_array(uri = tmp, as.data.frame=TRUE, timestamp=now2 + onet)
 expect_equal(nrow(A[]), 6)
 
 ## as.matrix
@@ -1051,7 +1057,7 @@ arr[] <- mat                        	# we can write directly
 
 arr2 <- tiledb_array(tmp, as.matrix=TRUE)
 mat2 <- arr2[]
-expect_equal(mat, mat2)                 # check round-turn
+expect_true(all.equal(mat, mat2, check.attributes=FALSE)) # check round-turn
 
 ## check no double selection
 expect_error(tiledb_array(tmp, as.data.frame=TRUE, as.matrix=TRUE))
@@ -1060,14 +1066,14 @@ expect_false(is.data.frame(suppressMessages(arr2[1:2,])))
 expect_true(is.matrix(suppressMessages(arr2[1:2,])))
 expect_false(is.data.frame(suppressMessages(arr2[,3])))
 expect_true(is.matrix(suppressMessages(arr2[,3])))
-## selections via i and j
-expect_equal(arr2[1:2,], cbind( c(1,2), c(6,7), c(11,12), c(16,17)))
-expect_equal(arr2[,3], cbind(11:15) )
+## selections via i and j (and ignore attribute)
+expect_equivalent(arr2[1:2,], cbind( c(1,2), c(6,7), c(11,12), c(16,17)))
+expect_equivalent(arr2[,3], cbind(11:15) )
 ## more complex selection with holes via selected_ranges()
 selected_ranges(arr2) <- list(cbind(c(1,4),c(2,5)), cbind(2,3))
-expect_equal(arr2[], cbind(c(6,7,9,10), c(11,12,14,15)))
+expect_equivalent(arr2[], cbind(c(6,7,9,10), c(11,12,14,15)))
 selected_ranges(arr2) <- list(cbind(c(1,4),c(2,5)), cbind(2,2))
-expect_equal(arr2[], cbind(c(6,7,9,10)))
+expect_equivalent(arr2[], cbind(c(6,7,9,10)))
 
 
 arr3 <- tiledb_array(tmp, as.data.frame=TRUE)
@@ -1078,9 +1084,9 @@ fromDataFrame(df1, tmp2)
 
 ## check selecting matrix out of multiple cols
 arr4 <- tiledb_array(tmp2, attrs=c("rows", "cols", "vals2"), as.matrix=TRUE)
-expect_equal(arr4[], 10*mat)
+expect_equivalent(arr4[], 10*mat)
 arr5 <- tiledb_array(tmp2, attrs=c("rows", "cols", "vals"), as.matrix=TRUE)
-expect_equal(arr5[], mat)
+expect_equivalent(arr5[], mat)
 arr6 <- tiledb_array(tmp2, attrs=c("rows", "cols", "vals", "vals2"), as.matrix=TRUE)
 res <- arr6[]
 expect_true(is.list(res))
@@ -1107,7 +1113,7 @@ obj <- tiledb_array(uri, attrs="a", as.data.frame=TRUE)
 res <- obj[]
 expect_equal(colnames(res), c("rows", "cols", "a")) 	# this was the PR issues
 obj <- tiledb_array(uri, attrs="a", as.matrix=TRUE)     # this is the preferred accessor here
-expect_equal(obj[], data[["a"]])
+expect_equivalent(obj[], data[["a"]])
 obj <- tiledb_array(uri, as.matrix=TRUE)     			# test all three matrices
 res <- obj[]
 expect_equal(res[["a"]], data[["a"]])
@@ -1127,7 +1133,7 @@ obj <- tiledb_array(uri, attrs="x", query_type="WRITE")
 M <- matrix(runif(N*K), N, K)
 obj[] <- M                              # prior to #246 this write had a write data type
 chk <- tiledb_array(uri, as.matrix=TRUE)
-expect_equal(chk[], M)
+expect_equivalent(chk[], M)
 
 
 ## test for data.frame append
@@ -1244,8 +1250,12 @@ fromDataFrame(subset(data, grp==1),     # write array, but only write group one
 arr <- tiledb_array(uri)
 times <- Sys.time() + 0:3               # pre-allocate for four time stampps
 
+twot <- 1 + isMacOS*5
+onet <- twot/2
+Sys.sleep(twot)
+
 for (i in 2:4) {                        # in loop, write groups two to four
-    Sys.sleep(1)
+    Sys.sleep(twot)
     arr[] <- subset(data, grp==i)
     times[i] <- Sys.time()              # and note time
 }
@@ -1256,15 +1266,15 @@ expect_equal(NROW(arr[]), 40)                           # all four observations
 arr2 <- tiledb_array(uri, as.data.frame=TRUE, timestamp_end=times[1])    # end before 1st timestamp
 expect_equal(NROW(arr2[]), 10)          # expect group one (10 elements)
 
-arr3 <- tiledb_array(uri, as.data.frame=TRUE, timestamp_start=times[4]+0.5) # start after fourth
+arr3 <- tiledb_array(uri, as.data.frame=TRUE, timestamp_start=times[4]+onet) # start after fourth
 expect_equal(NROW(arr3[]), 0)           # expect zero data
 
-arr4 <- tiledb_array(uri, as.data.frame=TRUE, timestamp_end=times[3]-0.5)    # end before 3rd
+arr4 <- tiledb_array(uri, as.data.frame=TRUE, timestamp_end=times[3]-onet)    # end before 3rd
 res4 <- arr4[]
 expect_equal(NROW(res4), 20)            # expect 2 groups, 20 obs
 expect_equal(max(res4$grp), 2)          # with groups being 1 and 2
 
-arr5 <- tiledb_array(uri, as.data.frame=TRUE, timestamp_start=times[2]-0.5, timestamp_end=times[3])
+arr5 <- tiledb_array(uri, as.data.frame=TRUE, timestamp_start=times[2]-onet, timestamp_end=times[3])
 res5 <- arr5[]
 expect_equal(NROW(res5), 20)            # expects 2 groups, 2 and 3, with 20 obs
 expect_equal(min(res5$grp), 2)
@@ -1298,7 +1308,9 @@ now1 <- Sys.time()
 A <- tiledb_array(uri = tmp, timestamp_start=now1)
 A[I, J] <- data
 
-Sys.sleep(1)
+twot <- 1 + isMacOS*5
+onet <- twot/2
+Sys.sleep(twot)
 
 now2 <- Sys.time()
 I <- c(8, 6, 9)
@@ -1307,11 +1319,84 @@ data <- c(11L, 22L, 33L)
 A <- tiledb_array(uri = tmp, timestamp_start=now2)
 A[I, J] <- data
 
-A <- tiledb_array(uri = tmp, as.data.frame=TRUE, timestamp_end=now1 - 0.5)
+A <- tiledb_array(uri = tmp, as.data.frame=TRUE, timestamp_end=now1 - onet)
 expect_equal(nrow(A[]), 0)
-A <- tiledb_array(uri = tmp, as.data.frame=TRUE, timestamp_start=now1 + 0.5)
+A <- tiledb_array(uri = tmp, as.data.frame=TRUE, timestamp_start=now1 + onet)
 expect_equal(nrow(A[]), 3)
-A <- tiledb_array(uri = tmp, as.data.frame=TRUE, timestamp_end=now2 - 0.5)
+A <- tiledb_array(uri = tmp, as.data.frame=TRUE, timestamp_end=now2 - onet)
 expect_equal(nrow(A[]), 3)
-A <- tiledb_array(uri = tmp, as.data.frame=TRUE, timestamp_end=now2 + 0.5)
+A <- tiledb_array(uri = tmp, as.data.frame=TRUE, timestamp_end=now2 + onet)
 expect_equal(nrow(A[]), 6)
+
+
+## test return preference
+uri <- tempfile()
+fromDataFrame(penguins, uri, sparse = TRUE, col_index = c("species", "year"))
+
+defaultConversion <- get_return_as_preference()
+if (defaultConversion != "asis") {
+    oldConversionValue <- defaultConversion
+    set_return_as_preference("asis") 		# baseline value
+} else {
+    oldConversionValue <- "asis"
+}
+
+res <- tiledb_array(uri)[]
+expect_equal(class(res), "list")
+
+set_return_as_preference("data.frame")
+res <- tiledb_array(uri)[]
+expect_equal(class(res), "data.frame")
+
+if (hasDataTable) {
+    set_return_as_preference("data.table")
+    res <- tiledb_array(uri)[]
+    expect_true(inherits(res, "data.table"))
+}
+
+if (hasTibble) {
+    set_return_as_preference("tibble")
+    res <- tiledb_array(uri)[]
+    expect_true(inherits(res, "tbl_df"))
+    expect_true(inherits(res, "tbl"))
+}
+
+set_return_as_preference(oldConversionValue) 		# reset baseline value
+
+res <- tiledb_array(uri, return_as="data.frame")[]
+expect_equal(class(res), "data.frame")
+
+if (hasDataTable) {
+    res <- tiledb_array(uri, return_as="data.table")[]
+    expect_true(inherits(res, "data.table"))
+}
+
+if (hasTibble) {
+    res <- tiledb_array(uri, return_as="tibble")[]
+    expect_true(inherits(res, "tbl_df"))
+    expect_true(inherits(res, "tbl"))
+}
+
+## test return_as for array and matrix
+uri <- tempfile()
+dir.create(uri)
+n <- 5L
+k <- 5L
+mat <- matrix(1:(n*k), nrow=n, ncol=k)
+dom <- tiledb_domain(dims = c(tiledb_dim("rows", c(1L, n), n, "INT32"),
+                              tiledb_dim("cols", c(1L, k), k, "INT32")))
+schema <- tiledb_array_schema(dom, attrs=tiledb_attr("vals", type="INT32"))
+tiledb_array_create(uri, schema)
+arr <- tiledb_array(uri)
+query_layout(arr) <- "COL_MAJOR"    	# needed if we want column order
+arr[] <- mat                        	# we can write directly
+
+set_return_as_preference("array")
+res <- tiledb_array(uri)[][[1]]
+expect_true(inherits(res, "array"))
+
+set_return_as_preference("matrix")
+res <- tiledb_array(uri)[]
+expect_true(inherits(res, "matrix"))
+
+set_return_as_preference(oldConversionValue) 		# reset baseline value

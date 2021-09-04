@@ -363,7 +363,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <div class="sourceCode" id="cb22"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="co"># set &#39;duplicates allowed?&#39; status</span></span>
 <span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a><span class="fu">allows_dups</span>(sch) <span class="ot">&lt;-</span> <span class="cn">TRUE</span></span>
 <span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a><span class="fu">tiledb_array_schema_set_allows_dups</span>(sch, <span class="cn">TRUE</span>)</span></code></pre></div>
-<pre><code>## &lt;pointer: 0x5647ea29e300&gt;</code></pre>
+<pre><code>## &lt;pointer: 0x55c4b5e18ba0&gt;</code></pre>
 </section>
 <section id="checking-correctness" class="level4">
 <h4>Checking Correctness</h4>
@@ -480,7 +480,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <span id="cb40-4"><a href="#cb40-4" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb40-5"><a href="#cb40-5" aria-hidden="true" tabindex="-1"></a><span class="co"># create encrypted array at &#39;uri&#39; with schema &#39;sch&#39;</span></span>
 <span id="cb40-6"><a href="#cb40-6" aria-hidden="true" tabindex="-1"></a><span class="fu">tiledb_array_create</span>(uridensewkey, sch, encryption_key)</span></code></pre></div>
-<pre><code>## [1] &quot;/tmp/RtmpM3mQ2w/denseenc&quot;</code></pre>
+<pre><code>## [1] &quot;/tmp/Rtmp9tu2X0/denseenc&quot;</code></pre>
 </section>
 </section>
 <section id="writing-arrays" class="level2">
@@ -542,7 +542,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <span id="cb44-7"><a href="#cb44-7" aria-hidden="true" tabindex="-1"></a>val <span class="ot">&lt;-</span> <span class="fu">tiledb_attr</span>(<span class="st">&quot;val&quot;</span>, <span class="at">type =</span> <span class="st">&quot;INT32&quot;</span>)</span>
 <span id="cb44-8"><a href="#cb44-8" aria-hidden="true" tabindex="-1"></a>sch <span class="ot">&lt;-</span> <span class="fu">tiledb_array_schema</span>(dom, val, <span class="at">sparse=</span><span class="cn">TRUE</span>)</span>
 <span id="cb44-9"><a href="#cb44-9" aria-hidden="true" tabindex="-1"></a><span class="fu">tiledb_array_create</span>(tmp, sch)</span></code></pre></div>
-<pre><code>## [1] &quot;/tmp/RtmpM3mQ2w/sparse&quot;</code></pre>
+<pre><code>## [1] &quot;/tmp/Rtmp9tu2X0/sparse&quot;</code></pre>
 <div class="sourceCode" id="cb46"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb46-1"><a href="#cb46-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Prepare some data</span></span>
 <span id="cb46-2"><a href="#cb46-2" aria-hidden="true" tabindex="-1"></a>data <span class="ot">&lt;-</span> <span class="fu">c</span>(3L, 4L, 1L, 2L)</span>
 <span id="cb46-3"><a href="#cb46-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -573,7 +573,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <span id="cb48-10"><a href="#cb48-10" aria-hidden="true" tabindex="-1"></a>tiledb<span class="sc">:::</span><span class="fu">libtiledb_attribute_set_cell_val_num</span>(attr<span class="sc">@</span>ptr, <span class="dv">2</span>)</span>
 <span id="cb48-11"><a href="#cb48-11" aria-hidden="true" tabindex="-1"></a>sch <span class="ot">&lt;-</span> <span class="fu">tiledb_array_schema</span>(dom, attr)</span>
 <span id="cb48-12"><a href="#cb48-12" aria-hidden="true" tabindex="-1"></a><span class="fu">tiledb_array_create</span>(uridensefix, sch)</span></code></pre></div>
-<pre><code>## [1] &quot;/tmp/RtmpM3mQ2w/densefix&quot;</code></pre>
+<pre><code>## [1] &quot;/tmp/Rtmp9tu2X0/densefix&quot;</code></pre>
 <div class="sourceCode" id="cb50"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb50-1"><a href="#cb50-1" aria-hidden="true" tabindex="-1"></a>ctx <span class="ot">&lt;-</span> <span class="fu">tiledb_ctx</span>()</span>
 <span id="cb50-2"><a href="#cb50-2" aria-hidden="true" tabindex="-1"></a>arrptr <span class="ot">&lt;-</span> tiledb<span class="sc">:::</span><span class="fu">libtiledb_array_open</span>(ctx<span class="sc">@</span>ptr, uridensefix, <span class="st">&quot;WRITE&quot;</span>)</span>
 <span id="cb50-3"><a href="#cb50-3" aria-hidden="true" tabindex="-1"></a>subarr <span class="ot">&lt;-</span> <span class="fu">c</span>(1L,4L, 1L,4L)</span>
@@ -612,7 +612,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <span id="cb51-21"><a href="#cb51-21" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb51-22"><a href="#cb51-22" aria-hidden="true" tabindex="-1"></a><span class="do">## Create the (empty) array on disk.</span></span>
 <span id="cb51-23"><a href="#cb51-23" aria-hidden="true" tabindex="-1"></a>tiledb<span class="sc">:::</span><span class="fu">libtiledb_array_create</span>(uridensevar, schptr)</span></code></pre></div>
-<pre><code>## [1] &quot;/tmp/RtmpM3mQ2w/densevar&quot;</code></pre>
+<pre><code>## [1] &quot;/tmp/Rtmp9tu2X0/densevar&quot;</code></pre>
 <div class="sourceCode" id="cb53"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb53-1"><a href="#cb53-1" aria-hidden="true" tabindex="-1"></a>data <span class="ot">&lt;-</span> <span class="st">&quot;abbcccddeeefghhhijjjkklmnoop&quot;</span>;</span>
 <span id="cb53-2"><a href="#cb53-2" aria-hidden="true" tabindex="-1"></a>offsets <span class="ot">&lt;-</span> <span class="fu">c</span>(0L, 1L, 3L, 6L, 8L, 11L, 12L, 13L, 16L, 17L, 20L, 22L, 23L, 24L, 25L, 27L)</span>
 <span id="cb53-3"><a href="#cb53-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -625,7 +625,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <span id="cb53-10"><a href="#cb53-10" aria-hidden="true" tabindex="-1"></a>qryptr <span class="ot">&lt;-</span> tiledb<span class="sc">:::</span><span class="fu">libtiledb_query_set_buffer_var_char</span>(qryptr, <span class="st">&quot;a1&quot;</span>, bufptr)</span>
 <span id="cb53-11"><a href="#cb53-11" aria-hidden="true" tabindex="-1"></a>qryptr <span class="ot">&lt;-</span> tiledb<span class="sc">:::</span><span class="fu">libtiledb_query_submit</span>(qryptr)</span>
 <span id="cb53-12"><a href="#cb53-12" aria-hidden="true" tabindex="-1"></a>tiledb<span class="sc">:::</span><span class="fu">libtiledb_array_close</span>(arrptr)</span></code></pre></div>
-<pre><code>## &lt;pointer: 0x5647e868eed0&gt;</code></pre>
+<pre><code>## &lt;pointer: 0x55c4b350faa0&gt;</code></pre>
 <div class="sourceCode" id="cb55"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb55-1"><a href="#cb55-1" aria-hidden="true" tabindex="-1"></a><span class="co">#TODO Higher-level R support</span></span></code></pre></div>
 </section>
 <section id="writing-at-a-timestamp" class="level3">
@@ -825,14 +825,13 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <span id="cb64-7"><a href="#cb64-7" aria-hidden="true" tabindex="-1"></a><span class="co"># Slice only rows 1, 2 and cols 2, 3, 4</span></span>
 <span id="cb64-8"><a href="#cb64-8" aria-hidden="true" tabindex="-1"></a>data <span class="ot">&lt;-</span> A[<span class="dv">1</span><span class="sc">:</span><span class="dv">2</span>, <span class="dv">2</span><span class="sc">:</span><span class="dv">4</span>]</span>
 <span id="cb64-9"><a href="#cb64-9" aria-hidden="true" tabindex="-1"></a><span class="fu">show</span>(data)</span></code></pre></div>
-<pre><code>## $rows
-## [1] 1 1 1 2 2 2
-## 
-## $cols
-## [1] 2 3 4 2 3 4
-## 
-## $a
-## [1]  50  90 130  60 100 140</code></pre>
+<pre><code>##    rows cols   a
+## 1:    1    2  50
+## 2:    1    3  90
+## 3:    1    4 130
+## 4:    2    2  60
+## 5:    2    3 100
+## 6:    2    4 140</code></pre>
 <section id="basic-reading-using-low-level-code" class="level4">
 <h4>Basic Reading using Low-Level Code</h4>
 <div class="sourceCode" id="cb66"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb66-1"><a href="#cb66-1" aria-hidden="true" tabindex="-1"></a>ctx <span class="ot">&lt;-</span> <span class="fu">tiledb_ctx</span>()</span>
@@ -865,7 +864,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <span id="cb69-11"><a href="#cb69-11" aria-hidden="true" tabindex="-1"></a>qryptr <span class="ot">&lt;-</span> tiledb<span class="sc">:::</span><span class="fu">libtiledb_query_set_buffer_var_char</span>(qryptr, <span class="st">&quot;a1&quot;</span>, bufptr)</span>
 <span id="cb69-12"><a href="#cb69-12" aria-hidden="true" tabindex="-1"></a>qryptr <span class="ot">&lt;-</span> tiledb<span class="sc">:::</span><span class="fu">libtiledb_query_submit</span>(qryptr)</span>
 <span id="cb69-13"><a href="#cb69-13" aria-hidden="true" tabindex="-1"></a>tiledb<span class="sc">:::</span><span class="fu">libtiledb_array_close</span>(arrptr)</span></code></pre></div>
-<pre><code>## &lt;pointer: 0x5647e93adb20&gt;</code></pre>
+<pre><code>## &lt;pointer: 0x55c4b2576000&gt;</code></pre>
 <div class="sourceCode" id="cb71"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb71-1"><a href="#cb71-1" aria-hidden="true" tabindex="-1"></a>mat <span class="ot">&lt;-</span> tiledb<span class="sc">:::</span><span class="fu">libtiledb_query_get_buffer_var_char</span>(bufptr)</span>
 <span id="cb71-2"><a href="#cb71-2" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(mat, <span class="at">quote=</span><span class="cn">FALSE</span>)</span></code></pre></div>
 <pre><code>##      [,1] [,2] [,3] [,4]
@@ -1016,7 +1015,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <span id="cb83-9"><a href="#cb83-9" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb83-10"><a href="#cb83-10" aria-hidden="true" tabindex="-1"></a><span class="co"># Unset a configuration parameter</span></span>
 <span id="cb83-11"><a href="#cb83-11" aria-hidden="true" tabindex="-1"></a><span class="fu">tiledb_config_unset</span>(config, <span class="st">&quot;sm.tile_cache_size&quot;</span>)</span></code></pre></div>
-<pre><code>## &lt;pointer: 0x5647e9972860&gt;</code></pre>
+<pre><code>## &lt;pointer: 0x55c4b26b6a80&gt;</code></pre>
 </section>
 <section id="save-and-load-to-file" class="level4">
 <h4>Save and Load to File</h4>
@@ -1025,7 +1024,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <span id="cb85-3"><a href="#cb85-3" aria-hidden="true" tabindex="-1"></a>config[<span class="st">&quot;sm.tile_cache_size&quot;</span>] <span class="ot">&lt;-</span> <span class="dv">0</span>;</span>
 <span id="cb85-4"><a href="#cb85-4" aria-hidden="true" tabindex="-1"></a>file <span class="ot">&lt;-</span> <span class="fu">tempfile</span>(<span class="at">pattern =</span> <span class="st">&quot;tiledb_config&quot;</span>, <span class="at">fileext =</span> <span class="st">&quot;.txt&quot;</span>)</span>
 <span id="cb85-5"><a href="#cb85-5" aria-hidden="true" tabindex="-1"></a><span class="fu">tiledb_config_save</span>(config, file)</span></code></pre></div>
-<pre><code>## [1] &quot;/tmp/RtmpM3mQ2w/tiledb_config23a56f7a04618d.txt&quot;</code></pre>
+<pre><code>## [1] &quot;/tmp/Rtmp9tu2X0/tiledb_config1a3d2353bb4972.txt&quot;</code></pre>
 <div class="sourceCode" id="cb87"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb87-1"><a href="#cb87-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Load from file</span></span>
 <span id="cb87-2"><a href="#cb87-2" aria-hidden="true" tabindex="-1"></a>config_loaded <span class="ot">&lt;-</span> <span class="fu">tiledb_config_load</span>(file)</span>
 <span id="cb87-3"><a href="#cb87-3" aria-hidden="true" tabindex="-1"></a>tile_cache_size <span class="ot">=</span> config_loaded[<span class="st">&quot;sm.tile_cache_size&quot;</span>]</span></code></pre></div>
@@ -1069,10 +1068,19 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 ## sm.encryption_type : NO_ENCRYPTION 
 ## sm.io_concurrency_level : 12 
 ## sm.max_tile_overlap_size : 314572800 
+## sm.mem.malloc_trim : true 
 ## sm.mem.reader.sparse_global_order.ratio_array_data : 0.1 
 ## sm.mem.reader.sparse_global_order.ratio_coords : 0.5 
 ## sm.mem.reader.sparse_global_order.ratio_query_condition : 0.25 
+## sm.mem.reader.sparse_global_order.ratio_rcs : 0.05 
+## sm.mem.reader.sparse_global_order.ratio_result_tiles : 0.05 
 ## sm.mem.reader.sparse_global_order.ratio_tile_ranges : 0.1 
+## sm.mem.reader.sparse_unordered_with_dups.ratio_array_data : 0.1 
+## sm.mem.reader.sparse_unordered_with_dups.ratio_coords : 0.5 
+## sm.mem.reader.sparse_unordered_with_dups.ratio_query_condition : 0.25 
+## sm.mem.reader.sparse_unordered_with_dups.ratio_rcs : 0.05 
+## sm.mem.reader.sparse_unordered_with_dups.ratio_result_tiles : 0.05 
+## sm.mem.reader.sparse_unordered_with_dups.ratio_tile_ranges : 0.1 
 ## sm.mem.total_budget : 10737418240 
 ## sm.memory_budget : 5368709120 
 ## sm.memory_budget_var : 10737418240 

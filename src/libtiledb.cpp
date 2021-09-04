@@ -836,8 +836,8 @@ SEXP libtiledb_dim_get_domain(XPtr<tiledb::Dimension> dim) {
       using DataType = tiledb::impl::tiledb_to_type<TILEDB_UINT32>::type;
       auto d1 = dim->domain<DataType>().first;
       auto d2 = dim->domain<DataType>().second;
-      if (d1 > std::numeric_limits<int64_t>::max() ||
-          d2 > std::numeric_limits<int64_t>::max()) {
+      if (d1 > std::numeric_limits<uint32_t>::max() ||
+          d2 > std::numeric_limits<uint32_t>::max()) {
         Rcpp::stop("tiledb_dim domain UINT32 value not representable as an R integer64 type");
       }
       std::vector<int64_t> v = { static_cast<int64_t>(d1), static_cast<int64_t>(d2) };
@@ -2912,10 +2912,33 @@ std::string libtiledb_query_status(XPtr<tiledb::Query> query) {
 // [[Rcpp::export]]
 R_xlen_t libtiledb_query_result_buffer_elements(XPtr<tiledb::Query> query,
                                                 std::string attribute,
-                                                int32_t which=1) {
+                                                int32_t which = 1) {
     auto nelements = query->result_buffer_elements()[attribute];
     R_xlen_t nelem = (which == 0 ? nelements.first : nelements.second);
     return nelem;
+}
+
+// [[Rcpp::export]]
+NumericVector libtiledb_query_result_buffer_elements_vec(XPtr<tiledb::Query> query,
+                                                         std::string attribute,
+                                                         bool nullable = false) {
+#if TILEDB_VERSION >= TileDB_Version(2,2,0)
+    if (nullable) {
+        auto nelem = query->result_buffer_elements_nullable()[attribute];
+        auto vec = NumericVector( {
+                static_cast<double>(std::get<0>(nelem)),
+                static_cast<double>(std::get<1>(nelem)),
+                static_cast<double>(std::get<2>(nelem))
+            });
+        return vec;
+    } else {
+        auto nelem = query->result_buffer_elements()[attribute];
+        return NumericVector( { static_cast<double>(nelem.first), static_cast<double>(nelem.second) });
+    }
+#else
+    auto nelem = query->result_buffer_elements()[attribute];
+    return NumericVector( { static_cast<double>(nelem.first), static_cast<double>(nelem.second) });
+#endif
 }
 
 // [[Rcpp::export]]
@@ -3208,6 +3231,31 @@ XPtr<tiledb::Query> libtiledb_query_set_condition(XPtr<tiledb::Query> query,
     return query;
 }
 
+// Note that the Array pointer returned here from a Query object is not owned and will not
+// outlive the query object
+//
+// [[Rcpp::export]]
+XPtr<tiledb::Array> libtiledb_query_get_array(XPtr<tiledb::Query> query, XPtr<tiledb::Context> ctx) {
+#if TILEDB_VERSION >= TileDB_Version(2,2,0)
+    auto arr = query->array();
+    auto cptr = arr.ptr().get();
+    return XPtr<tiledb::Array>(new tiledb::Array(*ctx.get(), cptr, false));
+#else
+    return XPtr<tiledb::Array>(R_NilValue);
+#endif
+}
+
+// [[Rcpp::export]]
+XPtr<tiledb::ArraySchema> libtiledb_query_get_schema(XPtr<tiledb::Query> query,
+                                                     XPtr<tiledb::Context> ctx) {
+#if TILEDB_VERSION >= TileDB_Version(2,2,0)
+    auto arr = query->array();
+    return libtiledb_array_schema_load(ctx, arr.uri()); // returns an XPtr<tiledb::ArraySchema>
+#else
+    return XPtr<tiledb::ArraySchema>(R_NilValue);
+#endif
+}
+
 /**
  * Query Condition
  */
@@ -3278,11 +3326,11 @@ tiledb_query_condition_combination_op_t _tiledb_query_string_to_condition_combin
 // [[Rcpp::export]]
 XPtr<tiledb::QueryCondition> libtiledb_query_condition(XPtr<tiledb::Context> ctx) {
 #if TILEDB_VERSION >= TileDB_Version(2,3,0)
-    XPtr<tiledb::QueryCondition> query_cond(new tiledb::QueryCondition(*ctx.get()));
+    XPtr<tiledb::QueryCondition> query_cond(new tiledb::QueryCondition(*ctx.get()), false);
 #else
-    XPtr<tiledb::QueryCondition> query_cond(new tiledb::QueryCondition());
+    XPtr<tiledb::QueryCondition> query_cond(new tiledb::QueryCondition(), false);
 #endif
-    //registerXptrFinalizer(query_cond, libtiledb_query_condition_delete);
+    registerXptrFinalizer(query_cond, libtiledb_query_condition_delete);
     return query_cond;
 }
 
@@ -3321,11 +3369,11 @@ XPtr<tiledb::QueryCondition> libtiledb_query_condition_combine(XPtr<tiledb::Quer
 #if TILEDB_VERSION >= TileDB_Version(2,3,0)
     tiledb_query_condition_combination_op_t op = _tiledb_query_string_to_condition_combination_op(str);
     tiledb::QueryCondition res = lhs->combine(*rhs.get(), op);
-    auto query_cond = XPtr<tiledb::QueryCondition>(new tiledb::QueryCondition(res));
+    auto query_cond = XPtr<tiledb::QueryCondition>(new tiledb::QueryCondition(res), false);
 #else
-    XPtr<tiledb::QueryCondition> query_cond(new tiledb::QueryCondition());
+    XPtr<tiledb::QueryCondition> query_cond(new tiledb::QueryCondition(), false);
 #endif
-    //registerXptrFinalizer(query_cond, libtiledb_query_condition_delete);
+    registerXptrFinalizer(query_cond, libtiledb_query_condition_delete);
     return query_cond;
 }
 
@@ -3676,5 +3724,314 @@ std::string libtiledb_stats_raw_get() {
   std::string result;
   tiledb::Stats::raw_dump(&result);
   return result;
+#endif
+}
+
+/**
+ * FragmentInfo
+ */
+// [[Rcpp::export]]
+XPtr<tiledb::FragmentInfo> libtiledb_fragment_info(XPtr<tiledb::Context> ctx,
+                                                   const std::string& uri) {
+#if TILEDB_VERSION >= TileDB_Version(2,2,0)
+    auto ptr = XPtr<tiledb::FragmentInfo>(new tiledb::FragmentInfo(*ctx.get(), uri), false);
+    registerXptrFinalizer(ptr, libtiledb_fragment_info_delete);
+    ptr->load();                // also load
+#else
+    auto ptr = XPtr<tiledb::FragmentInfo>(new tiledb::FragmentInfo()); // placeholder class to permit compilation
+#endif
+    return ptr;
+}
+
+// [[Rcpp::export]]
+std::string libtiledb_fragment_info_uri(XPtr<tiledb::FragmentInfo> fi, int32_t fid) {
+#if TILEDB_VERSION >= TileDB_Version(2,2,0)
+    return fi->fragment_uri(static_cast<uint32_t>(fid));
+#else
+    return std::string("NA");
+#endif
+}
+
+// [[Rcpp::export]]
+Rcpp::NumericVector libtiledb_fragment_info_get_non_empty_domain_index(XPtr<tiledb::FragmentInfo> fi,
+                                                                       int32_t fid, int32_t did,
+                                                                       const std::string& typestr) {
+#if TILEDB_VERSION >= TileDB_Version(2,2,0)
+    if (typestr == "INT64") {
+        std::vector<int64_t> non_empty_dom(2);
+        fi->get_non_empty_domain(fid, did, &non_empty_dom[0]);
+        return makeInteger64(non_empty_dom);
+    } else if (typestr == "UINT64") {
+        std::vector<uint64_t> ned(2);
+        fi->get_non_empty_domain(fid, did, &ned[0]);
+        std::vector<int64_t> v{ static_cast<int64_t>(ned[0]), static_cast<int64_t>(ned[1]) };
+        return makeInteger64(v);
+    } else if (typestr == "INT32") {
+        std::vector<int32_t> non_empty_dom(2);
+        fi->get_non_empty_domain(fid, did, &non_empty_dom[0]);
+        return NumericVector::create(non_empty_dom[0], non_empty_dom[1]);
+    } else if (typestr == "UINT32") {
+        std::vector<uint32_t> non_empty_dom(2);
+        fi->get_non_empty_domain(fid, did, &non_empty_dom[0]);
+        return NumericVector::create(non_empty_dom[0], non_empty_dom[1]);
+    } else if (typestr == "INT16") {
+        std::vector<int16_t> non_empty_dom(2);
+        fi->get_non_empty_domain(fid, did, &non_empty_dom[0]);
+        return NumericVector::create(non_empty_dom[0], non_empty_dom[1]);
+    } else if (typestr == "UINT16") {
+        std::vector<uint16_t> non_empty_dom(2);
+        fi->get_non_empty_domain(fid, did, &non_empty_dom[0]);
+        return NumericVector::create(non_empty_dom[0], non_empty_dom[1]);
+  } else if (typestr == "INT8") {
+        std::vector<int8_t> non_empty_dom(2);
+        fi->get_non_empty_domain(fid, did, &non_empty_dom[0]);
+        return NumericVector::create(non_empty_dom[0], non_empty_dom[1]);
+  } else if (typestr == "UINT8") {
+        std::vector<uint8_t> non_empty_dom(2);
+        fi->get_non_empty_domain(fid, did, &non_empty_dom[0]);
+        return NumericVector::create(non_empty_dom[0], non_empty_dom[1]);
+  } else if (typestr == "FLOAT64") {
+        std::vector<double> non_empty_dom(2);
+        fi->get_non_empty_domain(fid, did, &non_empty_dom[0]);
+        return NumericVector::create(non_empty_dom[0], non_empty_dom[1]);
+  } else if (typestr == "FLOAT32") {
+        std::vector<float> non_empty_dom(2);
+        fi->get_non_empty_domain(fid, did, &non_empty_dom[0]);
+        return NumericVector::create(non_empty_dom[0], non_empty_dom[1]);
+  } else if (typestr == "DATETIME_YEAR" ||
+             typestr == "DATETIME_MONTH" ||
+             typestr == "DATETIME_WEEK" ||
+             typestr == "DATETIME_DAY" ||
+             typestr == "DATETIME_HR"  ||
+             typestr == "DATETIME_MIN" ||
+             typestr == "DATETIME_SEC" ||
+             typestr == "DATETIME_MS"  ||
+             typestr == "DATETIME_US"  ||
+             typestr == "DATETIME_PS"  ||
+             typestr == "DATETIME_FS"  ||
+             typestr == "DATETIME_AS"    ) {
+        // type_check() from exception.h gets invoked and wants an int64_t
+        std::vector<int64_t> non_empty_dom(2);
+        fi->get_non_empty_domain(fid, did, &non_empty_dom[0]);
+        return makeInteger64(non_empty_dom);
+    } else if (typestr == "DATETIME_NS") {
+        std::vector<int64_t> non_empty_dom(2);
+        fi->get_non_empty_domain(fid, did, &non_empty_dom[0]);
+        return makeNanotime(non_empty_dom);
+    } else {
+        Rcpp::stop("Currently unsupported tiledb domain type: '%s'", typestr.c_str());
+        return NumericVector::create(NA_REAL, NA_REAL); // not reached
+    }
+#else
+    return NumericVector::create(NA_REAL, NA_REAL);
+#endif
+}
+
+// [[Rcpp::export]]
+Rcpp::NumericVector libtiledb_fragment_info_get_non_empty_domain_name(XPtr<tiledb::FragmentInfo> fi,
+                                                                      int32_t fid,
+                                                                      const std::string& dim_name,
+                                                                      const std::string& typestr) {
+#if TILEDB_VERSION >= TileDB_Version(2,2,0)
+    if (typestr == "INT64") {
+        std::vector<int64_t> non_empty_dom(2);
+        fi->get_non_empty_domain(fid, dim_name, &non_empty_dom[0]);
+        return makeInteger64(non_empty_dom);
+    } else if (typestr == "UINT64") {
+        std::vector<uint64_t> ned(2);
+        fi->get_non_empty_domain(fid, dim_name, &ned[0]);
+        std::vector<int64_t> v{ static_cast<int64_t>(ned[0]), static_cast<int64_t>(ned[1]) };
+        return makeInteger64(v);
+    } else if (typestr == "INT32") {
+        std::vector<int32_t> non_empty_dom(2);
+        fi->get_non_empty_domain(fid, dim_name, &non_empty_dom[0]);
+        return NumericVector::create(non_empty_dom[0], non_empty_dom[1]);
+    } else if (typestr == "UINT32") {
+        std::vector<uint32_t> non_empty_dom(2);
+        fi->get_non_empty_domain(fid, dim_name, &non_empty_dom[0]);
+        return NumericVector::create(non_empty_dom[0], non_empty_dom[1]);
+    } else if (typestr == "INT16") {
+        std::vector<int16_t> non_empty_dom(2);
+        fi->get_non_empty_domain(fid, dim_name, &non_empty_dom[0]);
+        return NumericVector::create(non_empty_dom[0], non_empty_dom[1]);
+    } else if (typestr == "UINT16") {
+        std::vector<uint16_t> non_empty_dom(2);
+        fi->get_non_empty_domain(fid, dim_name, &non_empty_dom[0]);
+        return NumericVector::create(non_empty_dom[0], non_empty_dom[1]);
+  } else if (typestr == "INT8") {
+        std::vector<int8_t> non_empty_dom(2);
+        fi->get_non_empty_domain(fid, dim_name, &non_empty_dom[0]);
+        return NumericVector::create(non_empty_dom[0], non_empty_dom[1]);
+  } else if (typestr == "UINT8") {
+        std::vector<uint8_t> non_empty_dom(2);
+        fi->get_non_empty_domain(fid, dim_name, &non_empty_dom[0]);
+        return NumericVector::create(non_empty_dom[0], non_empty_dom[1]);
+  } else if (typestr == "FLOAT64") {
+        std::vector<double> non_empty_dom(2);
+        fi->get_non_empty_domain(fid, dim_name, &non_empty_dom[0]);
+        return NumericVector::create(non_empty_dom[0], non_empty_dom[1]);
+  } else if (typestr == "FLOAT32") {
+        std::vector<float> non_empty_dom(2);
+        fi->get_non_empty_domain(fid, dim_name, &non_empty_dom[0]);
+        return NumericVector::create(non_empty_dom[0], non_empty_dom[1]);
+  } else if (typestr == "DATETIME_YEAR" ||
+             typestr == "DATETIME_MONTH" ||
+             typestr == "DATETIME_WEEK" ||
+             typestr == "DATETIME_DAY" ||
+             typestr == "DATETIME_HR"  ||
+             typestr == "DATETIME_MIN" ||
+             typestr == "DATETIME_SEC" ||
+             typestr == "DATETIME_MS"  ||
+             typestr == "DATETIME_US"  ||
+             typestr == "DATETIME_PS"  ||
+             typestr == "DATETIME_FS"  ||
+             typestr == "DATETIME_AS"    ) {
+        // type_check() from exception.h gets invoked and wants an int64_t
+        std::vector<int64_t> non_empty_dom(2);
+        fi->get_non_empty_domain(fid, dim_name, &non_empty_dom[0]);
+        return makeInteger64(non_empty_dom);
+    } else if (typestr == "DATETIME_NS") {
+        std::vector<int64_t> non_empty_dom(2);
+        fi->get_non_empty_domain(fid, dim_name, &non_empty_dom[0]);
+        return makeNanotime(non_empty_dom);
+    } else {
+        Rcpp::stop("Currently unsupported tiledb domain type: '%s'", typestr.c_str());
+        return NumericVector::create(NA_REAL, NA_REAL); // not reached
+    }
+#else
+    return NumericVector::create(NA_REAL, NA_REAL);
+#endif
+}
+
+// [[Rcpp::export]]
+Rcpp::CharacterVector
+libtiledb_fragment_info_get_non_empty_domain_var_index(XPtr<tiledb::FragmentInfo> fi,
+                                                       int32_t fid, int32_t did) {
+#if TILEDB_VERSION >= TileDB_Version(2,2,0)
+    auto sp = fi->non_empty_domain_var(static_cast<uint32_t>(fid), static_cast<uint32_t>(did));
+    return CharacterVector::create(sp.first, sp.second);
+#else
+    return CharacterVector::create(NA_STRING, NA_STRING);
+#endif
+}
+
+// [[Rcpp::export]]
+Rcpp::CharacterVector
+libtiledb_fragment_info_get_non_empty_domain_var_name(XPtr<tiledb::FragmentInfo> fi,
+                                                      int32_t fid,
+                                                      const std::string& dim_name) {
+#if TILEDB_VERSION >= TileDB_Version(2,2,0)
+    auto sp = fi->non_empty_domain_var(static_cast<uint32_t>(fid), dim_name);
+    return CharacterVector::create(sp.first, sp.second);
+#else
+    return CharacterVector::create(NA_STRING, NA_STRING);
+#endif
+}
+
+// [[Rcpp::export]]
+double libtiledb_fragment_info_num(XPtr<tiledb::FragmentInfo> fi) {
+#if TILEDB_VERSION >= TileDB_Version(2,2,0)
+    return static_cast<double>(fi->fragment_num());
+#else
+    return NA_REAL;
+#endif
+}
+
+// [[Rcpp::export]]
+double libtiledb_fragment_info_size(XPtr<tiledb::FragmentInfo> fi, int32_t fid) {
+#if TILEDB_VERSION >= TileDB_Version(2,2,0)
+    return static_cast<double>(fi->fragment_size(static_cast<uint32_t>(fid)));
+#else
+    return NA_REAL;
+#endif
+}
+
+// [[Rcpp::export]]
+bool libtiledb_fragment_info_dense(XPtr<tiledb::FragmentInfo> fi, int32_t fid) {
+#if TILEDB_VERSION >= TileDB_Version(2,2,0)
+    return fi->dense(static_cast<uint32_t>(fid));
+#else
+    return NA_LOGICAL;
+#endif
+}
+
+// [[Rcpp::export]]
+bool libtiledb_fragment_info_sparse(XPtr<tiledb::FragmentInfo> fi, int32_t fid) {
+#if TILEDB_VERSION >= TileDB_Version(2,2,0)
+    return fi->sparse(static_cast<uint32_t>(fid));
+#else
+    return NA_LOGICAL;
+#endif
+}
+
+// [[Rcpp::export]]
+Rcpp::DatetimeVector
+libtiledb_fragment_info_timestamp_range(XPtr<tiledb::FragmentInfo> fi, int32_t fid) {
+#if TILEDB_VERSION >= TileDB_Version(2,2,0)
+    auto range = fi->timestamp_range(static_cast<uint32_t>(fid));
+    return Rcpp::DatetimeVector::create(range.first/1000.0, range.second/1000.0);
+#else
+    return DatetimeVector::create(NA_REAL, NA_REAL);
+#endif
+}
+
+// [[Rcpp::export]]
+double libtiledb_fragment_info_cell_num(XPtr<tiledb::FragmentInfo> fi, int32_t fid) {
+#if TILEDB_VERSION >= TileDB_Version(2,2,0)
+    return static_cast<double>(fi->cell_num(static_cast<uint32_t>(fid)));
+#else
+    return NA_REAL;
+#endif
+}
+
+// [[Rcpp::export]]
+int libtiledb_fragment_info_version(XPtr<tiledb::FragmentInfo> fi, int32_t fid) {
+#if TILEDB_VERSION >= TileDB_Version(2,2,0)
+    return static_cast<int>(fi->version(static_cast<uint32_t>(fid)));
+#else
+    return NA_INTEGER;
+#endif
+}
+
+// [[Rcpp::export]]
+bool libtiledb_fragment_info_has_consolidated_metadata(XPtr<tiledb::FragmentInfo> fi, int32_t fid) {
+#if TILEDB_VERSION >= TileDB_Version(2,2,0)
+    return fi->has_consolidated_metadata(static_cast<uint32_t>(fid));
+#else
+    return NA_LOGICAL;
+#endif
+}
+
+// [[Rcpp::export]]
+double libtiledb_fragment_info_unconsolidated_metadata_num(XPtr<tiledb::FragmentInfo> fi) {
+#if TILEDB_VERSION >= TileDB_Version(2,2,0)
+    return static_cast<double>(fi->unconsolidated_metadata_num());
+#else
+    return NA_REAL;
+#endif
+}
+
+// [[Rcpp::export]]
+double libtiledb_fragment_info_to_vacuum_num(XPtr<tiledb::FragmentInfo> fi) {
+#if TILEDB_VERSION >= TileDB_Version(2,2,0)
+    return static_cast<double>(fi->to_vacuum_num());
+#else
+    return NA_REAL;
+#endif
+}
+
+// [[Rcpp::export]]
+std::string libtiledb_fragment_info_to_vacuum_uri(XPtr<tiledb::FragmentInfo> fi, int32_t fid) {
+#if TILEDB_VERSION >= TileDB_Version(2,2,0)
+    return fi->to_vacuum_uri(static_cast<uint32_t>(fid));
+#else
+    return std::string("NA");
+#endif
+}
+
+// [[Rcpp::export]]
+void libtiledb_fragment_info_dump(XPtr<tiledb::FragmentInfo> fi) {
+#if TILEDB_VERSION >= TileDB_Version(2,2,0)
+    return fi->dump();
 #endif
 }
