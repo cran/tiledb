@@ -48,6 +48,11 @@
 #' permitted values are \sQuote{asis} (default, returning a list of columns),
 #' \sQuote{array}, \sQuote{matrix},\sQuote{data.frame}, \sQuote{data.table}
 #' or \sQuote{tibble}; the latter two require the respective packages installed
+#' @slot query_statistics A logical value, defaults to \sQuote{FALSE}; if \sQuote{TRUE} the
+#' query statistics are returned (as a JSON string) via the attribute
+#' \sQuote{query_statistics} of the return object.
+#' @slot sil An optional and internal list object with schema information, used for
+#' parsing queries.
 #' @slot ptr External pointer to the underlying implementation
 #' @exportClass tiledb_array
 setClass("tiledb_array",
@@ -68,6 +73,8 @@ setClass("tiledb_array",
                       timestamp_start = "POSIXct",
                       timestamp_end = "POSIXct",
                       return_as = "character",
+                      query_statistics = "logical",
+                      sil = "list",
                       ptr = "externalptr"))
 
 #' Constructs a tiledb_array object backed by a persisted tiledb array uri
@@ -108,6 +115,11 @@ setClass("tiledb_array",
 #' \sQuote{matrix},\sQuote{data.frame}, \sQuote{data.table} or \sQuote{tibble}; the latter
 #' two require the respective packages installed. The existing \code{as.*} arguments take precedent
 #' over this.
+#' @param query_statistics optional A logical value, defaults to \sQuote{FALSE}; if \sQuote{TRUE} the
+#' query statistics are returned (as a JSON string) via the attribute
+#' \sQuote{query_statistics} of the return object.
+#' @param sil optional A list, by default empty to store schema information when query objects are
+#' parsed.
 #' @param ctx optional tiledb_ctx
 #' @return tiledb_array object
 #' @export
@@ -128,6 +140,8 @@ tiledb_array <- function(uri,
                          timestamp_start = as.POSIXct(double(), origin="1970-01-01"),
                          timestamp_end = as.POSIXct(double(), origin="1970-01-01"),
                          return_as = get_return_as_preference(),
+                         query_statistics = FALSE,
+                         sil = list(),
                          ctx = tiledb_get_context()) {
   query_type = match.arg(query_type)
   if (!is(ctx, "tiledb_ctx"))
@@ -197,6 +211,8 @@ tiledb_array <- function(uri,
       timestamp_start = timestamp_start,
       timestamp_end = timestamp_end,
       return_as = return_as,
+      query_statistics = query_statistics,
+      sil = sil,
       ptr = array_xptr)
 }
 
@@ -263,6 +279,7 @@ setMethod("show", signature = "tiledb_array",
      ,"  timestamp_start    = ", if (length(object@timestamp_start) == 0) "(none)" else format(object@timestamp_start), "\n"
      ,"  timestamp_end      = ", if (length(object@timestamp_end) == 0) "(none)" else format(object@timestamp_end), "\n"
      ,"  return_as          = '", object@return_as, "'\n"
+     ,"  query_statistics   = ", if (object@query_statistics) "TRUE" else "FALSE", "\n"
      ,sep="")
 })
 
@@ -376,6 +393,11 @@ setValidity("tiledb_array", function(object) {
   if (!(object@return_as %in% c("asis", "array", "matrix", "data.frame", "data.table", "tibble"))) {
     valid <- FALSE
     msg <- c(msg, "The 'return_as' slot must contain one of 'asis', 'array', 'matrix', 'data.frame', 'data.table', 'tibble'.")
+  }
+
+  if (!is.logical(object@query_statistics)) {
+    valid <- FALSE
+    msg <- c(msg, "The 'query_statistics' slot does not contain a logical value.")
   }
 
   if (valid) TRUE else msg
@@ -732,14 +754,22 @@ setMethod("[", "tiledb_array",
       res <- tibble::as_tibble(res)
   }
 
-  ## attach query status
   attr(res, "query_status") <- .pkgenv[["query_status"]]
+  if (x@query_statistics)
+      attr(res, "query_statistics") <- libtiledb_query_stats(qryptr)
 
   invisible(res)
 })
 
 ## helper functions
 .convertToMatrix <- function(res) {
+    ## special case of row and colnames and one attribute
+    if (typeof(res[,1]) == "character" && typeof(res[,2]) == "character" && ncol(res) == 3) {
+        dimnames <- list(unique(res[,1]), unique(res[,2]))
+        res <- matrix(res[,3], length(dimnames[[1]]), length(dimnames[[2]]),
+                      dimnames=dimnames, byrow=TRUE)
+        return(invisible(res))
+    }
     k <- match("__tiledb_rows", colnames(res))
     if (is.finite(k)) {
        res <- res[, -k]
@@ -1552,3 +1582,129 @@ setReplaceMethod("return_as",
   validObject(x)
   x
 })
+
+
+## -- query_statistics return toggle
+
+#' @rdname query_statistics-tiledb_array-method
+#' @param ... Currently unused
+#' @export
+setGeneric("query_statistics", function(object, ...) standardGeneric("query_statistics"))
+
+#' Retrieve query_statistics toggle
+#'
+#' A \code{tiledb_array} object can, if requested, return query statistics as a JSON
+#' string in an attribute \sQuote{query_statistics} attached to the return object. The
+#' default value of the logical switch is \sQuote{FALSE}. This method returns the current
+#' value.
+#' @param object A \code{tiledb_array} object
+#' @return A logical value indicating whether query statistics are returned.
+#' @export
+setMethod("query_statistics",
+          signature = "tiledb_array",
+          function(object) object@query_statistics)
+
+#' @rdname query_statistics-set-tiledb_array-method
+#' @export
+setGeneric("query_statistics<-", function(x, value) standardGeneric("query_statistics<-"))
+
+#' Set query_statistics toggle
+#'
+#' A \code{tiledb_array} object can, if requested, return query statistics as a JSON
+#' string in an attribute \sQuote{query_statistics} attached to the return object. The
+#' default value of the logical switch is \sQuote{FALSE}. This method sets the value.
+#' @param x A \code{tiledb_array} object
+#' @param value A logical value with the selection
+#' @return The modified \code{tiledb_array} array object
+#' @export
+setReplaceMethod("query_statistics",
+                 signature = "tiledb_array",
+                 function(x, value) {
+  x@query_statistics <- value
+  validObject(x)
+  x
+})
+
+
+## piped query support
+
+
+#' @rdname generics
+#' @export
+setGeneric("tdb_filter", function(x, ...) standardGeneric("tdb_filter"))
+
+#' Filter from array for query via logical conditions
+#'
+#' @param x A tiledb_array object as first argument, permitting piping
+#' @param ... One or more expressions that are parsed as query_condition objects
+#' @param strict A boolean toogle to, if set, errors if a non-existing attribute is selected
+#' or filtered on, defaults to 'TRUE'; if 'FALSE' a warning is shown by execution proceeds.
+#' @return The tiledb_array object, permitting piping
+#' @export
+setMethod("tdb_filter", signature("tiledb_array"), function(x, ..., strict=TRUE) {
+    qc <- parse_query_condition(..., ta=x, debug=FALSE, strict=strict)
+    if (is.null(qc))
+        return(x)
+    if (isTRUE(x@query_condition@init)) {  # if prior qc exists, combine by AND
+        x@query_condition <- tiledb_query_condition_combine(x@query_condition, qc, "AND")
+    } else {                                     # else just assign
+        x@query_condition <- qc
+    }
+    x
+})
+
+#' @rdname generics
+#' @export
+setGeneric("tdb_select", function(x, ...) standardGeneric("tdb_select"))
+
+#' Select attributes from array for query
+#'
+#' @param x A tiledb_array object as first argument, permitting piping
+#' @param ... One or more attributes of the query
+#' @return The tiledb_array object, permitting piping
+#' @export
+setMethod("tdb_select", signature("tiledb_array"), function(x, ...) {
+    if (length(x@sil) == 0) x@sil <- .fill_schema_info_list(x@uri)
+    ## helper with a nod to data.table and its name_dots
+    names_from_dots <- function(...) {
+        dot_sub <- as.list(substitute(list(...)))[-1L]
+        vnames <- character(length(dot_sub))
+        notnamed <- vnames == ""
+        syms <- sapply(dot_sub, is.symbol)  # save the deparse() in most cases of plain symbol
+        for (i in which(notnamed)) {
+            tmp <- if (syms[i]) as.character(dot_sub[[i]]) else deparse(dot_sub[[i]])[1L]
+            if (tmp == make.names(tmp)) vnames[i] <- tmp
+        }
+        vnames
+    }
+
+    vec <- names_from_dots(...)
+    ind <- match(vec, x@sil$names)     		# match against schema names
+    ind <- ind[x@sil$status[ind] == 2L]  	# allow only attributes (where status == 2)
+    newvec <- na.omit(x@sil$names[ ind ])  	# and create subset (filtering NA for wrong entry)
+    x@attrs <- newvec
+    x
+})
+
+#' @rdname generics
+#' @export
+setGeneric("tdb_collect", function(x, ...) standardGeneric("tdb_collect"))
+
+#' Collect the query results to finalize piped expression
+#'
+#' @param x A tiledb_array object as first argument, permitting piping
+#' @param ... Ignored
+#' @return The object returning from a tiledb_array query (the type of which can be
+#' set via the return preference mechanism, see the help for \code{"["} accessor)
+#' @export
+setMethod("tdb_collect", signature("tiledb_array"), function(x, ...) {
+    x[]
+})
+
+# unexported helper
+.fill_schema_info_list <- function(uri) {
+    sch <- schema(uri)
+    list(names=tiledb_schema_get_names(sch),
+         types=tiledb_schema_get_types(sch),
+         status=tiledb_schema_get_dim_attr_status(sch))
+}

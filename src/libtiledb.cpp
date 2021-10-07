@@ -444,6 +444,14 @@ bool libtiledb_ctx_is_supported_fs(XPtr<tiledb::Context> ctx, std::string scheme
     return ctx->is_supported_fs(TILEDB_S3);
   } else if (scheme == "hdfs") {
     return ctx->is_supported_fs(TILEDB_HDFS);
+  } else if (scheme == "azure") {
+    return ctx->is_supported_fs(TILEDB_AZURE);
+  } else if (scheme == "gcs") {
+    return ctx->is_supported_fs(TILEDB_GCS);
+#if TILEDB_VERSION >= TileDB_Version(2,2,0)
+  } else if (scheme == "memory") {
+    return ctx->is_supported_fs(TILEDB_MEMFS);
+#endif
   } else {
     Rcpp::stop("Unknown TileDB fs scheme: '%s'", scheme.c_str());
   }
@@ -452,6 +460,15 @@ bool libtiledb_ctx_is_supported_fs(XPtr<tiledb::Context> ctx, std::string scheme
 // [[Rcpp::export]]
 void libtiledb_ctx_set_tag(XPtr<tiledb::Context> ctx, std::string key, std::string value) {
   ctx->set_tag(key, value);
+}
+
+// [[Rcpp::export]]
+std::string libtiledb_ctx_stats(XPtr<tiledb::Context> ctx) {
+#if TILEDB_VERSION >= TileDB_Version(2,4,0)
+    return ctx->stats();
+#else
+    return std::string("");
+#endif
 }
 
 /**
@@ -1707,6 +1724,67 @@ bool libtiledb_array_schema_check(XPtr<tiledb::ArraySchema> schema) {
   return true;
 }
 
+/**
+ * TileDB Array Schema Evolution
+ */
+//[[Rcpp::export]]
+XPtr<tiledb::ArraySchemaEvolution>
+libtiledb_array_schema_evolution(XPtr<tiledb::Context> ctx) {
+#if TILEDB_VERSION >= TileDB_Version(2,4,0)
+    auto p = new tiledb::ArraySchemaEvolution(tiledb::ArraySchemaEvolution(*ctx.get()));
+    auto ptr = XPtr<tiledb::ArraySchemaEvolution>(p, false);
+    registerXptrFinalizer(ptr, libtiledb_arrayschemaevolution_delete);
+#else
+    auto p = new tiledb::ArraySchemaEvolution(tiledb::ArraySchemaEvolution()); // placeholder
+    auto ptr = XPtr<tiledb::ArraySchemaEvolution>(p);
+#endif
+    return ptr;
+}
+
+//[[Rcpp::export]]
+XPtr<tiledb::ArraySchemaEvolution>
+libtiledb_array_schema_evolution_add_attribute(XPtr<tiledb::ArraySchemaEvolution> ase,
+                                               XPtr<tiledb::Attribute> attr) {
+#if TILEDB_VERSION >= TileDB_Version(2,4,0)
+    tiledb::ArraySchemaEvolution res = ase->add_attribute(*attr.get());
+    auto ptr = new tiledb::ArraySchemaEvolution(res);
+    auto xptr = XPtr<tiledb::ArraySchemaEvolution>(ptr, false);
+    registerXptrFinalizer(xptr, libtiledb_arrayschemaevolution_delete);
+    return xptr;
+#else
+    return ase;
+#endif
+}
+
+//[[Rcpp::export]]
+XPtr<tiledb::ArraySchemaEvolution>
+libtiledb_array_schema_evolution_drop_attribute(XPtr<tiledb::ArraySchemaEvolution> ase,
+                                                const std::string & attrname) {
+#if TILEDB_VERSION >= TileDB_Version(2,4,0)
+    tiledb::ArraySchemaEvolution res = ase->drop_attribute(attrname);
+    auto ptr = new tiledb::ArraySchemaEvolution(res);
+    auto xptr = XPtr<tiledb::ArraySchemaEvolution>(ptr, false);
+    registerXptrFinalizer(xptr, libtiledb_arrayschemaevolution_delete);
+    return xptr;
+#else
+    return ase;
+#endif
+}
+
+//[[Rcpp::export]]
+XPtr<tiledb::ArraySchemaEvolution>
+libtiledb_array_schema_evolution_array_evolve(XPtr<tiledb::ArraySchemaEvolution> ase,
+                                              const std::string & uri) {
+#if TILEDB_VERSION >= TileDB_Version(2,4,0)
+    tiledb::ArraySchemaEvolution res = ase->array_evolve(uri);
+    auto ptr = new tiledb::ArraySchemaEvolution(res);
+    auto xptr = XPtr<tiledb::ArraySchemaEvolution>(ptr, false);
+    registerXptrFinalizer(xptr, libtiledb_arrayschemaevolution_delete);
+    return xptr;
+#else
+    return ase;
+#endif
+}
 
 /**
  * TileDB Array
@@ -2329,15 +2407,27 @@ XPtr<tiledb::Query> libtiledb_query_set_buffer(XPtr<tiledb::Query> query,
                                                SEXP buffer) {
   if (TYPEOF(buffer) == INTSXP) {
     IntegerVector vec(buffer);
+#if TILEDB_VERSION >= TileDB_Version(2,4,0)
+    query->set_data_buffer(attr, vec.begin(), vec.length());
+#else
     query->set_buffer(attr, vec.begin(), vec.length());
+#endif
     return query;
   } else if (TYPEOF(buffer) == REALSXP) {
     NumericVector vec(buffer);
+#if TILEDB_VERSION >= TileDB_Version(2,4,0)
+    query->set_data_buffer(attr, vec.begin(), vec.length());
+#else
     query->set_buffer(attr, vec.begin(), vec.length());
+#endif
     return query;
   } else if (TYPEOF(buffer) == LGLSXP) {
     LogicalVector vec(buffer);
+#if TILEDB_VERSION >= TileDB_Version(2,4,0)
+    query->set_data_buffer(attr, vec.begin(), vec.length());
+#else
     query->set_buffer(attr, vec.begin(), vec.length());
+#endif
     return query;
   } else {
     Rcpp::stop("Invalid attribute buffer type for attribute '%s': %s",
@@ -2426,7 +2516,14 @@ XPtr<tiledb::Query> libtiledb_query_set_buffer_var_char(XPtr<tiledb::Query> quer
                                                         std::string attr,
                                                         XPtr<vlc_buf_t> bufptr) {
 
-#if TILEDB_VERSION >= TileDB_Version(2,2,4)
+#if TILEDB_VERSION >= TileDB_Version(2,4,0)
+    if (bufptr->nullable) {
+        query->set_validity_buffer(attr, bufptr->validity_map);
+    }
+    query->set_data_buffer(attr, bufptr->str);
+    query->set_offsets_buffer(attr, bufptr->offsets);
+    return query;
+#elif TILEDB_VERSION >= TileDB_Version(2,2,4)
     if (bufptr->nullable) {
         query->set_buffer_nullable(attr, bufptr->offsets, bufptr->str, bufptr->validity_map);
     } else {
@@ -2501,11 +2598,21 @@ XPtr<vlv_buf_t> libtiledb_query_buffer_var_vec_create(IntegerVector intoffsets, 
 XPtr<tiledb::Query> libtiledb_query_set_buffer_var_vec(XPtr<tiledb::Query> query,
                                                        std::string attr, XPtr<vlv_buf_t> buf) {
   if (buf->dtype == TILEDB_INT32) {
-    query->set_buffer(attr, buf->offsets, buf->idata);
+#if TILEDB_VERSION >= TileDB_Version(2,4,0)
+      query->set_data_buffer(attr, buf->idata);
+      query->set_offsets_buffer(attr, buf->offsets);
+#else
+      query->set_buffer(attr, buf->offsets, buf->idata);
+#endif
   } else if (buf->dtype == TILEDB_FLOAT64) {
-    query->set_buffer(attr, buf->offsets, buf->ddata);
+#if TILEDB_VERSION >= TileDB_Version(2,4,0)
+      query->set_data_buffer(attr, buf->ddata);
+      query->set_offsets_buffer(attr, buf->offsets);
+#else
+      query->set_buffer(attr, buf->offsets, buf->ddata);
+#endif
   } else {
-    Rcpp::stop("Unsupported type '%s' for buffer", _tiledb_datatype_to_string(buf->dtype));
+      Rcpp::stop("Unsupported type '%s' for buffer", _tiledb_datatype_to_string(buf->dtype));
   }
   return query;
 }
@@ -2722,7 +2829,12 @@ XPtr<query_buf_t> libtiledb_query_buffer_assign_ptr(XPtr<query_buf_t> buf, std::
 XPtr<tiledb::Query> libtiledb_query_set_buffer_ptr(XPtr<tiledb::Query> query,
                                                    std::string attr,
                                                    XPtr<query_buf_t> buf) {
-#if TILEDB_VERSION >= TileDB_Version(2,2,0)
+#if TILEDB_VERSION >= TileDB_Version(2,4,0)
+    if (buf->nullable) {
+        query->set_validity_buffer(attr, buf->validity_map);
+    }
+    query->set_data_buffer(attr, static_cast<void*>(buf->vec.data()), buf->ncells);
+#elif TILEDB_VERSION >= TileDB_Version(2,2,0)
     if (buf->nullable) {
         query->set_buffer_nullable(attr, static_cast<void*>(buf->vec.data()), buf->ncells,
                                    buf->validity_map.data(),
@@ -2730,11 +2842,10 @@ XPtr<tiledb::Query> libtiledb_query_set_buffer_ptr(XPtr<tiledb::Query> query,
     } else {
         query->set_buffer(attr, static_cast<void*>(buf->vec.data()), buf->ncells);
     }
-    return query;
 #else
     query->set_buffer(attr, static_cast<void*>(buf->vec.data()), buf->ncells);
-    return query;
 #endif
+    return query;
 }
 
 
@@ -3256,6 +3367,15 @@ XPtr<tiledb::ArraySchema> libtiledb_query_get_schema(XPtr<tiledb::Query> query,
 #endif
 }
 
+// [[Rcpp::export]]
+std::string libtiledb_query_stats(XPtr<tiledb::Query> query) {
+#if TILEDB_VERSION >= TileDB_Version(2,4,0)
+    return query->stats();
+#else
+    return std::string("");
+#endif
+}
+
 /**
  * Query Condition
  */
@@ -3555,7 +3675,8 @@ std::string libtiledb_vfs_create_dir(XPtr<tiledb::VFS> vfs, std::string uri) {
 
 // [[Rcpp::export]]
 bool libtiledb_vfs_is_dir(XPtr<tiledb::VFS> vfs, std::string uri) {
-  return vfs->is_dir(uri);
+    auto ptr = vfs.get();
+    return ptr->is_dir(uri);
 }
 
 // [[Rcpp::export]]

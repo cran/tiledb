@@ -158,7 +158,7 @@ dom <- tiledb_domain(dims = tiledb_dim("rows", c(1L, 10L), 1L, type = "INT32"))
 schema <- tiledb_array_schema(dom,
                               attrs = c(tiledb_attr("vals", type = "INT32"),
                                         tiledb_attr("keys", type = "INT32", nullable = TRUE)),
-                              sparse=FALSE)
+                              sparse=TRUE)
 tiledb_array_create(tmp, schema)
 arr <- tiledb_array(tmp)
 qry <- tiledb_query(arr, "WRITE")
@@ -241,3 +241,13 @@ ctx <- tiledb_ctx(cfg)
 array <- tiledb_array(tmp, as.data.frame=TRUE)
 
 expect_warning(res <- array[])
+
+## check for query stats
+if (tiledb_version(TRUE) < "2.4.0") exit_file("TileDB Query + Ctx stats requires TileDB 2.4.* or greater")
+res <- tiledb_query_stats(qry)
+expect_true(is.character(res))
+expect_true(nchar(res) > 1000)  		# safe lower boundary
+
+res <- tiledb_ctx_stats()               # test here rather than in test_ctx to have real query
+expect_true(is.character(res))
+expect_true(nchar(res) > 1000)  		# safe lower boundary
