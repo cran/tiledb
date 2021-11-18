@@ -634,23 +634,23 @@ qryptr <- tiledb:::libtiledb_query_submit(qryptr)
 print(v)         # unformed array, no coordinates
 res <- tiledb:::libtiledb_array_close(arrptr)
 
-## ----readvarlength, eval=notWindows-------------------------------------------
-ctx <- tiledb_ctx()
-arrptr <- tiledb:::libtiledb_array_open(ctx@ptr, uridensevar, "READ")
-
-subarr <- c(1L,4L, 1L,4L)
-bufptr <- tiledb:::libtiledb_query_buffer_var_char_alloc(arrptr, subarr, "a1", 16, 100)
-
-qryptr <- tiledb:::libtiledb_query(ctx@ptr, arrptr, "READ")
-qryptr <- tiledb:::libtiledb_query_set_subarray(qryptr, subarr)
-qryptr <- tiledb:::libtiledb_query_set_layout(qryptr, "COL_MAJOR")
-
-qryptr <- tiledb:::libtiledb_query_set_buffer_var_char(qryptr, "a1", bufptr)
-qryptr <- tiledb:::libtiledb_query_submit(qryptr)
-tiledb:::libtiledb_array_close(arrptr)
-
-mat <- tiledb:::libtiledb_query_get_buffer_var_char(bufptr)
-print(mat, quote=FALSE)
+## ----readvarlength, eval=FALSE------------------------------------------------
+#  ctx <- tiledb_ctx()
+#  arrptr <- tiledb:::libtiledb_array_open(ctx@ptr, uridensevar, "READ")
+#  
+#  subarr <- c(1L,4L, 1L,4L)
+#  bufptr <- tiledb:::libtiledb_query_buffer_var_char_alloc(arrptr, subarr, "a1", 16, 100)
+#  
+#  qryptr <- tiledb:::libtiledb_query(ctx@ptr, arrptr, "READ")
+#  qryptr <- tiledb:::libtiledb_query_set_subarray(qryptr, subarr)
+#  qryptr <- tiledb:::libtiledb_query_set_layout(qryptr, "COL_MAJOR")
+#  
+#  qryptr <- tiledb:::libtiledb_query_set_buffer_var_char(qryptr, "a1", bufptr)
+#  qryptr <- tiledb:::libtiledb_query_submit(qryptr)
+#  tiledb:::libtiledb_array_close(arrptr)
+#  
+#  mat <- tiledb:::libtiledb_query_get_buffer_var_char(bufptr)
+#  print(mat, quote=FALSE)
 
 ## ----nonempty, eval=FALSE-----------------------------------------------------
 #  # example with one fixed- and one variable-sized domain

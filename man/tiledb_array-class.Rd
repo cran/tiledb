@@ -14,15 +14,16 @@ based on refactored implementation utilising newer TileDB features.
 \describe{
 \item{\code{ctx}}{A TileDB context object}
 
-\item{\code{uri}}{A character despription}
+\item{\code{uri}}{A character despription with the array URI}
 
-\item{\code{is.sparse}}{A logical value}
+\item{\code{is.sparse}}{A logical value whether the array is sparse or not}
 
 \item{\code{as.data.frame}}{A logical value}
 
-\item{\code{attrs}}{A character vector}
+\item{\code{attrs}}{A character vector to select particular column \sQuote{attributes}}
 
-\item{\code{extended}}{A logical value}
+\item{\code{extended}}{A logical value, defaults to \code{TRUE}, indicating whether index
+columns are returned as well.}
 
 \item{\code{selected_ranges}}{An optional list with matrices where each matrix i
 describes the (min,max) pair of ranges for dimension i}
@@ -56,6 +57,11 @@ query statistics are returned (as a JSON string) via the attribute
 
 \item{\code{sil}}{An optional and internal list object with schema information, used for
 parsing queries.}
+
+\item{\code{dumpbuffers}}{An optional character variable with a directory name (relative to
+\code{/dev/shm}) for writing out results buffers (for internal use / testing)}
+
+\item{\code{buffers}}{An optional list with full pathnames of shared memory buffers to read data from}
 
 \item{\code{ptr}}{External pointer to the underlying implementation}
 }}
