@@ -161,6 +161,17 @@ int32_t tiledb_datatype_string_to_sizeof(const std::string str) {
     return static_cast<int32_t>(tiledb_datatype_size(_string_to_tiledb_datatype(str)));
 }
 
+//' Map from TileDB type to R datatype
+//'
+//' This function maps from the TileDB types to the (fewer) key datatypes in R. This
+//' can be lossy as TileDB integers range from (signed and unsigned) 8 to 64 bit whereas
+//' R only has (signed) 32 bit values. Similarly, R only has 64 bit doubles whereas TileDB
+//' has 32 and 64 bit floating point types. TileDB also has more character encodings, and the
+//' full range of (NumPy) date and time types.
+//'
+//' @param datatype A string describing one TileDB datatype
+//' @return A string describing the closest match for an R datatype
+//' @export
 // [[Rcpp::export]]
 std::string tiledb_datatype_R_type(std::string datatype) {
   tiledb_datatype_t dtype = _string_to_tiledb_datatype(datatype);
@@ -1245,8 +1256,8 @@ XPtr<tiledb::FilterList> libtiledb_filter_list(XPtr<tiledb::Context> ctx, List f
 }
 
 //[[Rcpp::export]]
-void libtiledb_filter_list_set_max_chunk_size(XPtr<tiledb::FilterList> filterList, uint32_t max_chunk_sie) {
-  filterList->set_max_chunk_size(max_chunk_sie);
+void libtiledb_filter_list_set_max_chunk_size(XPtr<tiledb::FilterList> filterList, uint32_t max_chunk_size) {
+  filterList->set_max_chunk_size(max_chunk_size);
 }
 
 //[[Rcpp::export]]

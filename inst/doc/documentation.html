@@ -586,7 +586,7 @@ document.addEventListener('DOMContentLoaded', function() {
 <div class="sourceCode" id="cb22"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true"></a><span class="co"># set &#39;duplicates allowed?&#39; status</span></span>
 <span id="cb22-2"><a href="#cb22-2" aria-hidden="true"></a><span class="kw">allows_dups</span>(sch) &lt;-<span class="st"> </span><span class="ot">TRUE</span></span>
 <span id="cb22-3"><a href="#cb22-3" aria-hidden="true"></a><span class="kw">tiledb_array_schema_set_allows_dups</span>(sch, <span class="ot">TRUE</span>)</span></code></pre></div>
-<pre><code>## &lt;pointer: 0x563f3f6ab3c0&gt;</code></pre>
+<pre><code>## &lt;pointer: 0x55b686123680&gt;</code></pre>
 </section>
 <section id="checking-correctness" class="level4">
 <h4>Checking Correctness</h4>
@@ -703,7 +703,7 @@ document.addEventListener('DOMContentLoaded', function() {
 <span id="cb40-4"><a href="#cb40-4" aria-hidden="true"></a></span>
 <span id="cb40-5"><a href="#cb40-5" aria-hidden="true"></a><span class="co"># create encrypted array at &#39;uri&#39; with schema &#39;sch&#39;</span></span>
 <span id="cb40-6"><a href="#cb40-6" aria-hidden="true"></a><span class="kw">tiledb_array_create</span>(uridensewkey, sch, encryption_key)</span></code></pre></div>
-<pre><code>## [1] &quot;/tmp/Rtmp7Jvb07/denseenc&quot;</code></pre>
+<pre><code>## [1] &quot;/tmp/RtmpXKu3z4/denseenc&quot;</code></pre>
 </section>
 </section>
 <section id="writing-arrays" class="level2">
@@ -765,7 +765,7 @@ document.addEventListener('DOMContentLoaded', function() {
 <span id="cb44-7"><a href="#cb44-7" aria-hidden="true"></a>val &lt;-<span class="st"> </span><span class="kw">tiledb_attr</span>(<span class="st">&quot;val&quot;</span>, <span class="dt">type =</span> <span class="st">&quot;INT32&quot;</span>)</span>
 <span id="cb44-8"><a href="#cb44-8" aria-hidden="true"></a>sch &lt;-<span class="st"> </span><span class="kw">tiledb_array_schema</span>(dom, val, <span class="dt">sparse=</span><span class="ot">TRUE</span>)</span>
 <span id="cb44-9"><a href="#cb44-9" aria-hidden="true"></a><span class="kw">tiledb_array_create</span>(tmp, sch)</span></code></pre></div>
-<pre><code>## [1] &quot;/tmp/Rtmp7Jvb07/sparse&quot;</code></pre>
+<pre><code>## [1] &quot;/tmp/RtmpXKu3z4/sparse&quot;</code></pre>
 <div class="sourceCode" id="cb46"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb46-1"><a href="#cb46-1" aria-hidden="true"></a><span class="co"># Prepare some data</span></span>
 <span id="cb46-2"><a href="#cb46-2" aria-hidden="true"></a>data &lt;-<span class="st"> </span><span class="kw">c</span>(3L, 4L, 1L, 2L)</span>
 <span id="cb46-3"><a href="#cb46-3" aria-hidden="true"></a></span>
@@ -796,7 +796,7 @@ document.addEventListener('DOMContentLoaded', function() {
 <span id="cb48-10"><a href="#cb48-10" aria-hidden="true"></a>tiledb<span class="op">:::</span><span class="kw">libtiledb_attribute_set_cell_val_num</span>(attr<span class="op">@</span>ptr, <span class="dv">2</span>)</span>
 <span id="cb48-11"><a href="#cb48-11" aria-hidden="true"></a>sch &lt;-<span class="st"> </span><span class="kw">tiledb_array_schema</span>(dom, attr)</span>
 <span id="cb48-12"><a href="#cb48-12" aria-hidden="true"></a><span class="kw">tiledb_array_create</span>(uridensefix, sch)</span></code></pre></div>
-<pre><code>## [1] &quot;/tmp/Rtmp7Jvb07/densefix&quot;</code></pre>
+<pre><code>## [1] &quot;/tmp/RtmpXKu3z4/densefix&quot;</code></pre>
 <div class="sourceCode" id="cb50"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb50-1"><a href="#cb50-1" aria-hidden="true"></a>ctx &lt;-<span class="st"> </span><span class="kw">tiledb_ctx</span>()</span>
 <span id="cb50-2"><a href="#cb50-2" aria-hidden="true"></a>arrptr &lt;-<span class="st"> </span>tiledb<span class="op">:::</span><span class="kw">libtiledb_array_open</span>(ctx<span class="op">@</span>ptr, uridensefix, <span class="st">&quot;WRITE&quot;</span>)</span>
 <span id="cb50-3"><a href="#cb50-3" aria-hidden="true"></a>subarr &lt;-<span class="st"> </span><span class="kw">c</span>(1L,4L, 1L,4L)</span>
@@ -835,7 +835,7 @@ document.addEventListener('DOMContentLoaded', function() {
 <span id="cb51-21"><a href="#cb51-21" aria-hidden="true"></a></span>
 <span id="cb51-22"><a href="#cb51-22" aria-hidden="true"></a><span class="co">## Create the (empty) array on disk.</span></span>
 <span id="cb51-23"><a href="#cb51-23" aria-hidden="true"></a>tiledb<span class="op">:::</span><span class="kw">libtiledb_array_create</span>(uridensevar, schptr)</span></code></pre></div>
-<pre><code>## [1] &quot;/tmp/Rtmp7Jvb07/densevar&quot;</code></pre>
+<pre><code>## [1] &quot;/tmp/RtmpXKu3z4/densevar&quot;</code></pre>
 <div class="sourceCode" id="cb53"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb53-1"><a href="#cb53-1" aria-hidden="true"></a>data &lt;-<span class="st"> &quot;abbcccddeeefghhhijjjkklmnoop&quot;</span>;</span>
 <span id="cb53-2"><a href="#cb53-2" aria-hidden="true"></a>offsets &lt;-<span class="st"> </span><span class="kw">c</span>(0L, 1L, 3L, 6L, 8L, 11L, 12L, 13L, 16L, 17L, 20L, 22L, 23L, 24L, 25L, 27L)</span>
 <span id="cb53-3"><a href="#cb53-3" aria-hidden="true"></a></span>
@@ -848,7 +848,7 @@ document.addEventListener('DOMContentLoaded', function() {
 <span id="cb53-10"><a href="#cb53-10" aria-hidden="true"></a>qryptr &lt;-<span class="st"> </span>tiledb<span class="op">:::</span><span class="kw">libtiledb_query_set_buffer_var_char</span>(qryptr, <span class="st">&quot;a1&quot;</span>, bufptr)</span>
 <span id="cb53-11"><a href="#cb53-11" aria-hidden="true"></a>qryptr &lt;-<span class="st"> </span>tiledb<span class="op">:::</span><span class="kw">libtiledb_query_submit</span>(qryptr)</span>
 <span id="cb53-12"><a href="#cb53-12" aria-hidden="true"></a>tiledb<span class="op">:::</span><span class="kw">libtiledb_array_close</span>(arrptr)</span></code></pre></div>
-<pre><code>## &lt;pointer: 0x563f3eb6c920&gt;</code></pre>
+<pre><code>## &lt;pointer: 0x55b686048e10&gt;</code></pre>
 <div class="sourceCode" id="cb55"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb55-1"><a href="#cb55-1" aria-hidden="true"></a><span class="co">#TODO Higher-level R support</span></span></code></pre></div>
 </section>
 <section id="writing-at-a-timestamp" class="level3">
@@ -1233,7 +1233,7 @@ document.addEventListener('DOMContentLoaded', function() {
 <span id="cb80-9"><a href="#cb80-9" aria-hidden="true"></a></span>
 <span id="cb80-10"><a href="#cb80-10" aria-hidden="true"></a><span class="co"># Unset a configuration parameter</span></span>
 <span id="cb80-11"><a href="#cb80-11" aria-hidden="true"></a><span class="kw">tiledb_config_unset</span>(config, <span class="st">&quot;sm.tile_cache_size&quot;</span>)</span></code></pre></div>
-<pre><code>## &lt;pointer: 0x563f38e9cdf0&gt;</code></pre>
+<pre><code>## &lt;pointer: 0x55b6837df9e0&gt;</code></pre>
 </section>
 <section id="save-and-load-to-file" class="level4">
 <h4>Save and Load to File</h4>
@@ -1242,7 +1242,7 @@ document.addEventListener('DOMContentLoaded', function() {
 <span id="cb82-3"><a href="#cb82-3" aria-hidden="true"></a>config[<span class="st">&quot;sm.tile_cache_size&quot;</span>] &lt;-<span class="st"> </span><span class="dv">0</span>;</span>
 <span id="cb82-4"><a href="#cb82-4" aria-hidden="true"></a>file &lt;-<span class="st"> </span><span class="kw">tempfile</span>(<span class="dt">pattern =</span> <span class="st">&quot;tiledb_config&quot;</span>, <span class="dt">fileext =</span> <span class="st">&quot;.txt&quot;</span>)</span>
 <span id="cb82-5"><a href="#cb82-5" aria-hidden="true"></a><span class="kw">tiledb_config_save</span>(config, file)</span></code></pre></div>
-<pre><code>## [1] &quot;/tmp/Rtmp7Jvb07/tiledb_config3b3bb5a9101dc.txt&quot;</code></pre>
+<pre><code>## [1] &quot;/tmp/RtmpXKu3z4/tiledb_config302d4e5d253f9d.txt&quot;</code></pre>
 <div class="sourceCode" id="cb84"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb84-1"><a href="#cb84-1" aria-hidden="true"></a><span class="co"># Load from file</span></span>
 <span id="cb84-2"><a href="#cb84-2" aria-hidden="true"></a>config_loaded &lt;-<span class="st"> </span><span class="kw">tiledb_config_load</span>(file)</span>
 <span id="cb84-3"><a href="#cb84-3" aria-hidden="true"></a>tile_cache_size =<span class="st"> </span>config_loaded[<span class="st">&quot;sm.tile_cache_size&quot;</span>]</span></code></pre></div>
@@ -1318,7 +1318,6 @@ document.addEventListener('DOMContentLoaded', function() {
 ## vfs.azure.max_parallel_ops : 12 
 ## vfs.azure.use_block_list_upload : true 
 ## vfs.azure.use_https : true 
-## vfs.file.enable_filelocks : true 
 ## vfs.file.max_parallel_ops : 12 
 ## vfs.file.posix_directory_permissions : 755 
 ## vfs.file.posix_file_permissions : 644 

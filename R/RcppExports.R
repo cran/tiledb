@@ -37,6 +37,17 @@ tiledb_datatype_string_to_sizeof <- function(str) {
     .Call(`_tiledb_tiledb_datatype_string_to_sizeof`, str)
 }
 
+#' Map from TileDB type to R datatype
+#'
+#' This function maps from the TileDB types to the (fewer) key datatypes in R. This
+#' can be lossy as TileDB integers range from (signed and unsigned) 8 to 64 bit whereas
+#' R only has (signed) 32 bit values. Similarly, R only has 64 bit doubles whereas TileDB
+#' has 32 and 64 bit floating point types. TileDB also has more character encodings, and the
+#' full range of (NumPy) date and time types.
+#'
+#' @param datatype A string describing one TileDB datatype
+#' @return A string describing the closest match for an R datatype
+#' @export
 tiledb_datatype_R_type <- function(datatype) {
     .Call(`_tiledb_tiledb_datatype_R_type`, datatype)
 }
@@ -185,8 +196,8 @@ libtiledb_filter_list <- function(ctx, filters) {
     .Call(`_tiledb_libtiledb_filter_list`, ctx, filters)
 }
 
-libtiledb_filter_list_set_max_chunk_size <- function(filterList, max_chunk_sie) {
-    invisible(.Call(`_tiledb_libtiledb_filter_list_set_max_chunk_size`, filterList, max_chunk_sie))
+libtiledb_filter_list_set_max_chunk_size <- function(filterList, max_chunk_size) {
+    invisible(.Call(`_tiledb_libtiledb_filter_list_set_max_chunk_size`, filterList, max_chunk_size))
 }
 
 libtiledb_filter_list_get_max_chunk_size <- function(filterList) {
