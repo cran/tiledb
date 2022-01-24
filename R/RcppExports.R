@@ -189,7 +189,7 @@ libtiledb_filter_get_option <- function(filter, filter_option_str) {
 }
 
 libtiledb_filter_set_option <- function(filter, filter_option_str, value) {
-    invisible(.Call(`_tiledb_libtiledb_filter_set_option`, filter, filter_option_str, value))
+    .Call(`_tiledb_libtiledb_filter_set_option`, filter, filter_option_str, value)
 }
 
 libtiledb_filter_list <- function(ctx, filters) {
@@ -268,8 +268,8 @@ libtiledb_attribute_get_nullable <- function(attr) {
     .Call(`_tiledb_libtiledb_attribute_get_nullable`, attr)
 }
 
-libtiledb_array_schema <- function(ctx, domain, attributes, cell_order, tile_order, coords_filter_list = NULL, offsets_filter_list = NULL, sparse = FALSE) {
-    .Call(`_tiledb_libtiledb_array_schema`, ctx, domain, attributes, cell_order, tile_order, coords_filter_list, offsets_filter_list, sparse)
+libtiledb_array_schema <- function(ctx, domain, attributes, cell_order, tile_order, coords_filter_list = NULL, offsets_filter_list = NULL, validity_filter_list = NULL, sparse = FALSE) {
+    .Call(`_tiledb_libtiledb_array_schema`, ctx, domain, attributes, cell_order, tile_order, coords_filter_list, offsets_filter_list, validity_filter_list, sparse)
 }
 
 libtiledb_array_schema_create <- function(ctx, atstr) {
@@ -350,6 +350,14 @@ libtiledb_array_schema_get_offsets_filter_list <- function(schema) {
 
 libtiledb_array_schema_set_offsets_filter_list <- function(schema, fltlst) {
     .Call(`_tiledb_libtiledb_array_schema_set_offsets_filter_list`, schema, fltlst)
+}
+
+libtiledb_array_schema_get_validity_filter_list <- function(schema) {
+    .Call(`_tiledb_libtiledb_array_schema_get_validity_filter_list`, schema)
+}
+
+libtiledb_array_schema_set_validity_filter_list <- function(schema, fltlst) {
+    .Call(`_tiledb_libtiledb_array_schema_set_validity_filter_list`, schema, fltlst)
 }
 
 libtiledb_array_schema_get_attribute_num <- function(schema) {
@@ -694,6 +702,10 @@ libtiledb_query_get_schema <- function(query, ctx) {
 
 libtiledb_query_stats <- function(query) {
     .Call(`_tiledb_libtiledb_query_stats`, query)
+}
+
+libtiledb_query_get_ctx <- function(query) {
+    .Call(`_tiledb_libtiledb_query_get_ctx`, query)
 }
 
 libtiledb_query_condition <- function(ctx) {

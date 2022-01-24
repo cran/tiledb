@@ -1,6 +1,6 @@
 #  MIT License
 #
-#  Copyright (c) 2017-2021 TileDB Inc.
+#  Copyright (c) 2017-2022 TileDB Inc.
 #
 #  Permission is hereby granted, free of charge, to any person obtaining a copy
 #  of this software and associated documentation files (the "Software"), to deal
@@ -517,6 +517,12 @@ setMethod("[", "tiledb_array",
       allnullable <- attrnullable
   }
 
+  ## A preference can be set in a local per-user configuration file; if no value
+  ## is set a fallback from the TileDB config object is used. Note that this memory
+  ## budget (currently, at least) applies only to character columns. We scale the total
+  ## budget by the number of variable sized column (where 'varnum' is NA)
+  memory_budget <- get_allocation_size_preference() / max(1, sum(is.na(allvarnum)), na.rm=TRUE)
+
   if (length(enckey) > 0) {
     if (length(tstamp) > 0) {
       arrptr <- libtiledb_array_open_at_with_key(ctx@ptr, uri, "READ", enckey, tstamp)
@@ -647,7 +653,6 @@ setMethod("[", "tiledb_array",
       ## get results (shmem variant)
       getResultShmem <- function(buf, name, varnum) { #, resrv, qryptr) {
           if (is.na(varnum)) {
-              ##vec <- libtiledb_query_result_buffer_elements_vec(qryptr, name)
               vec <- length_from_vlcbuf(buf)
               libtiledb_query_get_buffer_var_char(buf, vec[1], vec[2])[,1]
           } else {
@@ -684,7 +689,8 @@ setMethod("[", "tiledb_array",
       getBuffer <- function(name, type, varnum, nullable, resrv, qryptr, arrptr) {
           if (is.na(varnum)) {
               if (type %in% c("CHAR", "ASCII", "UTF8")) {
-                  buf <- libtiledb_query_buffer_var_char_alloc_direct(resrv, resrv*8, nullable)
+                  #message("Allocating with ", resrv, " and ", memory_budget)
+                  buf <- libtiledb_query_buffer_var_char_alloc_direct(resrv, memory_budget, nullable)
                   qryptr <- libtiledb_query_set_buffer_var_char(qryptr, name, buf)
                   buf
               } else {

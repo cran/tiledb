@@ -1,6 +1,6 @@
 //  MIT License
 //
-//  Copyright (c) 2017-2021 TileDB Inc.
+//  Copyright (c) 2017-2022 TileDB Inc.
 //
 //  Permission is hereby granted, free of charge, to any person obtaining a copy
 //  of this software and associated documentation files (the "Software"), to deal
@@ -985,7 +985,7 @@ SEXP libtiledb_dim_get_tile_extent(XPtr<tiledb::Dimension> dim) {
       return IntegerVector({static_cast<int32_t>(t),});
     }
     default:
-      Rcpp::stop("invalid tiledb_dim domain type");
+      Rcpp::stop("invalid tiledb_dim domain type (%d)", dim_type);
   }
 }
 
@@ -1225,10 +1225,10 @@ R_xlen_t libtiledb_filter_get_option(XPtr<tiledb::Filter> filter, std::string fi
 }
 
 //[[Rcpp::export]]
-void libtiledb_filter_set_option(XPtr<tiledb::Filter> filter, std::string filter_option_str, int value) {
+XPtr<tiledb::Filter> libtiledb_filter_set_option(XPtr<tiledb::Filter> filter, std::string filter_option_str, int value) {
   tiledb_filter_option_t filter_option = _string_to_tiledb_filter_option(filter_option_str);
   filter->set_option(filter_option, &value);
-  return;
+  return filter;
 }
 
 
@@ -1297,6 +1297,9 @@ XPtr<tiledb::Attribute> libtiledb_attribute(XPtr<tiledb::Context> ctx,
 
     if (attr_dtype == TILEDB_INT32) {
         using DType = tiledb::impl::tiledb_to_type<TILEDB_INT32>::type;
+        attr = XPtr<tiledb::Attribute>(new tiledb::Attribute(tiledb::Attribute::create<DType>(*ctx.get(), name)), false);
+    } else if (attr_dtype == TILEDB_UINT32) {
+        using DType = tiledb::impl::tiledb_to_type<TILEDB_UINT32>::type;
         attr = XPtr<tiledb::Attribute>(new tiledb::Attribute(tiledb::Attribute::create<DType>(*ctx.get(), name)), false);
     } else if (attr_dtype == TILEDB_FLOAT64) {
         using DType = tiledb::impl::tiledb_to_type<TILEDB_FLOAT64>::type;
@@ -1423,6 +1426,10 @@ void libtiledb_attribute_set_fill_value(XPtr<tiledb::Attribute> attr, SEXP val) 
     IntegerVector v(val);
     if (v.size() > 1) Rcpp::stop("Setting fill values only supports scalar values for now.");
     attr->set_fill_value((void*) &(v[0]), static_cast<uint64_t>(sizeof(int32_t)));
+  } else if (dtype == TILEDB_UINT32) {
+    IntegerVector v(val);
+    if (v.size() > 1) Rcpp::stop("Setting fill values only supports scalar values for now.");
+    attr->set_fill_value((void*) &(v[0]), static_cast<uint64_t>(sizeof(uint32_t)));
   } else if (dtype == TILEDB_FLOAT64) {
     NumericVector v(val);
     if (v.size() > 1) Rcpp::stop("Setting fill values only supports scalar values for now.");
@@ -1450,6 +1457,9 @@ SEXP libtiledb_attribute_get_fill_value(XPtr<tiledb::Attribute> attr) {
   attr->get_fill_value(&valptr, &size);
   if (dtype == TILEDB_INT32) {
     int32_t v = *(const int32_t*)valptr;
+    return wrap(v);
+  } else if (dtype == TILEDB_UINT32) {
+    uint32_t v = *(const uint32_t*)valptr;
     return wrap(v);
   } else if (dtype == TILEDB_FLOAT64) {
     double v = *(const double*)valptr;
@@ -1497,6 +1507,7 @@ libtiledb_array_schema(XPtr<tiledb::Context> ctx,
                        std::string tile_order,
                        Nullable<XPtr<tiledb::FilterList>> coords_filter_list = R_NilValue,
                        Nullable<XPtr<tiledb::FilterList>> offsets_filter_list = R_NilValue,
+                       Nullable<XPtr<tiledb::FilterList>> validity_filter_list = R_NilValue,
                        bool sparse = false) {
   // check that external pointers are supported
   R_xlen_t nattr = attributes.length();
@@ -1529,6 +1540,12 @@ libtiledb_array_schema(XPtr<tiledb::Context> ctx,
   if (offsets_filter_list.isNotNull()) {
     XPtr<tiledb::FilterList> xptr_offsets(offsets_filter_list);
     schema->set_offsets_filter_list(*xptr_offsets);
+  }
+  if (validity_filter_list.isNotNull()) {
+#if TILEDB_VERSION >= TileDB_Version(2,6,0)
+    XPtr<tiledb::FilterList> xptr_validity(validity_filter_list);
+    schema->set_validity_filter_list(*xptr_validity);
+#endif
   }
   schema->check();
   return schema;
@@ -1685,6 +1702,27 @@ libtiledb_array_schema_set_offsets_filter_list(XPtr<tiledb::ArraySchema> schema,
                                                XPtr<tiledb::FilterList> fltlst) {
   schema->set_offsets_filter_list(*fltlst);
   return schema;
+}
+
+// [[Rcpp::export]]
+XPtr<tiledb::FilterList>
+libtiledb_array_schema_get_validity_filter_list(XPtr<tiledb::ArraySchema> schema) {
+#if TILEDB_VERSION >= TileDB_Version(2,6,0)
+    return XPtr<tiledb::FilterList>(new tiledb::FilterList(schema->validity_filter_list()));
+#else
+    return XPtr<tiledb::FilterList>(R_NilValue);
+#endif
+
+}
+
+// [[Rcpp::export]]
+XPtr<tiledb::ArraySchema>
+libtiledb_array_schema_set_validity_filter_list(XPtr<tiledb::ArraySchema> schema,
+                                                XPtr<tiledb::FilterList> fltlst) {
+#if TILEDB_VERSION >= TileDB_Version(2,6,0)
+    schema->set_validity_filter_list(*fltlst);
+#endif
+    return schema;
 }
 
 
@@ -2152,7 +2190,7 @@ bool libtiledb_array_put_metadata(XPtr<tiledb::Array> array,
       Rcpp::CharacterVector v(obj);
       std::string s(v[0]);
       // We use TILEDB_CHAR interchangeably with TILEDB_STRING_ASCII is this best string type?
-      array->put_metadata(key.c_str(), TILEDB_CHAR, s.length(), s.c_str());
+      array->put_metadata(key.c_str(), TILEDB_STRING_ASCII, s.length(), s.c_str());
       break;
     }
     case LGLSXP: {              // experimental: map R logical (ie TRUE, FALSE, NA) to int8
@@ -3391,6 +3429,17 @@ std::string libtiledb_query_stats(XPtr<tiledb::Query> query) {
     return std::string("");
 #endif
 }
+
+// [[Rcpp::export]]
+XPtr<tiledb::Context> libtiledb_query_get_ctx(XPtr<tiledb::Query> query) {
+#if TILEDB_VERSION >= TileDB_Version(2,6,0)
+    auto ctx = query->ctx();
+    return XPtr<tiledb::Context>(&ctx, false);
+#else
+    return XPtr<tiledb::Context>(R_NilValue);
+#endif
+}
+
 
 /**
  * Query Condition

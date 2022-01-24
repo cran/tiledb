@@ -1,6 +1,6 @@
 #  MIT License
 #
-#  Copyright (c) 2017-2020 TileDB Inc.
+#  Copyright (c) 2017-2022 TileDB Inc.
 #
 #  Permission is hereby granted, free of charge, to any person obtaining a copy
 #  of this software and associated documentation files (the "Software"), to deal
@@ -65,6 +65,30 @@ tiledb_filter <- function(name = "NONE", ctx = tiledb_get_context()) {
   return(new("tiledb_filter", ptr = ptr))
 }
 
+# internal function returning text use here and in other higher-level show() methods
+.as_text_filter <- function(object) {
+    flt <- tiledb_filter_type(object)
+    opt <- .getFilterOption(object)
+    if (opt == "NA") {
+        txt <- paste0("tiledb_filter(\"", flt, "\")")
+    } else {
+        prt <- strsplit(opt, "=")[[1]]
+        txt <- paste0("tiledb_filter_set_option(tiledb_filter(\"",
+                      flt, "\"),\"", prt[1], "\",", prt[2], ")")
+    }
+    txt
+}
+
+#' Prints a filter object
+#'
+#' @param object A filter object
+#' @export
+setMethod("show",
+          signature(object = "tiledb_filter"),
+          definition = function(object) {
+    cat(.as_text_filter(object), "\n")
+})
+
 #' Returns the type of the filter used
 #'
 #' @param object tiledb_filter
@@ -80,11 +104,12 @@ tiledb_filter_type <- function(object) {
   return(libtiledb_filter_get_type(object@ptr))
 }
 
-#' Set the filter's option
+#' Set the option for a filter
 #'
 #' @param object tiledb_filter
 #' @param option string
 #' @param value int
+#' @return The modified filter object is returned.
 #' @examples
 #' \dontshow{ctx <- tiledb_ctx(limitTileDBCores())}
 #' c <- tiledb_filter("ZSTD")
@@ -95,7 +120,9 @@ tiledb_filter_set_option <- function(object, option, value) {
   stopifnot(`The 'object' argument must be a tiledb_filter` = is(object, "tiledb_filter"),
             `The 'option' argument must be character` = is.character(option),
             `The 'value' argument must be numeric or character or logical` = is.numeric(value) || is.character(value) || is.logical(value))
-  return(libtiledb_filter_set_option(object@ptr, option, value))
+
+  object@ptr <- libtiledb_filter_set_option(object@ptr, option, value)
+  return(object)
 }
 
 #' Returns the filter's option

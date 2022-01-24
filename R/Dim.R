@@ -1,6 +1,6 @@
 #  MIT License
 #
-#  Copyright (c) 2017-2021 TileDB Inc.
+#  Copyright (c) 2017-2022 TileDB Inc.
 #
 #  Permission is hereby granted, free of charge, to any person obtaining a copy
 #  of this software and associated documentation files (the "Software"), to deal
@@ -92,6 +92,37 @@ tiledb_dim <- function(name, domain, tile, type, ctx = tiledb_get_context()) {
   ptr <- libtiledb_dim(ctx@ptr, name, type, domain, tile)
   return(new("tiledb_dim", ptr = ptr))
 }
+
+
+# internal function returning text use here and in other higher-level show() methods
+.as_text_dimension <- function(object) {
+    cells <- cell_val_num(object)
+    fl <- filter_list(object)
+    nf <- nfilters(fl)
+    tp <- datatype(object)
+    dm <- if (is.na(cells)) "" else paste0(domain(object), if (grepl("INT", tp)) "L" else "", collape="")
+    ex <- if (is.na(cells)) "" else paste0(dim(object), if (grepl("INT", tp)) "L" else "", collape="")
+    txt <- paste0("tiledb_dim(name=\"", name(object), "\", ",
+                  "domain=c(", if (is.na(cells)) "NULL,NULL"
+                               else paste0(dm, collapse=","), "), ",
+                  "tile=", if (is.na(cells)) "NULL" else ex, ", ",
+                  "type=\"", datatype(object), "\"",
+                  if (nf == 0) ")" else ", ")
+    if (nf > 0) {
+        txt <- paste0(txt, "filters=", .as_text_filter_list(fl), ")")
+    }
+    txt
+}
+
+#' Prints a dimension object
+#'
+#' @param object A dimension object
+#' @export
+setMethod("show",
+          signature(object = "tiledb_dim"),
+          definition = function(object) {
+    cat(.as_text_dimension(object), "\n")
+})
 
 #' Return the `tiledb_dim` name
 #'
@@ -240,3 +271,20 @@ setReplaceMethod("filter_list", "tiledb_dim", function(x, value) {
   x@ptr <- libtiledb_dimension_set_filter_list(x@ptr, value@ptr)
   x
 })
+
+## Generic in Attribute.R
+
+#' @rdname tiledb_dim_get_cell_val_num
+#' @export
+setMethod("cell_val_num", signature(object = "tiledb_dim"), function(object) {
+    libtiledb_dim_get_cell_val_num(object@ptr)
+})
+
+#' Return the number of scalar values per dimension cell
+#'
+#' @param object `tiledb_dim` object
+#' @return integer number of cells
+#' @export
+tiledb_dim_get_cell_val_num <- function(object) {
+    libtiledb_dim_get_cell_val_num(object@ptr)
+}

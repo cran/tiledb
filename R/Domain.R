@@ -1,6 +1,6 @@
 #  MIT License
 #
-#  Copyright (c) 2017-2021 TileDB Inc.
+#  Copyright (c) 2017-2022 TileDB Inc.
 #
 #  Permission is hereby granted, free of charge, to any person obtaining a copy
 #  of this software and associated documentation files (the "Software"), to deal
@@ -60,14 +60,37 @@ tiledb_domain <- function(dims, ctx = tiledb_get_context()) {
   return(new("tiledb_domain", ptr = ptr))
 }
 
-#' Prints an domain object
+#' Raw display of a domain object
 #'
-#' @param object An domain object
+#' This method used the display method provided by the underlying
+#' library.
+#'
+#' @param object A domain object
+#' @export
+setMethod("raw_dump",
+          signature(object = "tiledb_domain"),
+          definition = function(object) libtiledb_domain_dump(object@ptr))
+
+# internal function returning text use here and in other higher-level show() methods
+.as_text_domain <- function(object) {
+    txt <- "tiledb_domain(c("
+    dims <- dimensions(object)
+    nd <- length(dims)
+    for (i in seq_len(nd)) {
+        txt <- paste0(txt, .as_text_dimension(dims[[i]]),
+                      if (i == nd) "))" else ", ")
+    }
+    txt
+}
+
+#' Prints a domain object
+#'
+#' @param object A domain object
 #' @export
 setMethod("show", "tiledb_domain",
-          function(object) {
-            return(libtiledb_domain_dump(object@ptr))
-          })
+          definition = function(object) {
+    cat(.as_text_domain(object), "\n")
+})
 
 #' Returns a list of the tiledb_domain dimension objects
 #'

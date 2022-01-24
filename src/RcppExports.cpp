@@ -515,15 +515,16 @@ BEGIN_RCPP
 END_RCPP
 }
 // libtiledb_filter_set_option
-void libtiledb_filter_set_option(XPtr<tiledb::Filter> filter, std::string filter_option_str, int value);
+XPtr<tiledb::Filter> libtiledb_filter_set_option(XPtr<tiledb::Filter> filter, std::string filter_option_str, int value);
 RcppExport SEXP _tiledb_libtiledb_filter_set_option(SEXP filterSEXP, SEXP filter_option_strSEXP, SEXP valueSEXP) {
 BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< XPtr<tiledb::Filter> >::type filter(filterSEXP);
     Rcpp::traits::input_parameter< std::string >::type filter_option_str(filter_option_strSEXP);
     Rcpp::traits::input_parameter< int >::type value(valueSEXP);
-    libtiledb_filter_set_option(filter, filter_option_str, value);
-    return R_NilValue;
+    rcpp_result_gen = Rcpp::wrap(libtiledb_filter_set_option(filter, filter_option_str, value));
+    return rcpp_result_gen;
 END_RCPP
 }
 // libtiledb_filter_list
@@ -743,8 +744,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // libtiledb_array_schema
-XPtr<tiledb::ArraySchema> libtiledb_array_schema(XPtr<tiledb::Context> ctx, XPtr<tiledb::Domain> domain, List attributes, std::string cell_order, std::string tile_order, Nullable<XPtr<tiledb::FilterList>> coords_filter_list, Nullable<XPtr<tiledb::FilterList>> offsets_filter_list, bool sparse);
-RcppExport SEXP _tiledb_libtiledb_array_schema(SEXP ctxSEXP, SEXP domainSEXP, SEXP attributesSEXP, SEXP cell_orderSEXP, SEXP tile_orderSEXP, SEXP coords_filter_listSEXP, SEXP offsets_filter_listSEXP, SEXP sparseSEXP) {
+XPtr<tiledb::ArraySchema> libtiledb_array_schema(XPtr<tiledb::Context> ctx, XPtr<tiledb::Domain> domain, List attributes, std::string cell_order, std::string tile_order, Nullable<XPtr<tiledb::FilterList>> coords_filter_list, Nullable<XPtr<tiledb::FilterList>> offsets_filter_list, Nullable<XPtr<tiledb::FilterList>> validity_filter_list, bool sparse);
+RcppExport SEXP _tiledb_libtiledb_array_schema(SEXP ctxSEXP, SEXP domainSEXP, SEXP attributesSEXP, SEXP cell_orderSEXP, SEXP tile_orderSEXP, SEXP coords_filter_listSEXP, SEXP offsets_filter_listSEXP, SEXP validity_filter_listSEXP, SEXP sparseSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -755,8 +756,9 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< std::string >::type tile_order(tile_orderSEXP);
     Rcpp::traits::input_parameter< Nullable<XPtr<tiledb::FilterList>> >::type coords_filter_list(coords_filter_listSEXP);
     Rcpp::traits::input_parameter< Nullable<XPtr<tiledb::FilterList>> >::type offsets_filter_list(offsets_filter_listSEXP);
+    Rcpp::traits::input_parameter< Nullable<XPtr<tiledb::FilterList>> >::type validity_filter_list(validity_filter_listSEXP);
     Rcpp::traits::input_parameter< bool >::type sparse(sparseSEXP);
-    rcpp_result_gen = Rcpp::wrap(libtiledb_array_schema(ctx, domain, attributes, cell_order, tile_order, coords_filter_list, offsets_filter_list, sparse));
+    rcpp_result_gen = Rcpp::wrap(libtiledb_array_schema(ctx, domain, attributes, cell_order, tile_order, coords_filter_list, offsets_filter_list, validity_filter_list, sparse));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -984,6 +986,29 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< XPtr<tiledb::ArraySchema> >::type schema(schemaSEXP);
     Rcpp::traits::input_parameter< XPtr<tiledb::FilterList> >::type fltlst(fltlstSEXP);
     rcpp_result_gen = Rcpp::wrap(libtiledb_array_schema_set_offsets_filter_list(schema, fltlst));
+    return rcpp_result_gen;
+END_RCPP
+}
+// libtiledb_array_schema_get_validity_filter_list
+XPtr<tiledb::FilterList> libtiledb_array_schema_get_validity_filter_list(XPtr<tiledb::ArraySchema> schema);
+RcppExport SEXP _tiledb_libtiledb_array_schema_get_validity_filter_list(SEXP schemaSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< XPtr<tiledb::ArraySchema> >::type schema(schemaSEXP);
+    rcpp_result_gen = Rcpp::wrap(libtiledb_array_schema_get_validity_filter_list(schema));
+    return rcpp_result_gen;
+END_RCPP
+}
+// libtiledb_array_schema_set_validity_filter_list
+XPtr<tiledb::ArraySchema> libtiledb_array_schema_set_validity_filter_list(XPtr<tiledb::ArraySchema> schema, XPtr<tiledb::FilterList> fltlst);
+RcppExport SEXP _tiledb_libtiledb_array_schema_set_validity_filter_list(SEXP schemaSEXP, SEXP fltlstSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< XPtr<tiledb::ArraySchema> >::type schema(schemaSEXP);
+    Rcpp::traits::input_parameter< XPtr<tiledb::FilterList> >::type fltlst(fltlstSEXP);
+    rcpp_result_gen = Rcpp::wrap(libtiledb_array_schema_set_validity_filter_list(schema, fltlst));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -2029,6 +2054,17 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// libtiledb_query_get_ctx
+XPtr<tiledb::Context> libtiledb_query_get_ctx(XPtr<tiledb::Query> query);
+RcppExport SEXP _tiledb_libtiledb_query_get_ctx(SEXP querySEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< XPtr<tiledb::Query> >::type query(querySEXP);
+    rcpp_result_gen = Rcpp::wrap(libtiledb_query_get_ctx(query));
+    return rcpp_result_gen;
+END_RCPP
+}
 // libtiledb_query_condition
 XPtr<tiledb::QueryCondition> libtiledb_query_condition(XPtr<tiledb::Context> ctx);
 RcppExport SEXP _tiledb_libtiledb_query_condition(SEXP ctxSEXP) {
@@ -2823,7 +2859,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_tiledb_libtiledb_attribute_get_fill_value", (DL_FUNC) &_tiledb_libtiledb_attribute_get_fill_value, 1},
     {"_tiledb_libtiledb_attribute_set_nullable", (DL_FUNC) &_tiledb_libtiledb_attribute_set_nullable, 2},
     {"_tiledb_libtiledb_attribute_get_nullable", (DL_FUNC) &_tiledb_libtiledb_attribute_get_nullable, 1},
-    {"_tiledb_libtiledb_array_schema", (DL_FUNC) &_tiledb_libtiledb_array_schema, 8},
+    {"_tiledb_libtiledb_array_schema", (DL_FUNC) &_tiledb_libtiledb_array_schema, 9},
     {"_tiledb_libtiledb_array_schema_create", (DL_FUNC) &_tiledb_libtiledb_array_schema_create, 2},
     {"_tiledb_libtiledb_array_schema_load", (DL_FUNC) &_tiledb_libtiledb_array_schema_load, 2},
     {"_tiledb_libtiledb_array_schema_load_with_key", (DL_FUNC) &_tiledb_libtiledb_array_schema_load_with_key, 3},
@@ -2844,6 +2880,8 @@ static const R_CallMethodDef CallEntries[] = {
     {"_tiledb_libtiledb_array_schema_set_coords_filter_list", (DL_FUNC) &_tiledb_libtiledb_array_schema_set_coords_filter_list, 2},
     {"_tiledb_libtiledb_array_schema_get_offsets_filter_list", (DL_FUNC) &_tiledb_libtiledb_array_schema_get_offsets_filter_list, 1},
     {"_tiledb_libtiledb_array_schema_set_offsets_filter_list", (DL_FUNC) &_tiledb_libtiledb_array_schema_set_offsets_filter_list, 2},
+    {"_tiledb_libtiledb_array_schema_get_validity_filter_list", (DL_FUNC) &_tiledb_libtiledb_array_schema_get_validity_filter_list, 1},
+    {"_tiledb_libtiledb_array_schema_set_validity_filter_list", (DL_FUNC) &_tiledb_libtiledb_array_schema_set_validity_filter_list, 2},
     {"_tiledb_libtiledb_array_schema_get_attribute_num", (DL_FUNC) &_tiledb_libtiledb_array_schema_get_attribute_num, 1},
     {"_tiledb_libtiledb_array_schema_get_attribute_from_index", (DL_FUNC) &_tiledb_libtiledb_array_schema_get_attribute_from_index, 2},
     {"_tiledb_libtiledb_array_schema_get_attribute_from_name", (DL_FUNC) &_tiledb_libtiledb_array_schema_get_attribute_from_name, 2},
@@ -2930,6 +2968,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_tiledb_libtiledb_query_get_array", (DL_FUNC) &_tiledb_libtiledb_query_get_array, 2},
     {"_tiledb_libtiledb_query_get_schema", (DL_FUNC) &_tiledb_libtiledb_query_get_schema, 2},
     {"_tiledb_libtiledb_query_stats", (DL_FUNC) &_tiledb_libtiledb_query_stats, 1},
+    {"_tiledb_libtiledb_query_get_ctx", (DL_FUNC) &_tiledb_libtiledb_query_get_ctx, 1},
     {"_tiledb_libtiledb_query_condition", (DL_FUNC) &_tiledb_libtiledb_query_condition, 1},
     {"_tiledb_libtiledb_query_condition_init", (DL_FUNC) &_tiledb_libtiledb_query_condition_init, 5},
     {"_tiledb_libtiledb_query_condition_combine", (DL_FUNC) &_tiledb_libtiledb_query_condition_combine, 3},
