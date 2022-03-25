@@ -279,3 +279,52 @@ if (getRversion() < '4.0.0') {
     res$dd <- as.character(res$dd)
 }
 expect_equivalent(df, res)
+
+
+## test ingest vs schema_only vs append
+if (tiledb_version(TRUE) < "2.4.0") exit_file("Neeeds TileDB 2.4.* or later")
+if (!requireNamespace("palmerpenguins", quietly=TRUE)) exit_file("remainder needs 'palmerpenguins'")
+library(palmerpenguins)
+data <- penguins
+
+uri <- tempfile()
+
+fromDataFrame(data, uri, col_index=1:2, mode="schema_only")
+arr <- tiledb_array(uri, return_as="data.frame")
+chk <- arr[]
+expect_equal(nrow(chk), 0)              # no data
+expect_equal(ncol(chk), ncol(data))     # but all columns
+
+fromDataFrame(data, uri, col_index=1:2, mode="append")
+arr <- tiledb_array(uri, return_as="data.frame")
+chk <- arr[]
+expect_equal(nrow(chk), nrow(data))     # all data
+expect_equal(ncol(chk), ncol(data))     # all columns
+
+tiledb_vfs_remove_dir(uri)
+fromDataFrame(data, uri, col_index=1:2) # default mode
+arr <- tiledb_array(uri, return_as="data.frame")
+chk <- arr[]
+expect_equal(nrow(chk), nrow(data))     # all data
+expect_equal(ncol(chk), ncol(data))     # all columns
+
+
+## attribute-less arrays
+uri <- tempfile()
+D <- data.frame(dim = c(2L, 4L, 6L))
+dim <- tiledb_dim(name = "dim", domain = c(0L, 9L), type = "INT32")
+sch <- tiledb_array_schema(domain = tiledb_domain(dim), sparse = TRUE)
+tiledb_array_create(uri, sch)
+arr <- tiledb_array(uri)
+arr[] <- D
+arr2 <- tiledb_array(uri, return_as="data.frame")
+res2 <- arr2[]
+attr(res2, "query_status") <- NULL
+expect_equal(D, res2)
+
+uri <- tempfile()
+fromDataFrame(D, uri, col_index=1)
+arr2 <- tiledb_array(uri, return_as="data.frame")
+res2 <- arr2[]
+attr(res2, "query_status") <- NULL
+expect_equal(D, res2)

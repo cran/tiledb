@@ -46,13 +46,13 @@ while (deltat < 30) {
     epst <- deltat/2
 
     res1 <- tiledb_array(uri, as.data.frame=TRUE)[]							 		# no limits
-    res2 <- tiledb_array(uri, as.data.frame=TRUE, timestamp_end=times[1]+epst)[]    # end after 1st timestamp
+    res2 <- tiledb_array(uri, as.data.frame=TRUE, timestamp_start=times[1]-epst, timestamp_end=times[2]+epst)[]    # end after 2nd timestamp
     res3 <- tiledb_array(uri, as.data.frame=TRUE, timestamp_start=times[4]+epst)[] 	# start after fourth
     res4 <- tiledb_array(uri, as.data.frame=TRUE, timestamp_end=times[3]-epst)[]    # end before 3rd
     res5 <- tiledb_array(uri, as.data.frame=TRUE, timestamp_start=times[2]-epst, timestamp_end=times[3]+epst)[]
 
     if (isTRUE(all.equal(NROW(res1), 40)) &&                    # all four groups
-        isTRUE(all.equal(NROW(res2), 10)) &&		            # expect group one (10 elements)
+        isTRUE(all.equal(NROW(res2), 20)) &&		            # expect group one + two (20 elements)
         isTRUE(all.equal(NROW(res3), 0))  &&		            # expect zero data
         isTRUE(all.equal(NROW(res4), 20)) &&  					# expect 2 groups, 20 obs
         isTRUE(all.equal(max(res4$grp), 2))  &&		            # with groups being 1 and 2
@@ -71,8 +71,8 @@ if (!success) exit_file("Issue with time traveling")
 res1 <- tiledb_array(uri, as.data.frame=TRUE)[] 		# no limits
 expect_equal(NROW(res1), 40)                            # all four observations
 
-res2 <- tiledb_array(uri, as.data.frame=TRUE, timestamp_end=times[1]+epst)[]    # end before 1st timestamp
-expect_equal(NROW(res2), 10)            # expect group one (10 elements)
+res2 <- tiledb_array(uri, as.data.frame=TRUE, timestamp_start=times[1]-epst, timestamp_end=times[2]+epst)[]    # end before 1st timestamp
+expect_equal(NROW(res2), 20)            # expect group one and two (20 elements)
 
 res3 <- tiledb_array(uri, as.data.frame=TRUE, timestamp_start=times[4]+epst)[] # start after fourth
 expect_equal(NROW(res3), 0)             # expect zero data
@@ -93,12 +93,12 @@ n <- tiledb_fragment_info_get_num(fi)
 expect_equal(n, 4)
 times <- do.call(c, lapply(seq_len(n), function(i) tiledb_fragment_info_get_timestamp_range(fi, i-1)[1]))
 
-epst <- 0.005
-res1 <- tiledb_array(uri, as.data.frame=TRUE)[]							 		# no limits
-res2 <- tiledb_array(uri, as.data.frame=TRUE, timestamp_end=times[1]+epst)[]    # end before 1st timestamp
-res3 <- tiledb_array(uri, as.data.frame=TRUE, timestamp_start=times[4]+epst)[] 	# start after fourth
-res4 <- tiledb_array(uri, as.data.frame=TRUE, timestamp_end=times[3]-epst)[]    # end before 3rd
-res5 <- tiledb_array(uri, as.data.frame=TRUE, timestamp_start=times[2]-epst, timestamp_end=times[3]+epst)[]
+epstsml <- 0.005
+res1 <- tiledb_array(uri, as.data.frame=TRUE)[]						# no limits
+res2 <- tiledb_array(uri, as.data.frame=TRUE, timestamp_end=times[1]+epstsml)[]    	# end after 1st timestamp
+res3 <- tiledb_array(uri, as.data.frame=TRUE, timestamp_start=times[4]+epstsml)[]  	# start after fourth
+res4 <- tiledb_array(uri, as.data.frame=TRUE, timestamp_end=times[3]-epstsml)[]    	# end before 3rd
+res5 <- tiledb_array(uri, as.data.frame=TRUE, timestamp_start=times[2]-epstsml, timestamp_end=times[3]+epstsml)[]
 expect_equal(NROW(res1), 40)
 expect_equal(NROW(res2), 10)		            # expect group one (10 elements)
 expect_equal(NROW(res3), 0)			            # expect zero data
@@ -116,15 +116,17 @@ expect_equal(max(res5$grp), 3)
 
 ## time-travel vaccum test
 vfs <- tiledb_vfs()
-ndirfull <- tiledb_vfs_ls(uri, vfs=vfs)
+uridir <- if (tiledb_vfs_is_dir(file.path(uri, "__fragments"))) file.path(uri, "__fragments") else uri
+ndirfull <- tiledb_vfs_ls(uridir, vfs=vfs)
 array_consolidate(uri, start_time=times[2]-epst, end_time=times[3]+epst)
 array_vacuum(uri, start_time=times[2]-epst, end_time=times[3]+epst)
-ndircons <- tiledb_vfs_ls(uri, vfs=vfs)
+ndircons <- tiledb_vfs_ls(uridir, vfs=vfs)
 expect_true(length(ndircons) < length(ndirfull))
 array_consolidate(uri, start_time=times[1]-0.5, end_time=times[3])
 array_vacuum(uri, start_time=times[1]-0.5, end_time=times[3])
-ndircons2 <- tiledb_vfs_ls(uri, vfs=vfs)
+ndircons2 <- tiledb_vfs_ls(uridir, vfs=vfs)
 expect_true(length(ndircons2) < length(ndircons))
+
 
 ## earlier time travel test recast via timestamp_{start,end}
 ## time travel
@@ -144,19 +146,18 @@ A[I, J] <- data
 
 Sys.sleep(deltat)
 
-now2 <- Sys.time()
 I <- c(8, 6, 9)
 J <- c(5, 7, 8)
 data <- c(11L, 22L, 33L)
+now2 <- Sys.time()
 A <- tiledb_array(uri = tmp, timestamp_start=now2)
 A[I, J] <- data
 
-epst <- 0.1
 A <- tiledb_array(uri = tmp, as.data.frame=TRUE, timestamp_end=now1 - epst)
 expect_equal(nrow(A[]), 0)
 A <- tiledb_array(uri = tmp, as.data.frame=TRUE, timestamp_start=now1 + epst)
 expect_equal(nrow(A[]), 3)
-A <- tiledb_array(uri = tmp, as.data.frame=TRUE, timestamp_end=now2 - epst)
+A <- tiledb_array(uri = tmp, as.data.frame=TRUE, timestamp_start=now1 - epst, timestamp_end=now2 - epst)
 expect_equal(nrow(A[]), 3)
-A <- tiledb_array(uri = tmp, as.data.frame=TRUE, timestamp_end=now2 + epst)
-expect_equal(nrow(A[]), 6)
+A <- tiledb_array(uri = tmp, as.data.frame=TRUE, timestamp_start=now1 - epst, timestamp_end=now2 + epst)
+expect_true(nrow(A[]) >= 3)

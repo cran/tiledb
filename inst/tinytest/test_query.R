@@ -85,7 +85,7 @@ unlink(tmp, recursive=TRUE)
 #})
 
 #test_that("tiledb_query alloc and range", {
-if (FALSE && requireNamespace("nanotime", quietly=TRUE)) {
+if (requireNamespace("nanotime", quietly=TRUE)) {
   suppressMessages({
     library(bit64)
     library(nanotime)
@@ -238,7 +238,7 @@ cfg["sm.memory_budget_var"] <- "32"
 ctx <- tiledb_ctx(cfg)
 array <- tiledb_array(tmp, as.data.frame=TRUE)
 
-expect_warning(res <- array[])
+if (packageVersion("tiledb") <= "0.11.0") expect_warning(res <- array[]) # newer versions loop, no warning
 
 ## check for query stats
 if (tiledb_version(TRUE) < "2.4.0") exit_file("TileDB Query + Ctx stats requires TileDB 2.4.* or greater")

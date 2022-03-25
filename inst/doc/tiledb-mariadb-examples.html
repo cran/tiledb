@@ -6,96 +6,85 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
   <title>TileDB and (R)MariaDB Examples</title>
   <style>
-      code{white-space: pre-wrap;}
-      span.smallcaps{font-variant: small-caps;}
-      span.underline{text-decoration: underline;}
-      div.column{display: inline-block; vertical-align: top; width: 50%;}
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    span.underline{text-decoration: underline;}
+    div.column{display: inline-block; vertical-align: top; width: 50%;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    ul.task-list{list-style: none;}
+    pre > code.sourceCode { white-space: pre; position: relative; }
+    pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+    pre > code.sourceCode > span:empty { height: 1.2em; }
+    .sourceCode { overflow: visible; }
+    code.sourceCode > span { color: inherit; text-decoration: inherit; }
+    div.sourceCode { margin: 1em 0; }
+    pre.sourceCode { margin: 0; }
+    @media screen {
+    div.sourceCode { overflow: auto; }
+    }
+    @media print {
+    pre > code.sourceCode { white-space: pre-wrap; }
+    pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+    }
+    pre.numberSource code
+      { counter-reset: source-line 0; }
+    pre.numberSource code > span
+      { position: relative; left: -4em; counter-increment: source-line; }
+    pre.numberSource code > span > a:first-child::before
+      { content: counter(source-line);
+        position: relative; left: -1em; text-align: right; vertical-align: baseline;
+        border: none; display: inline-block;
+        -webkit-touch-callout: none; -webkit-user-select: none;
+        -khtml-user-select: none; -moz-user-select: none;
+        -ms-user-select: none; user-select: none;
+        padding: 0 4px; width: 4em;
+        color: #aaaaaa;
+      }
+    pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+    div.sourceCode
+      {   }
+    @media screen {
+    pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+    }
+    code span.al { color: #ff0000; font-weight: bold; } /* Alert */
+    code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+    code span.at { color: #7d9029; } /* Attribute */
+    code span.bn { color: #40a070; } /* BaseN */
+    code span.bu { } /* BuiltIn */
+    code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+    code span.ch { color: #4070a0; } /* Char */
+    code span.cn { color: #880000; } /* Constant */
+    code span.co { color: #60a0b0; font-style: italic; } /* Comment */
+    code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+    code span.do { color: #ba2121; font-style: italic; } /* Documentation */
+    code span.dt { color: #902000; } /* DataType */
+    code span.dv { color: #40a070; } /* DecVal */
+    code span.er { color: #ff0000; font-weight: bold; } /* Error */
+    code span.ex { } /* Extension */
+    code span.fl { color: #40a070; } /* Float */
+    code span.fu { color: #06287e; } /* Function */
+    code span.im { } /* Import */
+    code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+    code span.kw { color: #007020; font-weight: bold; } /* Keyword */
+    code span.op { color: #666666; } /* Operator */
+    code span.ot { color: #007020; } /* Other */
+    code span.pp { color: #bc7a00; } /* Preprocessor */
+    code span.sc { color: #4070a0; } /* SpecialChar */
+    code span.ss { color: #bb6688; } /* SpecialString */
+    code span.st { color: #4070a0; } /* String */
+    code span.va { color: #19177c; } /* Variable */
+    code span.vs { color: #4070a0; } /* VerbatimString */
+    code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
   </style>
-  <style>
-pre > code.sourceCode { white-space: pre; position: relative; }
-pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
-pre > code.sourceCode > span:empty { height: 1.2em; }
-.sourceCode { overflow: visible; }
-code.sourceCode > span { color: inherit; text-decoration: inherit; }
-div.sourceCode { margin: 1em 0; }
-pre.sourceCode { margin: 0; }
-@media screen {
-div.sourceCode { overflow: auto; }
-}
-@media print {
-pre > code.sourceCode { white-space: pre-wrap; }
-pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
-}
-pre.numberSource code
-  { counter-reset: source-line 0; }
-pre.numberSource code > span
-  { position: relative; left: -4em; counter-increment: source-line; }
-pre.numberSource code > span > a:first-child::before
-  { content: counter(source-line);
-    position: relative; left: -1em; text-align: right; vertical-align: baseline;
-    border: none; display: inline-block;
-    -webkit-touch-callout: none; -webkit-user-select: none;
-    -khtml-user-select: none; -moz-user-select: none;
-    -ms-user-select: none; user-select: none;
-    padding: 0 4px; width: 4em;
-    color: #aaaaaa;
-  }
-pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
-div.sourceCode
-  {   }
-@media screen {
-pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
-}
-code span.al { color: #ff0000; font-weight: bold; } /* Alert */
-code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
-code span.at { color: #7d9029; } /* Attribute */
-code span.bn { color: #40a070; } /* BaseN */
-code span.bu { } /* BuiltIn */
-code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
-code span.ch { color: #4070a0; } /* Char */
-code span.cn { color: #880000; } /* Constant */
-code span.co { color: #60a0b0; font-style: italic; } /* Comment */
-code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
-code span.do { color: #ba2121; font-style: italic; } /* Documentation */
-code span.dt { color: #902000; } /* DataType */
-code span.dv { color: #40a070; } /* DecVal */
-code span.er { color: #ff0000; font-weight: bold; } /* Error */
-code span.ex { } /* Extension */
-code span.fl { color: #40a070; } /* Float */
-code span.fu { color: #06287e; } /* Function */
-code span.im { } /* Import */
-code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
-code span.kw { color: #007020; font-weight: bold; } /* Keyword */
-code span.op { color: #666666; } /* Operator */
-code span.ot { color: #007020; } /* Other */
-code span.pp { color: #bc7a00; } /* Preprocessor */
-code span.sc { color: #4070a0; } /* SpecialChar */
-code span.ss { color: #bb6688; } /* SpecialString */
-code span.st { color: #4070a0; } /* String */
-code span.va { color: #19177c; } /* Variable */
-code span.vs { color: #4070a0; } /* VerbatimString */
-code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
-  </style>
-  <!--[if lt IE 9]>
-    <script src="//cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv-printshiv.min.js"></script>
-  <![endif]-->
-  <script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
-// be compatible with the behavior of Pandoc < 2.8).
-document.addEventListener('DOMContentLoaded', function(e) {
-  var hs = document.querySelectorAll("div.section[class*='level'] > :first-child");
-  var i, h, a;
-  for (i = 0; i < hs.length; i++) {
-    h = hs[i];
-    if (!/^h[1-6]$/i.test(h.tagName)) continue;  // it should be a header h1-h6
-    a = h.attributes;
-    while (a.length > 0) h.removeAttribute(a[0].name);
-  }
-});
-</script>
-  <style type="text/css">@charset "UTF-8";body{font-family:system-ui,-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Oxygen,Ubuntu,Cantarell,Fira Sans,Droid Sans,Helvetica Neue,sans-serif;line-height:1.4;max-width:800px;margin:20px auto;padding:0 10px;color:#363636;background:#fff;text-rendering:optimizeLegibility}button,input,textarea{transition:background-color .1s linear,border-color .1s linear,color .1s linear,box-shadow .1s linear,transform .1s ease}h1{font-size:2.2em;margin-top:0}h1,h2,h3,h4,h5,h6{margin-bottom:12px}h1,h2,h3,h4,h5,h6,strong{color:#000}b,h1,h2,h3,h4,h5,h6,strong,th{font-weight:600}blockquote{border-left:4px solid rgba(0,150,191,.67);margin:1.5em 0;padding:.5em 1em;font-style:italic}blockquote>footer{margin-top:10px;font-style:normal}address,blockquote cite{font-style:normal}a[href^=mailto]:before{content:"📧 "}a[href^=tel]:before{content:"📞 "}a[href^=sms]:before{content:"💬 "}button,input[type=button],input[type=checkbox],input[type=submit]{cursor:pointer}input:not([type=checkbox]):not([type=radio]),select{display:block}button,input,select,textarea{color:#000;background-color:#efefef;font-family:inherit;font-size:inherit;margin-right:6px;margin-bottom:6px;padding:10px;border:none;border-radius:6px;outline:none}button,input:not([type=checkbox]):not([type=radio]),select,textarea{-webkit-appearance:none}textarea{margin-right:0;width:100%;box-sizing:border-box;resize:vertical}button,input[type=button],input[type=submit]{padding-right:30px;padding-left:30px}button:hover,input[type=button]:hover,input[type=submit]:hover{background:#ddd}button:focus,input:focus,select:focus,textarea:focus{box-shadow:0 0 0 2px rgba(0,150,191,.67)}button:active,input[type=button]:active,input[type=checkbox]:active,input[type=radio]:active,input[type=submit]:active{transform:translateY(2px)}button:disabled,input:disabled,select:disabled,textarea:disabled{cursor:not-allowed;opacity:.5}::-webkit-input-placeholder{color:#949494}:-ms-input-placeholder{color:#949494}::-ms-input-placeholder{color:#949494}::placeholder{color:#949494}a{text-decoration:none;color:#0076d1}a:hover{text-decoration:underline}code,kbd{background:#efefef;color:#000;padding:5px;border-radius:6px}pre>code{padding:10px;display:block;overflow-x:auto}img{max-width:100%}hr{border:none;border-top:1px solid #dbdbdb}table{border-collapse:collapse;margin-bottom:10px;width:100%}td,th{padding:6px;text-align:left}th{border-bottom:1px solid #dbdbdb}tbody tr:nth-child(2n){background-color:#efefef}::-webkit-scrollbar{height:10px;width:10px}::-webkit-scrollbar-track{background:#efefef;border-radius:6px}::-webkit-scrollbar-thumb{background:#d5d5d5;border-radius:6px}::-webkit-scrollbar-thumb:hover{background:#c4c4c4}
-
-</style>
   <style type="text/css">
+body {
+max-width: 50rem;
+margin-left: auto;
+margin-right: auto;
+font-family: system-ui;
+}
+
 code {
 padding: 2px;
 border-radius: unset;
@@ -165,200 +154,40 @@ background-color: unset;
 color: unset;
 }
 </style>
-  <style type="text/css">@media screen and (max-width: 960px) {
-header, nav, article {
-padding: 0 3rem;
-}
-}
-#TOC {
-font-size: 0.9em;
-border: none;
-}
-#TOC > ul {
-box-sizing: border-box;
-}
-#TOC ul {
-margin: 0;
-}
-#TOC li, #TOC a {
-margin: 0;
-padding: 0;
-}
-</style>
-  <style type="text/css">.tooltip {
-position: relative;
-display: inline-block;
-}
-.tooltip:before, .tooltip:after {
-position: absolute;
-opacity: 0;
-clip: rect(0 0 0 0);
--webkit-clip-path: inset(100%);
-clip-path: inset(100%);
-transition: all 0.3s;
-z-index: 1010;
-left: 50%;
-}
-.tooltip:not(.bottom):before, .tooltip:not(.bottom):after {
-bottom: 75%;
-}
-.tooltip.bottom:before, .tooltip.bottom:after {
-top: 75%;
-}
-.tooltip:hover:before, .tooltip:hover:after, .tooltip:focus:before, .tooltip:focus:after {
-opacity: 1;
-clip: auto;
--webkit-clip-path: inset(0%);
-clip-path: inset(0%);
-}
-.tooltip:before {
-content: '';
-background: transparent;
-border: 0.5rem solid transparent;
-left: calc(50% - 0.5rem);
-}
-.tooltip:not(.bottom):before {
-border-top-color: #212121;
-}
-.tooltip.bottom:before {
-border-bottom-color: #212121;
-}
-.tooltip:after {
-content: attr(aria-label);
-color: #fafafa;
-background: #212121;
-border-radius: 0.125rem;
-padding: 0.5rem;
-white-space: nowrap;
-transform: translateX(-50%);
-}
-.tooltip:not(.bottom):after {
-margin-bottom: 1rem;
-}
-.tooltip.bottom:after {
-margin-top: 1rem;
-}
-</style>
-  <style type="text/css">:root {
---toc-width: 300px;
-}
-@media screen and (min-width: 960px) {
-body {
-max-width: 100vw;
-margin: 0;
-padding: 0;
-}
-main {
-display: grid;
-grid-template-columns: var(--toc-width) 1fr;
-grid-template-rows: auto auto;
-}
-#TOC {
-grid-row: 1 / -1;
-grid-column: 1 / 2;
-border: none;
-margin: 0;
-width: var(--toc-width);
-}
-#TOC > ul {
-padding-top: 0;
-padding-bottom: 0;
-position: sticky;
-max-height: 100vh;
-overflow-y: auto;
-top: 0;
-border: none;
-}
-#TOC > ul > li:first-child {
-padding-top: 0.5rem;
-}
-}
-@media screen and (min-width: 960px) and (max-width: 1260px) {
-main {
-width: calc(100vw - 2rem);
-}
-header, article {
-width: calc(100vw - var(--toc-width) - 6rem);
-padding: 0 0 0 4rem;
-}
-}
-@media screen and (min-width: 1260px) {
-main {
-width: calc(1260px - 2rem);
-margin: 0 calc(50vw - 480px) 0 auto;
-}
-header, article {
-width: calc(960px - 6rem);
-padding: 0 0 0 4rem;
-}
-}
-</style>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.css" integrity="sha384-zB1R0rpPzHqg7Kpt0Aljp8JPLqbXI3bhnPWROx27a9N0Ll6ZP/+DiW/UqRcLbRjq" crossorigin="anonymous" data-external="1">
-  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.js" integrity="sha384-y23I5Q6l+B6vatafAwxRu/0oK/79VlbSz7Q9aiSZUvyWYIYsd+qj+o24G5ZU2zJz" crossorigin="anonymous" data-external="1"></script>
-  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/contrib/auto-render.min.js" integrity="sha384-kWPLUVMOks5AQFrykwIup5lo0m3iMkkHrD0uJ4H5cjeGihAutqP0yW0J6dpFiVkI" crossorigin="anonymous" onload="renderMathInElement(document.body);" data-external="1"></script>
-  <script>
-    document.addEventListener("DOMContentLoaded", function() {
-      renderMathInElement(document.body, {
-        delimiters: [
-          {left: "$$", right: "$$", display: true},
-          {left: "$", right: "$", display: false}
-        ],
-        displayMode: true
-      });
-    });
-  </script>
+  <!--[if lt IE 9]>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv-printshiv.min.js"></script>
+  <![endif]-->
 </head>
 <body>
-<main>
 <header id="title-block-header">
 <h1 class="title">TileDB and (R)MariaDB Examples</h1>
 </header>
-<nav id="TOC" role="doc-toc">
-<ul>
-<li><a href="#introduction">Introduction</a></li>
-<li><a href="#installation-or-using-docker">Installation or Using Docker</a></li>
-<li><a href="#examples">Examples</a>
-<ul>
-<li><a href="#palmer-penguins">Palmer Penguins</a></li>
-<li><a href="#dbi">DBI</a></li>
-<li><a href="#s3">S3</a></li>
-<li><a href="#nyc-taxis">NYC Taxis</a></li>
-</ul></li>
-<li><a href="#summary">Summary</a></li>
-</ul>
-</nav>
-<article>
-<section id="introduction" class="level2">
-<h2>Introduction</h2>
+<!--
+%\VignetteIndexEntry{TileDB RMariaDB Examples}
+%\VignetteEngine{simplermarkdown::mdweave_to_html}
+%\VignetteEncoding{UTF-8}
+-->
+<h2 id="introduction">Introduction</h2>
 <p><a href="https://www.tiledb.com/">TileDB</a> provides the <em>Universal Data Engine</em> that can be accessed in a variety of ways. The C/C++ library offered by <a href="https://www.tiledb.com/embedded">TileDB Embedded</a> is one approach, and the <a href="https://github.com/TileDB-Inc/TileDB-R">R package</a>, as well as the <a href="https://github.com/TileDB-Inc/TileDB-Py">Python package</a> and other language bindings use it. Another interface is provided by the <a href="https://docs.tiledb.com/mariadb/">MariaDB Integration via the MyTile storage plugin</a>.</p>
 <p>This provides TileDB integration with any frontend that interfaces with MariaDB—such as the <a href="https://cran.r-project.org/package=RMariaDB">RMariaDB</a> package for R. So this vignette illustrates the use of TileDB via MariaDB using R and the RMariaDB packages.</p>
-</section>
-<section id="installation-or-using-docker" class="level2">
-<h2>Installation or Using Docker</h2>
+<h2 id="installation-or-using-docker">Installation or Using Docker</h2>
 <p>In order to use the MyTile storage plugin, one has to compile both the storage plugin itself and the MariaDB server with consistent compiler flags. As the build also requires the TileDB Embedded library and headers, using a Docker container may be easiest. The Dockerfile also provides a concrete example of the build setup.</p>
 <p>So here we will use the <a href="https://hub.docker.com/r/tiledb/tiledb-mariadb-r"><code>tiledb/tiledb-mariadb-r</code></a> container.</p>
-<section id="launch-container-in-background" class="level4">
-<h4>Launch Container in Background</h4>
+<h4 id="launch-container-in-background">Launch Container in Background</h4>
 <p>We launch the container ‘tiledb/tiledb-mariadb-r’ as a daemon, allowing MariaDB to accept an empty password (using an older MySQL variable setting), and name the running image ‘tiledb-mariadb-r’:</p>
-<div class="sourceCode" id="cb1"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ex">docker</span> run <span class="at">--name</span> tiledb-mariadb-r <span class="at">-it</span> <span class="at">-d</span> <span class="at">--rm</span> <span class="at">-e</span> MYSQL_ALLOW_EMPTY_PASSWORD=1 tiledb/tiledb-mariadb-r</span></code></pre></div>
-</section>
-<section id="access-container-once-to-write-via-tiledb" class="level4">
-<h4>Access Container Once to Write via TileDB</h4>
+<div class="sourceCode" id="cb1"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ex">docker</span> run <span class="at">--name</span> tiledb-mariadb-r <span class="at">-it</span> <span class="at">-d</span> <span class="at">--rm</span> <span class="dt">\</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>       <span class="at">-e</span> MYSQL_ALLOW_EMPTY_PASSWORD=1 tiledb/tiledb-mariadb-r</span></code></pre></div>
+<h4 id="access-container-once-to-write-via-tiledb">Access Container Once to Write via TileDB</h4>
 <p>Using the name given to the running instance, we start an R session to write data with TileDB:</p>
 <div class="sourceCode" id="cb2"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="ex">docker</span> exec <span class="at">-it</span> <span class="at">-u</span> root tiledb-mariadb-r R</span></code></pre></div>
-</section>
-</section>
-<section id="examples" class="level2">
-<h2>Examples</h2>
-<section id="palmer-penguins" class="level3">
-<h3>Palmer Penguins</h3>
+<h2 id="examples">Examples</h2>
+<h3 id="palmer-penguins">Palmer Penguins</h3>
 <p>With the sessions started as in the previous section, we start an R session.</p>
 <div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="sc">&gt;</span> <span class="fu">library</span>(tiledb)</span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="sc">&gt;</span> <span class="fu">library</span>(palmerpenguins)</span>
 <span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="sc">&gt;</span> praw <span class="ot">&lt;-</span> penguins_raw</span>
 <span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="sc">&gt;</span> <span class="fu">fromDataFrame</span>(praw, <span class="st">&quot;/tmp/penguinsraw&quot;</span>)</span></code></pre></div>
-<section id="access-container-again-to-read-via-rmariadb" class="level4">
-<h4>Access Container Again to Read via RMariaDB</h4>
+<h4 id="access-container-again-to-read-via-rmariadb">Access Container Again to Read via RMariaDB</h4>
 <p>In another shell, we can access the container once more and launch another R process:</p>
 <div class="sourceCode" id="cb4"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="ex">docker</span> exec <span class="at">-it</span> <span class="at">-u</span> root tiledb-mariadb-r R</span></code></pre></div>
 <p>where we use RMariaDB to access the data via a <code>tibble</code> object and <code>magrittr</code> pipe</p>
@@ -416,10 +245,7 @@ padding: 0 0 0 4rem;
 <span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a><span class="dv">2</span> Chinstrap <span class="fu">penguin</span> (<span class="sc">~</span>                          <span class="fl">196.</span>                        <span class="fl">7.13</span></span>
 <span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a><span class="dv">3</span> Gentoo <span class="fu">penguin</span> (Pyg<span class="sc">~</span>                          <span class="fl">217.</span>                        <span class="fl">6.48</span></span>
 <span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a><span class="sc">&gt;</span></span></code></pre></div>
-</section>
-</section>
-<section id="dbi" class="level3">
-<h3>DBI</h3>
+<h3 id="dbi">DBI</h3>
 <p>We can connect directly using the <code>DBI</code> package along with the <code>RMariaDB</code> package and its MyTile bindings:</p>
 <div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(DBI)</span>
 <span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>con <span class="ot">&lt;-</span> <span class="fu">dbConnect</span>(RMariaDB<span class="sc">::</span><span class="fu">MariaDB</span>(), <span class="at">dbname=</span><span class="st">&quot;test&quot;</span>)</span>
@@ -428,9 +254,7 @@ padding: 0 0 0 4rem;
 <span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a><span class="fu">dbClearResult</span>(res)</span>
 <span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(df)</span>
 <span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a><span class="fu">dbDisconnect</span>(con)</span></code></pre></div>
-</section>
-<section id="s3" class="level3">
-<h3>S3</h3>
+<h3 id="s3">S3</h3>
 <p>When using Docker, the container setup needs to be modified to include the required AWS access environment variables:</p>
 <div class="sourceCode" id="cb9"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="ex">docker</span> run <span class="at">--name</span> tiledb-mariadb-r <span class="dt">\</span></span>
 <span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>       <span class="at">-it</span> <span class="at">-d</span> <span class="at">--rm</span> <span class="dt">\</span></span>
@@ -470,9 +294,7 @@ padding: 0 0 0 4rem;
 <span id="cb10-27"><a href="#cb10-27" aria-hidden="true" tabindex="-1"></a><span class="dv">16</span>         <span class="dv">3</span>         <span class="dv">3</span>   <span class="fl">0.445</span></span>
 <span id="cb10-28"><a href="#cb10-28" aria-hidden="true" tabindex="-1"></a><span class="sc">&gt;</span></span>
 <span id="cb10-29"><a href="#cb10-29" aria-hidden="true" tabindex="-1"></a><span class="er">&gt;</span> DBI<span class="sc">::</span><span class="fu">dbDisconnect</span>(con)  <span class="co"># close connection</span></span></code></pre></div>
-</section>
-<section id="nyc-taxis" class="level3">
-<h3>NYC Taxis</h3>
+<h3 id="nyc-taxis">NYC Taxis</h3>
 <p>We can write the New York taxi data into TileDB (in the current directory) after reading it as a csv:</p>
 <div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="sc">&gt;</span> nyc <span class="ot">&lt;-</span> data.table<span class="sc">::</span><span class="fu">fread</span>(<span class="st">&quot;trip_data_1.csv&quot;</span>)</span>
 <span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="sc">&gt;</span> tiledb<span class="sc">::</span><span class="fu">fromDataFrame</span>(nyc, <span class="st">&quot;trip_data_1&quot;</span>)</span></code></pre></div>
@@ -535,13 +357,7 @@ padding: 0 0 0 4rem;
 <span id="cb12-56"><a href="#cb12-56" aria-hidden="true" tabindex="-1"></a><span class="dv">10</span>             <span class="dv">255</span>        <span class="dv">1</span></span>
 <span id="cb12-57"><a href="#cb12-57" aria-hidden="true" tabindex="-1"></a><span class="sc">&gt;</span></span>
 <span id="cb12-58"><a href="#cb12-58" aria-hidden="true" tabindex="-1"></a><span class="er">&gt;</span> DBI<span class="sc">::</span><span class="fu">dbDisconnect</span>(con)  <span class="co"># close connection</span></span></code></pre></div>
-</section>
-</section>
-<section id="summary" class="level2">
-<h2>Summary</h2>
+<h2 id="summary">Summary</h2>
 <p>This short vignette demonstrates the use of TileDB-stored data from R using RMariaDB via the MyTile storage extension to MariaBD.</p>
-</section>
-</article>
-</main>
 </body>
 </html>

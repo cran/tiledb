@@ -2,6 +2,8 @@
 % Please edit documentation in R/TileDBArray.R
 \name{tiledb_array}
 \alias{tiledb_array}
+\alias{tiledb_dense}
+\alias{tiledb_sparse}
 \title{Constructs a tiledb_array object backed by a persisted tiledb array uri}
 \usage{
 tiledb_array(
@@ -23,11 +25,16 @@ tiledb_array(
   timestamp_end = as.POSIXct(double(), origin = "1970-01-01"),
   return_as = get_return_as_preference(),
   query_statistics = FALSE,
+  strings_as_factors = getOption("stringsAsFactors", FALSE),
   sil = list(),
   dumpbuffers = character(),
   buffers = list(),
   ctx = tiledb_get_context()
 )
+
+tiledb_dense(...)
+
+tiledb_sparse(...)
 }
 \arguments{
 \item{uri}{uri path to the tiledb dense array}
@@ -39,7 +46,8 @@ tiledb_array(
 \item{as.data.frame}{optional logical switch, defaults to "FALSE"}
 
 \item{attrs}{optional character vector to select attributes, default is
-empty implying all are selected}
+empty implying all are selected, the special value \code{NA_character_}
+has the opposite effect and implies no attributes are returned.}
 
 \item{extended}{optional logical switch selecting wide \sQuote{data.frame}
 format, defaults to \code{TRUE}}
@@ -85,6 +93,9 @@ over this.}
 query statistics are returned (as a JSON string) via the attribute
 \sQuote{query_statistics} of the return object.}
 
+\item{strings_as_factors}{An optional logical to convert character columns to factor type; defaults
+to the value of \code{getOption("stringsAsFactors", FALSE)}.}
+
 \item{sil}{optional A list, by default empty to store schema information when query objects are
 parsed.}
 
@@ -94,6 +105,9 @@ parsed.}
 \item{buffers}{An optional list with full pathnames of shared memory buffers to read data from}
 
 \item{ctx}{optional tiledb_ctx}
+
+\item{...}{Used as a pass-through for \code{tiledb_dense}
+and \code{tiledb_sparse} aliasing}
 }
 \value{
 tiledb_array object

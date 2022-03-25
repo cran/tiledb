@@ -5,9 +5,9 @@
 \alias{tiledb_array-class}
 \title{An S4 class for a TileDB Array}
 \description{
-This class aims to eventually replace \code{\link{tiledb_dense}}
-and \code{\link{tiledb_sparse}} provided equivalent functionality
-based on refactored implementation utilising newer TileDB features.
+This class replaces the earlier (and now removed) \code{tiledb_dense}
+and \code{tiledb_sparse} and provides equivalent functionality
+based on a refactored implementation utilising newer TileDB features.
 }
 \section{Slots}{
 
@@ -20,7 +20,9 @@ based on refactored implementation utilising newer TileDB features.
 
 \item{\code{as.data.frame}}{A logical value}
 
-\item{\code{attrs}}{A character vector to select particular column \sQuote{attributes}}
+\item{\code{attrs}}{A character vector to select particular column \sQuote{attributes};
+default is an empty character vector implying \sQuote{all} columns, the special
+value \code{NA_character_} has the opposite effect and selects \sQuote{none}.}
 
 \item{\code{extended}}{A logical value, defaults to \code{TRUE}, indicating whether index
 columns are returned as well.}
@@ -62,6 +64,8 @@ parsing queries.}
 \code{/dev/shm}) for writing out results buffers (for internal use / testing)}
 
 \item{\code{buffers}}{An optional list with full pathnames of shared memory buffers to read data from}
+
+\item{\code{strings_as_factors}}{An optional logical to convert character columns to factor type}
 
 \item{\code{ptr}}{External pointer to the underlying implementation}
 }}

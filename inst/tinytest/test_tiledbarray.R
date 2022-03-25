@@ -10,6 +10,9 @@ ctx <- tiledb_ctx(limitTileDBCores())
 hasDataTable <- requireNamespace("data.table", quietly=TRUE)
 hasTibble <- requireNamespace("tibble", quietly=TRUE)
 
+## GitHub Actions had some jobs killed on the larger data portion so we dial mem use down
+if (Sys.getenv("CI") != "") set_allocation_size_preference(1024*1014)
+
 #test_that("test tiledb_array read/write sparse array with heterogenous date domains", {
 op <- options()
 options(stringsAsFactors=FALSE)       # accomodate R 3.*
@@ -937,7 +940,7 @@ if (requireNamespace("bit64", quietly=TRUE)) {
   unlink(tmp, recursive = TRUE)
 }
 
-
+## FYI: 101 tests here
 ## test encrypted arrays via high-level accessor
 ## (lower-level tests in test_densearray and test_arrayschema)
 tmp <- tempfile()
@@ -968,7 +971,7 @@ expect_equal(chk[,"a"], c(3L,2L))
 unlink(tmp, recursive = TRUE)
 
 
-
+## FYI: 105 tests here
 ## non-empty domain, var and plain
 tmp <- tempfile()
 dir.create(tmp)
@@ -977,7 +980,7 @@ dir.create(tmp)
 dom <- tiledb_domain(dims = c(tiledb_dim("d1", c(1L, 4L), 4L, "INT32"),
                               tiledb_dim("d2", NULL, NULL, "ASCII")))
 schema <- tiledb_array_schema(dom, attrs=c(tiledb_attr("a", type = "INT32")), sparse = TRUE)
-invisible( tiledb_array_create(tmp, schema) )
+tiledb_array_create(tmp, schema)
 
 ## write
 I <- c(1L, 2L, 3L)
@@ -985,23 +988,21 @@ J <- letters[1:3]
 data <- c(1L, 2L, 3L)
 arr <- tiledb_array(uri = tmp)
 arr[I, J] <- data
-
+arr <- tiledb_array_open(arr)
 expect_equal(tiledb_array_get_non_empty_domain_from_index(arr, 1), c(1, 3))
 expect_equal(tiledb_array_get_non_empty_domain_from_name(arr, "d1"), c(1, 3))
 expect_equal(tiledb_array_get_non_empty_domain_from_index(arr, 2), c("a", "c"))
 expect_equal(tiledb_array_get_non_empty_domain_from_name(arr, "d2"), c("a", "c"))
 
-if (FALSE) {                            # this tests fine in isolation but croaks in bulk
-    ## access schema from uri
-    schema2 <- schema(tmp)
-    expect_true(is(schema2, "tiledb_array_schema"))
-    expect_equal(schema, schema2)
+## access schema from uri
+schema2 <- schema(tmp)
+expect_true(is(schema2, "tiledb_array_schema"))
+expect_equal(schema, schema2)
 
-    ## access schema from array
-    schema3 <- schema(arr)
-    expect_true(is(schema3, "tiledb_array_schema"))
-    expect_equal(schema, schema3)
-}
+## access schema from array
+schema3 <- schema(arr)
+expect_true(is(schema3, "tiledb_array_schema"))
+expect_equal(schema, schema3)
 
 ## time travel
 tmp <- tempfile()
@@ -1175,6 +1176,15 @@ res2 <- arr[]
 expect_equal(nrow(res2), 2)
 expect_equal(res1, res2)
 
+## check for strings_as_factors
+arr <- tiledb_array(uri, as.data.frame=TRUE)
+res <- arr[]
+expect_equal(class(res[,"species"]), "character")
+expect_equal(class(res[,"sex"]), "character")
+arr <- tiledb_array(uri, as.data.frame=TRUE, strings_as_factors=TRUE)
+res <- arr[]
+expect_equal(class(res[,"species"]), "factor")
+expect_equal(class(res[,"sex"]), "factor")
 
 
 ## issue 255
@@ -1226,13 +1236,13 @@ expect_equal(array_consolidate(uri), NULL)
 expect_error(array_consolidate(uri, start_time="abc")) # not a datetime
 expect_error(array_consolidate(uri, end_time="def"))   # not a datetime
 now <- Sys.time()
-expect_equal(array_consolidate(uri, start_time=now-60, end_time=now), NULL)
+if (tiledb_version(TRUE) >= "2.3.0") expect_equal(array_consolidate(uri, start_time=now-60, end_time=now), NULL)
 
 ## vaccum
 expect_equal(array_vacuum(uri), NULL)
 expect_error(array_vacuum(uri, start_time="abc")) # not a datetime
 expect_error(array_vacuum(uri, end_time="def"))   # not a datetime
-expect_equal(array_vacuum(uri, start_time=now-60, end_time=now), NULL)
+if (tiledb_version(TRUE) >= "2.3.0") expect_equal(array_vacuum(uri, start_time=now-60, end_time=now), NULL)
 
 
 
@@ -1339,3 +1349,72 @@ expect_equal(dim(res), c(14,6))
 expect_true(min(res$body_mass_g) >= 5500)
 expect_true(min(res$bill_length_mm) > 50)
 expect_equal(colnames(res), c("species", "island", "body_mass_g", "bill_length_mm", "year", "sex"))
+
+
+## new 3d index, and int64 domain conversion
+uri <- tempfile()
+dom <- tiledb_domain(dims = c(tiledb_dim("rows", c(1L, 4L), 4L, "INT32"),
+                              tiledb_dim("cols", c(1L, 4L), 4L, "INT32"),
+                              tiledb_dim("depth", c(1L, 4L), 4L, "INT32")))
+schema <- tiledb_array_schema(dom, attrs = c(tiledb_attr("a", type = "INT32")))
+tiledb_array_create(uri, schema)
+data <- array(1:64, dim = c(4,4,4))
+A <- tiledb_array(uri = uri)
+A[] <- data
+
+A <- tiledb_array(uri = uri, return_as="data.frame")
+res <- A[2,2,2]
+expect_equal(res[, "a", drop=TRUE], 22)
+res <- A[2,2:3,2]
+expect_equal(res[, "a", drop=TRUE], c(22,26))
+res <- A[2,]
+expect_true(all(res[, "rows", drop=TRUE] == 2))
+expect_equal(res[, "a", drop=TRUE], c(2L, 18L, 34L, 50L, 6L, 22L, 38L, 54L, 10L, 26L, 42L, 58L, 14L,
+30L, 46L, 62L))
+res <- A[,2]
+expect_true(all(res[, "cols", drop=TRUE] == 2))
+expect_equal(res[, "a", drop=TRUE], c(5L, 21L, 37L, 53L, 6L, 22L, 38L, 54L, 7L, 23L, 39L, 55L, 8L, 24L, 40L, 56L))
+res <- A[,,2]
+expect_true(all(res[, "depth", drop=TRUE] == 2))
+expect_equal(res[, "a", drop=TRUE], c(17L, 21L, 25L, 29L, 18L, 22L, 26L, 30L, 19L, 23L, 27L, 31L, 20L, 24L, 28L, 32L))
+selected_ranges(A) <- list(cbind(2,2), cbind(2,2), cbind(2,2))
+res <- A[]
+expect_equal(res[, "a", drop=TRUE], 22)
+selected_ranges(A) <- list(cbind(2,2), cbind(2,3), cbind(2,2))
+res <- A[]
+expect_equal(res[, "a", drop=TRUE], c(22,26))
+
+if (requireNamespace("bit64", quietly=TRUE)) {
+  suppressMessages(library(bit64))
+  uri <- tempfile()
+  dom <- tiledb_domain(dims = c(tiledb_dim("rows", c(as.integer64(1), as.integer64(4)), as.integer64(4), "INT64"),
+                                tiledb_dim("cols", c(as.integer64(1), as.integer64(4)), as.integer64(4), "INT64"),
+                                tiledb_dim("depth", c(as.integer64(1), as.integer64(4)), as.integer64(4), "INT64")))
+  schema <- tiledb_array_schema(dom, attrs = c(tiledb_attr("a", type = "INT64")))
+  tiledb_array_create(uri, schema)
+  data <- array(as.integer64(1:64), dim = c(4,4,4))
+  A <- tiledb_array(uri = uri)
+  A[] <- data
+
+  A <- tiledb_array(uri = uri, return_as="data.frame")
+  res <- A[2,2,2]
+  expect_equal(res[, "a", drop=TRUE], as.integer64(22))
+  res <- A[2,2:3,2]
+  expect_equal(res[, "a", drop=TRUE], as.integer64(c(22,26)))
+  selected_ranges(A) <- list(cbind(2,2), cbind(2,2), cbind(2,2))
+  res <- A[]
+  expect_equal(res[, "a", drop=TRUE], as.integer64(22))
+  selected_ranges(A) <- list(cbind(2,2), cbind(2,3), cbind(2,2))
+  res <- A[]
+  expect_equal(res[, "a", drop=TRUE], as.integer64(c(22,26)))
+}
+
+
+## test for no attributes
+library(palmerpenguins)
+uri <- tempfile()
+fromDataFrame(penguins, uri, sparse = TRUE, col_index = c("species", "year"))
+arr <- tiledb_array(uri, as.data.frame = TRUE, attrs = NA_character_)
+res <- arr[]
+expect_equal(NCOL(res), 2)
+expect_equal(colnames(res), c("species", "year"))
