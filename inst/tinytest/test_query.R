@@ -133,7 +133,7 @@ if (requireNamespace("nanotime", quietly=TRUE)) {
   d1ptr <- tiledb_query_buffer_alloc_ptr(qry, "DATETIME_US", 6)
   qry <- tiledb_query_set_buffer_ptr(qry, "d1", d1ptr)
 
-  qry <- tiledb_query_add_range(qry, schema(arr), "rows", as.integer64(4), as.integer64(7))
+  qry <- tiledb_query_add_range(qry, tiledb::schema(arr), "rows", as.integer64(4), as.integer64(7))
 
   tiledb_query_submit(qry)
   tiledb_query_finalize(qry)
@@ -169,7 +169,7 @@ vals <- seq(101,110)
 qry <- tiledb_query_set_buffer(qry, "vals", vals)
 
 keys <- c(201:204, NA_integer_, 206L, NA_integer_, 208:210)
-buf <- tiledb:::libtiledb_query_buffer_alloc_ptr(arr@ptr, "INT32", 10, TRUE)
+buf <- tiledb:::libtiledb_query_buffer_alloc_ptr("INT32", 10, TRUE)
 buf <- tiledb:::libtiledb_query_buffer_assign_ptr(buf, "INT32", keys, FALSE)
 qry@ptr <- tiledb:::libtiledb_query_set_buffer_ptr(qry@ptr, "keys", buf)
 
@@ -187,7 +187,7 @@ qry <- tiledb_query_set_buffer(qry, "rows", rowdat)
 valdat <- integer(10)
 qry <- tiledb_query_set_buffer(qry, "vals", valdat)
 
-buf <- tiledb:::libtiledb_query_buffer_alloc_ptr(arr@ptr, "INT32", 10, TRUE)
+buf <- tiledb:::libtiledb_query_buffer_alloc_ptr("INT32", 10, TRUE)
 buf <- tiledb:::libtiledb_query_buffer_assign_ptr(buf, "INT32", keys, FALSE)
 qry@ptr <- tiledb:::libtiledb_query_set_buffer_ptr(qry@ptr, "keys", buf)
 

@@ -140,8 +140,8 @@ libtiledb_dimension_get_filter_list <- function(dim) {
     .Call(`_tiledb_libtiledb_dimension_get_filter_list`, dim)
 }
 
-libtiledb_dimension_set_filter_list <- function(dim, filter_list) {
-    .Call(`_tiledb_libtiledb_dimension_set_filter_list`, dim, filter_list)
+libtiledb_dimension_set_filter_list <- function(dim, fltrlst) {
+    .Call(`_tiledb_libtiledb_dimension_set_filter_list`, dim, fltrlst)
 }
 
 libtiledb_domain <- function(ctx, dims) {
@@ -212,8 +212,8 @@ libtiledb_filter_list_get_filter_from_index <- function(filterList, filter_index
     .Call(`_tiledb_libtiledb_filter_list_get_filter_from_index`, filterList, filter_index)
 }
 
-libtiledb_attribute <- function(ctx, name, type, filter_list, ncells, nullable) {
-    .Call(`_tiledb_libtiledb_attribute`, ctx, name, type, filter_list, ncells, nullable)
+libtiledb_attribute <- function(ctx, name, type, fltrlst, ncells, nullable) {
+    .Call(`_tiledb_libtiledb_attribute`, ctx, name, type, fltrlst, ncells, nullable)
 }
 
 libtiledb_attribute_get_name <- function(attr) {
@@ -232,8 +232,8 @@ libtiledb_attribute_get_filter_list <- function(attr) {
     .Call(`_tiledb_libtiledb_attribute_get_filter_list`, attr)
 }
 
-libtiledb_attribute_set_filter_list <- function(attr, filter_list) {
-    .Call(`_tiledb_libtiledb_attribute_set_filter_list`, attr, filter_list)
+libtiledb_attribute_set_filter_list <- function(attr, fltrlst) {
+    .Call(`_tiledb_libtiledb_attribute_set_filter_list`, attr, fltrlst)
 }
 
 libtiledb_attribute_get_cell_val_num <- function(attr) {
@@ -340,24 +340,24 @@ libtiledb_array_schema_get_coords_filter_list <- function(schema) {
     .Call(`_tiledb_libtiledb_array_schema_get_coords_filter_list`, schema)
 }
 
-libtiledb_array_schema_set_coords_filter_list <- function(schema, fltlst) {
-    .Call(`_tiledb_libtiledb_array_schema_set_coords_filter_list`, schema, fltlst)
+libtiledb_array_schema_set_coords_filter_list <- function(schema, fltrlst) {
+    .Call(`_tiledb_libtiledb_array_schema_set_coords_filter_list`, schema, fltrlst)
 }
 
 libtiledb_array_schema_get_offsets_filter_list <- function(schema) {
     .Call(`_tiledb_libtiledb_array_schema_get_offsets_filter_list`, schema)
 }
 
-libtiledb_array_schema_set_offsets_filter_list <- function(schema, fltlst) {
-    .Call(`_tiledb_libtiledb_array_schema_set_offsets_filter_list`, schema, fltlst)
+libtiledb_array_schema_set_offsets_filter_list <- function(schema, fltrlst) {
+    .Call(`_tiledb_libtiledb_array_schema_set_offsets_filter_list`, schema, fltrlst)
 }
 
 libtiledb_array_schema_get_validity_filter_list <- function(schema) {
     .Call(`_tiledb_libtiledb_array_schema_get_validity_filter_list`, schema)
 }
 
-libtiledb_array_schema_set_validity_filter_list <- function(schema, fltlst) {
-    .Call(`_tiledb_libtiledb_array_schema_set_validity_filter_list`, schema, fltlst)
+libtiledb_array_schema_set_validity_filter_list <- function(schema, fltrlst) {
+    .Call(`_tiledb_libtiledb_array_schema_set_validity_filter_list`, schema, fltrlst)
 }
 
 libtiledb_array_schema_get_attribute_num <- function(schema) {
@@ -596,8 +596,8 @@ libtiledb_query_get_buffer_var_vec <- function(query, attr, buf) {
     .Call(`_tiledb_libtiledb_query_get_buffer_var_vec`, query, attr, buf)
 }
 
-libtiledb_query_buffer_alloc_ptr <- function(array, domaintype, ncells, nullable = FALSE) {
-    .Call(`_tiledb_libtiledb_query_buffer_alloc_ptr`, array, domaintype, ncells, nullable)
+libtiledb_query_buffer_alloc_ptr <- function(domaintype, ncells, nullable = FALSE) {
+    .Call(`_tiledb_libtiledb_query_buffer_alloc_ptr`, domaintype, ncells, nullable)
 }
 
 libtiledb_query_buffer_assign_ptr <- function(buf, dtype, vec, asint64 = FALSE) {
@@ -728,8 +728,8 @@ libtiledb_zip_coords_integer <- function(coords, coord_length) {
     .Call(`_tiledb_libtiledb_zip_coords_integer`, coords, coord_length)
 }
 
-libtiledb_group_create <- function(ctx, uri) {
-    .Call(`_tiledb_libtiledb_group_create`, ctx, uri)
+libtiledb_create_group <- function(ctx, uri) {
+    .Call(`_tiledb_libtiledb_create_group`, ctx, uri)
 }
 
 libtiledb_object_type <- function(ctx, uri) {
@@ -934,6 +934,86 @@ libtiledb_fragment_info_dump <- function(fi) {
 
 libtiledb_error_message <- function(ctx) {
     .Call(`_tiledb_libtiledb_error_message`, ctx)
+}
+
+libtiledb_group <- function(ctx, uri, querytypestr) {
+    .Call(`_tiledb_libtiledb_group`, ctx, uri, querytypestr)
+}
+
+libtiledb_group_open <- function(grp, querytypestr) {
+    .Call(`_tiledb_libtiledb_group_open`, grp, querytypestr)
+}
+
+libtiledb_group_set_config <- function(grp, cfg) {
+    .Call(`_tiledb_libtiledb_group_set_config`, grp, cfg)
+}
+
+libtiledb_group_get_config <- function(grp) {
+    .Call(`_tiledb_libtiledb_group_get_config`, grp)
+}
+
+libtiledb_group_close <- function(grp) {
+    .Call(`_tiledb_libtiledb_group_close`, grp)
+}
+
+libtiledb_group_create <- function(ctx, uri) {
+    .Call(`_tiledb_libtiledb_group_create`, ctx, uri)
+}
+
+libtiledb_group_is_open <- function(grp) {
+    .Call(`_tiledb_libtiledb_group_is_open`, grp)
+}
+
+libtiledb_group_uri <- function(grp) {
+    .Call(`_tiledb_libtiledb_group_uri`, grp)
+}
+
+libtiledb_group_query_type <- function(grp) {
+    .Call(`_tiledb_libtiledb_group_query_type`, grp)
+}
+
+libtiledb_group_put_metadata <- function(grp, key, obj) {
+    .Call(`_tiledb_libtiledb_group_put_metadata`, grp, key, obj)
+}
+
+libtiledb_group_delete_metadata <- function(grp, key) {
+    .Call(`_tiledb_libtiledb_group_delete_metadata`, grp, key)
+}
+
+libtiledb_group_get_metadata <- function(grp, key) {
+    .Call(`_tiledb_libtiledb_group_get_metadata`, grp, key)
+}
+
+libtiledb_group_has_metadata <- function(grp, key) {
+    .Call(`_tiledb_libtiledb_group_has_metadata`, grp, key)
+}
+
+libtiledb_group_metadata_num <- function(grp) {
+    .Call(`_tiledb_libtiledb_group_metadata_num`, grp)
+}
+
+libtiledb_group_get_metadata_from_index <- function(grp, idx) {
+    .Call(`_tiledb_libtiledb_group_get_metadata_from_index`, grp, idx)
+}
+
+libtiledb_group_add_member <- function(grp, uri, relative, optional_name = NULL) {
+    .Call(`_tiledb_libtiledb_group_add_member`, grp, uri, relative, optional_name)
+}
+
+libtiledb_group_remove_member <- function(grp, uri) {
+    .Call(`_tiledb_libtiledb_group_remove_member`, grp, uri)
+}
+
+libtiledb_group_member_count <- function(grp) {
+    .Call(`_tiledb_libtiledb_group_member_count`, grp)
+}
+
+libtiledb_group_member <- function(grp, idx) {
+    .Call(`_tiledb_libtiledb_group_member`, grp, idx)
+}
+
+libtiledb_group_dump <- function(grp, recursive) {
+    .Call(`_tiledb_libtiledb_group_dump`, grp, recursive)
 }
 
 vecbuf_to_shmem <- function(dir, name, buf, sz) {
