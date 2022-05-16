@@ -1608,41 +1608,15 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// convertStringVectorIntoOffsetsAndString
-std::string convertStringVectorIntoOffsetsAndString(Rcpp::CharacterVector vec, Rcpp::IntegerVector offsets);
-RcppExport SEXP _tiledb_convertStringVectorIntoOffsetsAndString(SEXP vecSEXP, SEXP offsetsSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< Rcpp::CharacterVector >::type vec(vecSEXP);
-    Rcpp::traits::input_parameter< Rcpp::IntegerVector >::type offsets(offsetsSEXP);
-    rcpp_result_gen = Rcpp::wrap(convertStringVectorIntoOffsetsAndString(vec, offsets));
-    return rcpp_result_gen;
-END_RCPP
-}
 // libtiledb_query_buffer_var_char_create
-XPtr<vlc_buf_t> libtiledb_query_buffer_var_char_create(IntegerVector intoffsets, std::string data);
-RcppExport SEXP _tiledb_libtiledb_query_buffer_var_char_create(SEXP intoffsetsSEXP, SEXP dataSEXP) {
+XPtr<vlc_buf_t> libtiledb_query_buffer_var_char_create(CharacterVector vec, bool nullable);
+RcppExport SEXP _tiledb_libtiledb_query_buffer_var_char_create(SEXP vecSEXP, SEXP nullableSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< IntegerVector >::type intoffsets(intoffsetsSEXP);
-    Rcpp::traits::input_parameter< std::string >::type data(dataSEXP);
-    rcpp_result_gen = Rcpp::wrap(libtiledb_query_buffer_var_char_create(intoffsets, data));
-    return rcpp_result_gen;
-END_RCPP
-}
-// libtiledb_query_buffer_var_char_create_nullable
-XPtr<vlc_buf_t> libtiledb_query_buffer_var_char_create_nullable(IntegerVector intoffsets, std::string data, bool nullable, std::vector<bool> navec);
-RcppExport SEXP _tiledb_libtiledb_query_buffer_var_char_create_nullable(SEXP intoffsetsSEXP, SEXP dataSEXP, SEXP nullableSEXP, SEXP navecSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< IntegerVector >::type intoffsets(intoffsetsSEXP);
-    Rcpp::traits::input_parameter< std::string >::type data(dataSEXP);
+    Rcpp::traits::input_parameter< CharacterVector >::type vec(vecSEXP);
     Rcpp::traits::input_parameter< bool >::type nullable(nullableSEXP);
-    Rcpp::traits::input_parameter< std::vector<bool> >::type navec(navecSEXP);
-    rcpp_result_gen = Rcpp::wrap(libtiledb_query_buffer_var_char_create_nullable(intoffsets, data, nullable, navec));
+    rcpp_result_gen = Rcpp::wrap(libtiledb_query_buffer_var_char_create(vec, nullable));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -2979,6 +2953,106 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// libtiledb_filestore_schema_create
+XPtr<tiledb::ArraySchema> libtiledb_filestore_schema_create(XPtr<tiledb::Context> ctx, std::string uri);
+RcppExport SEXP _tiledb_libtiledb_filestore_schema_create(SEXP ctxSEXP, SEXP uriSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< XPtr<tiledb::Context> >::type ctx(ctxSEXP);
+    Rcpp::traits::input_parameter< std::string >::type uri(uriSEXP);
+    rcpp_result_gen = Rcpp::wrap(libtiledb_filestore_schema_create(ctx, uri));
+    return rcpp_result_gen;
+END_RCPP
+}
+// libtiledb_filestore_uri_import
+bool libtiledb_filestore_uri_import(XPtr<tiledb::Context> ctx, std::string filestore_uri, std::string file_uri);
+RcppExport SEXP _tiledb_libtiledb_filestore_uri_import(SEXP ctxSEXP, SEXP filestore_uriSEXP, SEXP file_uriSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< XPtr<tiledb::Context> >::type ctx(ctxSEXP);
+    Rcpp::traits::input_parameter< std::string >::type filestore_uri(filestore_uriSEXP);
+    Rcpp::traits::input_parameter< std::string >::type file_uri(file_uriSEXP);
+    rcpp_result_gen = Rcpp::wrap(libtiledb_filestore_uri_import(ctx, filestore_uri, file_uri));
+    return rcpp_result_gen;
+END_RCPP
+}
+// libtiledb_filestore_uri_export
+bool libtiledb_filestore_uri_export(XPtr<tiledb::Context> ctx, std::string file_uri, std::string filestore_uri);
+RcppExport SEXP _tiledb_libtiledb_filestore_uri_export(SEXP ctxSEXP, SEXP file_uriSEXP, SEXP filestore_uriSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< XPtr<tiledb::Context> >::type ctx(ctxSEXP);
+    Rcpp::traits::input_parameter< std::string >::type file_uri(file_uriSEXP);
+    Rcpp::traits::input_parameter< std::string >::type filestore_uri(filestore_uriSEXP);
+    rcpp_result_gen = Rcpp::wrap(libtiledb_filestore_uri_export(ctx, file_uri, filestore_uri));
+    return rcpp_result_gen;
+END_RCPP
+}
+// libtiledb_filestore_buffer_import
+bool libtiledb_filestore_buffer_import(XPtr<tiledb::Context> ctx, std::string filestore_uri, std::string buf, size_t size);
+RcppExport SEXP _tiledb_libtiledb_filestore_buffer_import(SEXP ctxSEXP, SEXP filestore_uriSEXP, SEXP bufSEXP, SEXP sizeSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< XPtr<tiledb::Context> >::type ctx(ctxSEXP);
+    Rcpp::traits::input_parameter< std::string >::type filestore_uri(filestore_uriSEXP);
+    Rcpp::traits::input_parameter< std::string >::type buf(bufSEXP);
+    Rcpp::traits::input_parameter< size_t >::type size(sizeSEXP);
+    rcpp_result_gen = Rcpp::wrap(libtiledb_filestore_buffer_import(ctx, filestore_uri, buf, size));
+    return rcpp_result_gen;
+END_RCPP
+}
+// libtiledb_filestore_buffer_export
+std::string libtiledb_filestore_buffer_export(XPtr<tiledb::Context> ctx, std::string filestore_uri, size_t offset, size_t size);
+RcppExport SEXP _tiledb_libtiledb_filestore_buffer_export(SEXP ctxSEXP, SEXP filestore_uriSEXP, SEXP offsetSEXP, SEXP sizeSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< XPtr<tiledb::Context> >::type ctx(ctxSEXP);
+    Rcpp::traits::input_parameter< std::string >::type filestore_uri(filestore_uriSEXP);
+    Rcpp::traits::input_parameter< size_t >::type offset(offsetSEXP);
+    Rcpp::traits::input_parameter< size_t >::type size(sizeSEXP);
+    rcpp_result_gen = Rcpp::wrap(libtiledb_filestore_buffer_export(ctx, filestore_uri, offset, size));
+    return rcpp_result_gen;
+END_RCPP
+}
+// libtiledb_filestore_size
+size_t libtiledb_filestore_size(XPtr<tiledb::Context> ctx, std::string filestore_uri);
+RcppExport SEXP _tiledb_libtiledb_filestore_size(SEXP ctxSEXP, SEXP filestore_uriSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< XPtr<tiledb::Context> >::type ctx(ctxSEXP);
+    Rcpp::traits::input_parameter< std::string >::type filestore_uri(filestore_uriSEXP);
+    rcpp_result_gen = Rcpp::wrap(libtiledb_filestore_size(ctx, filestore_uri));
+    return rcpp_result_gen;
+END_RCPP
+}
+// libtiledb_mime_type_to_str
+std::string libtiledb_mime_type_to_str(int32_t mime_type);
+RcppExport SEXP _tiledb_libtiledb_mime_type_to_str(SEXP mime_typeSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< int32_t >::type mime_type(mime_typeSEXP);
+    rcpp_result_gen = Rcpp::wrap(libtiledb_mime_type_to_str(mime_type));
+    return rcpp_result_gen;
+END_RCPP
+}
+// libtiledb_mime_type_from_str
+int32_t libtiledb_mime_type_from_str(std::string mime_type);
+RcppExport SEXP _tiledb_libtiledb_mime_type_from_str(SEXP mime_typeSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< std::string >::type mime_type(mime_typeSEXP);
+    rcpp_result_gen = Rcpp::wrap(libtiledb_mime_type_from_str(mime_type));
+    return rcpp_result_gen;
+END_RCPP
+}
 // vecbuf_to_shmem
 void vecbuf_to_shmem(std::string dir, std::string name, XPtr<query_buf_t> buf, int sz);
 RcppExport SEXP _tiledb_vecbuf_to_shmem(SEXP dirSEXP, SEXP nameSEXP, SEXP bufSEXP, SEXP szSEXP) {
@@ -3168,9 +3242,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_tiledb_libtiledb_query_set_subarray", (DL_FUNC) &_tiledb_libtiledb_query_set_subarray, 2},
     {"_tiledb_libtiledb_query_set_buffer", (DL_FUNC) &_tiledb_libtiledb_query_set_buffer, 3},
     {"_tiledb_libtiledb_query_buffer_var_char_alloc_direct", (DL_FUNC) &_tiledb_libtiledb_query_buffer_var_char_alloc_direct, 4},
-    {"_tiledb_convertStringVectorIntoOffsetsAndString", (DL_FUNC) &_tiledb_convertStringVectorIntoOffsetsAndString, 2},
     {"_tiledb_libtiledb_query_buffer_var_char_create", (DL_FUNC) &_tiledb_libtiledb_query_buffer_var_char_create, 2},
-    {"_tiledb_libtiledb_query_buffer_var_char_create_nullable", (DL_FUNC) &_tiledb_libtiledb_query_buffer_var_char_create_nullable, 4},
     {"_tiledb_libtiledb_query_set_buffer_var_char", (DL_FUNC) &_tiledb_libtiledb_query_set_buffer_var_char, 3},
     {"_tiledb_libtiledb_query_get_buffer_var_char", (DL_FUNC) &_tiledb_libtiledb_query_get_buffer_var_char, 3},
     {"_tiledb_libtiledb_query_get_buffer_var_char_simple", (DL_FUNC) &_tiledb_libtiledb_query_get_buffer_var_char_simple, 1},
@@ -3282,6 +3354,14 @@ static const R_CallMethodDef CallEntries[] = {
     {"_tiledb_libtiledb_group_member_count", (DL_FUNC) &_tiledb_libtiledb_group_member_count, 1},
     {"_tiledb_libtiledb_group_member", (DL_FUNC) &_tiledb_libtiledb_group_member, 2},
     {"_tiledb_libtiledb_group_dump", (DL_FUNC) &_tiledb_libtiledb_group_dump, 2},
+    {"_tiledb_libtiledb_filestore_schema_create", (DL_FUNC) &_tiledb_libtiledb_filestore_schema_create, 2},
+    {"_tiledb_libtiledb_filestore_uri_import", (DL_FUNC) &_tiledb_libtiledb_filestore_uri_import, 3},
+    {"_tiledb_libtiledb_filestore_uri_export", (DL_FUNC) &_tiledb_libtiledb_filestore_uri_export, 3},
+    {"_tiledb_libtiledb_filestore_buffer_import", (DL_FUNC) &_tiledb_libtiledb_filestore_buffer_import, 4},
+    {"_tiledb_libtiledb_filestore_buffer_export", (DL_FUNC) &_tiledb_libtiledb_filestore_buffer_export, 4},
+    {"_tiledb_libtiledb_filestore_size", (DL_FUNC) &_tiledb_libtiledb_filestore_size, 2},
+    {"_tiledb_libtiledb_mime_type_to_str", (DL_FUNC) &_tiledb_libtiledb_mime_type_to_str, 1},
+    {"_tiledb_libtiledb_mime_type_from_str", (DL_FUNC) &_tiledb_libtiledb_mime_type_from_str, 1},
     {"_tiledb_vecbuf_to_shmem", (DL_FUNC) &_tiledb_vecbuf_to_shmem, 4},
     {"_tiledb_vlcbuf_to_shmem", (DL_FUNC) &_tiledb_vlcbuf_to_shmem, 4},
     {"_tiledb_querybuf_from_shmem", (DL_FUNC) &_tiledb_querybuf_from_shmem, 2},

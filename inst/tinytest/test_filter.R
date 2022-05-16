@@ -27,12 +27,24 @@ name_list <- c("NONE",
                "BIT_WIDTH_REDUCTION",
                "BITSHUFFLE",
                "BYTESHUFFLE",
-               "POSITIVE_DELTA")
+               "POSITIVE_DELTA",
+               "CHECKSUM_MD5",
+               "CHECKSUM_SHA256")
 for (name in name_list) {
   flt <- tiledb_filter(name)
   expect_equal(tiledb_filter_type(flt), name)
 
 }
+name_list <- c("DICTIONARY_ENCODING")
+for (name in name_list) {
+    if (tiledb_version(TRUE) >= "2.9.0") {
+        flt <- tiledb_filter(name)
+        expect_equal(tiledb_filter_type(flt), name)
+    } else {
+        expect_error(tiledb_filter(name))
+    }
+}
+
 expect_error(tiledb_filter("UNKNOWN"))
 #})
 
@@ -61,3 +73,45 @@ flt <- tiledb_filter("POSITIVE_DELTA")
 tiledb_filter_set_option(flt, "POSITIVE_DELTA_MAX_WINDOW", 10)
 expect_equal(tiledb_filter_get_option(flt, "POSITIVE_DELTA_MAX_WINDOW"), 10)
 #})
+
+
+## add some bulk checking for filters
+name_list <- c("NONE",
+               "GZIP",
+               "ZSTD",
+               "LZ4",
+               "RLE",
+               "BZIP2",
+               #"DOUBLE_DELTA",			# cannot be used with floating point data
+               "BIT_WIDTH_REDUCTION",
+               "BITSHUFFLE",
+               "BYTESHUFFLE",
+               "CHECKSUM_MD5",
+               "CHECKSUM_SHA256",
+               "DICTIONARY_ENCODING")
+
+if (!requireNamespace("palmerpenguins", quietly=TRUE)) exit_file("remainder needs 'palmerpenguins'")
+dat <- palmerpenguins::penguins
+
+vfs <- tiledb_vfs()                     # use an explicit VFS instance for the ops in loop over filters
+for (name in name_list) {
+    dat2 <- dat
+    if (name == "DICTIONARY_ENCODING") {
+        if (tiledb_version(TRUE) < "2.9.0") next             # skip if not 2.9.0 or later
+        dat2 <- dat2[, sapply(dat2, class) == "character"]
+    }
+
+    basepath <- file.path(tempdir())
+    uri <- file.path(basepath, name)
+    fromDataFrame(dat2, uri, filter=name)
+
+    if (is.na(match(name, c("NONE", "BITSHUFFLE", "BYTESHUFFLE",
+                            "CHECKSUM_MD5", "CHECKSUM_SHA256", "RLE")))) {
+        size_none <- tiledb_vfs_dir_size(file.path(basepath, "NONE"), vfs)
+        expect_true(size_none > 0)
+        size_curr <- tiledb_vfs_dir_size(uri, vfs)
+        expect_true(size_curr > 0)
+        expect_true(size_curr < size_none)
+    }
+}
+rm(vfs)

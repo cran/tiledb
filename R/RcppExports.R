@@ -560,16 +560,8 @@ libtiledb_query_buffer_var_char_alloc_direct <- function(szoffsets, szdata, null
     .Call(`_tiledb_libtiledb_query_buffer_var_char_alloc_direct`, szoffsets, szdata, nullable, cols)
 }
 
-convertStringVectorIntoOffsetsAndString <- function(vec, offsets) {
-    .Call(`_tiledb_convertStringVectorIntoOffsetsAndString`, vec, offsets)
-}
-
-libtiledb_query_buffer_var_char_create <- function(intoffsets, data) {
-    .Call(`_tiledb_libtiledb_query_buffer_var_char_create`, intoffsets, data)
-}
-
-libtiledb_query_buffer_var_char_create_nullable <- function(intoffsets, data, nullable, navec) {
-    .Call(`_tiledb_libtiledb_query_buffer_var_char_create_nullable`, intoffsets, data, nullable, navec)
+libtiledb_query_buffer_var_char_create <- function(vec, nullable) {
+    .Call(`_tiledb_libtiledb_query_buffer_var_char_create`, vec, nullable)
 }
 
 libtiledb_query_set_buffer_var_char <- function(query, attr, bufptr) {
@@ -1014,6 +1006,38 @@ libtiledb_group_member <- function(grp, idx) {
 
 libtiledb_group_dump <- function(grp, recursive) {
     .Call(`_tiledb_libtiledb_group_dump`, grp, recursive)
+}
+
+libtiledb_filestore_schema_create <- function(ctx, uri) {
+    .Call(`_tiledb_libtiledb_filestore_schema_create`, ctx, uri)
+}
+
+libtiledb_filestore_uri_import <- function(ctx, filestore_uri, file_uri) {
+    .Call(`_tiledb_libtiledb_filestore_uri_import`, ctx, filestore_uri, file_uri)
+}
+
+libtiledb_filestore_uri_export <- function(ctx, file_uri, filestore_uri) {
+    .Call(`_tiledb_libtiledb_filestore_uri_export`, ctx, file_uri, filestore_uri)
+}
+
+libtiledb_filestore_buffer_import <- function(ctx, filestore_uri, buf, size) {
+    .Call(`_tiledb_libtiledb_filestore_buffer_import`, ctx, filestore_uri, buf, size)
+}
+
+libtiledb_filestore_buffer_export <- function(ctx, filestore_uri, offset, size) {
+    .Call(`_tiledb_libtiledb_filestore_buffer_export`, ctx, filestore_uri, offset, size)
+}
+
+libtiledb_filestore_size <- function(ctx, filestore_uri) {
+    .Call(`_tiledb_libtiledb_filestore_size`, ctx, filestore_uri)
+}
+
+libtiledb_mime_type_to_str <- function(mime_type) {
+    .Call(`_tiledb_libtiledb_mime_type_to_str`, mime_type)
+}
+
+libtiledb_mime_type_from_str <- function(mime_type) {
+    .Call(`_tiledb_libtiledb_mime_type_from_str`, mime_type)
 }
 
 vecbuf_to_shmem <- function(dir, name, buf, sz) {

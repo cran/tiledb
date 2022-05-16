@@ -92,6 +92,10 @@ const char* _tiledb_datatype_to_string(tiledb_datatype_t dtype) {
       return "DATETIME_FS";
     case TILEDB_DATETIME_AS:
       return "DATETIME_AS";
+#if TILEDB_VERSION >= TileDB_Version(2,7,0)
+    case TILEDB_BLOB:
+      return "BLOB";
+#endif
     default:
       Rcpp::stop("unknown tiledb_datatype_t (%d)", dtype);
   }
@@ -150,6 +154,10 @@ tiledb_datatype_t _string_to_tiledb_datatype(std::string typestr) {
     return TILEDB_DATETIME_AS;
   } else if (typestr == "UTF8") {
     return TILEDB_STRING_UTF8;
+#if TILEDB_VERSION >= TileDB_Version(2,7,0)
+  } else if (typestr == "BLOB") {
+    return TILEDB_BLOB;
+#endif
   } else {
     Rcpp::stop("Unknown TileDB type '%s'", typestr.c_str());
   }
@@ -277,6 +285,10 @@ tiledb_filter_type_t _string_to_tiledb_filter(std::string filter) {
     return TILEDB_FILTER_CHECKSUM_MD5;
   } else if (filter == "CHECKSUM_SHA256") {
     return TILEDB_FILTER_CHECKSUM_SHA256;
+#if TILEDB_VERSION >= TileDB_Version(2,9,0)
+  } else if (filter == "DICTIONARY_ENCODING") {
+    return TILEDB_FILTER_DICTIONARY;
+#endif
   } else {
     Rcpp::stop("Unknown TileDB filter '%s'", filter.c_str());
   }
@@ -310,6 +322,10 @@ const char* _tiledb_filter_to_string(tiledb_filter_type_t filter) {
       return "CHECKSUM_MD5";
     case TILEDB_FILTER_CHECKSUM_SHA256:
       return "CHECKSUM_SHA256";
+#if TILEDB_VERSION >= TileDB_Version(2,9,0)
+    case TILEDB_FILTER_DICTIONARY:
+      return "DICTIONARY_ENCODING";
+#endif
     default: {
       Rcpp::stop("unknown tiledb_filter_t (%d)", filter);
     }
@@ -1245,12 +1261,6 @@ XPtr<tiledb::FilterList> libtiledb_filter_list(XPtr<tiledb::Context> ctx, List f
   // check that external pointers are supported
   R_xlen_t nfilters = filters.length();
   if (nfilters > 0) {
-    // for (R_xlen_t i=0; i < nfilters; i++)  {
-    //   SEXP filter = filters[i];
-    //   if (TYPEOF(filter) != EXTPTRSXP) {
-    //     Rcpp::stop("Invalid filter object at index %d (type %s)", i, Rcpp::type2name(filter));
-    //   }
-    // }
     for (SEXP f : filters) {
       auto filter = as<XPtr<tiledb::Filter>>(f);
       check_xptr_tag<tiledb::Filter>(filter);
@@ -2578,65 +2588,28 @@ XPtr<vlc_buf_t> libtiledb_query_buffer_var_char_alloc_direct(int szoffsets, int 
   return buf;
 }
 
-// helper function to turn a vector of strings
-// [[Rcpp::export]]
-std::string convertStringVectorIntoOffsetsAndString(Rcpp::CharacterVector vec,
-                                                    Rcpp::IntegerVector offsets) {
-  size_t n = vec.size();
-  if (offsets.size() != (R_xlen_t)n) Rcpp::stop("offsets needs to be of same size as vec");
-  std::string data = "";
-  int cumlen = 0;
-  for (size_t i=0; i<n; i++) {
-    std::string s(vec[i]);
-    offsets[i] = cumlen;
-    data += s;
-    cumlen += s.length();
-  }
-  return data;
-}
-
-
 // assigning (for a write) allocates
 // [[Rcpp::export]]
-XPtr<vlc_buf_t> libtiledb_query_buffer_var_char_create(IntegerVector intoffsets,
-                                                       std::string data) {
-  XPtr<vlc_buf_t> bufptr = make_xptr<vlc_buf_t>(new vlc_buf_t);
-  int n = intoffsets.size();
-  bufptr->offsets.resize(n);
-  for (int i=0; i<n; i++) {
-    bufptr->offsets[i] = static_cast<uint64_t>(intoffsets[i]);
-  }
-  bufptr->str = data;
-  bufptr->rows = bufptr->cols = 0; // signal unassigned for the write case
-  bufptr->validity_map.resize(n);  // validity_map resized but not used
-  bufptr->nullable = false;
-  return(bufptr);
+XPtr<vlc_buf_t> libtiledb_query_buffer_var_char_create(CharacterVector vec, bool nullable) {
+    size_t n = vec.size();
+    XPtr<vlc_buf_t> bufptr = make_xptr<vlc_buf_t>(new vlc_buf_t);
+    bufptr->offsets.resize(n);
+    bufptr->validity_map.resize(n);
+    bufptr->nullable = nullable;
+    bufptr->str = "";
+    uint64_t cumlen = 0;
+    for (size_t i=0; i<n; i++) {
+        std::string s(vec[i]);
+        bufptr->offsets[i] = cumlen;
+        bufptr->str += s;
+        cumlen += s.length();
+        if (nullable) {
+          bufptr->validity_map[i] = vec[i] == NA_STRING;
+        }
+    }
+    bufptr->rows = bufptr->cols = 0; // signal unassigned for the write case
+    return(bufptr);
 }
-
-// assigning (for a write) allocates with nullable vector
-// [[Rcpp::export]]
-XPtr<vlc_buf_t> libtiledb_query_buffer_var_char_create_nullable(IntegerVector intoffsets,
-                                                                std::string data,
-                                                                bool nullable,
-                                                                std::vector<bool> navec) {
-  XPtr<vlc_buf_t> bufptr = make_xptr<vlc_buf_t>(new vlc_buf_t);
-  int n = intoffsets.size();
-  bufptr->offsets.resize(n);
-  for (int i=0; i<n; i++) {
-    bufptr->offsets[i] = static_cast<uint64_t>(intoffsets[i]);
-  }
-  bufptr->str = data;
-  bufptr->rows = bufptr->cols = 0; // signal unassigned for the write case
-  if (nullable) {
-      bufptr->validity_map.resize(n);
-      for (int i=0; i<n; i++) {
-          bufptr->validity_map[i] = (navec[i] ? 0 : 1);
-      }
-  }
-  bufptr->nullable = nullable;
-  return(bufptr);
-}
-
 
 // [[Rcpp::export]]
 XPtr<tiledb::Query> libtiledb_query_set_buffer_var_char(XPtr<tiledb::Query> query,
@@ -2795,10 +2768,14 @@ XPtr<query_buf_t> libtiledb_query_buffer_alloc_ptr(std::string domaintype,
   XPtr<query_buf_t> buf = make_xptr<query_buf_t>(new query_buf_t);
   if (domaintype == "INT32"  || domaintype == "UINT32") {
      buf->size = sizeof(int32_t);
-  } else if (domaintype == "INT16"  || domaintype == "UINT16") {
+  } else if (domaintype == "INT16" || domaintype == "UINT16") {
      buf->size = sizeof(int16_t);
-  } else if (domaintype == "INT8"   || domaintype == "UINT8") {
+  } else if (domaintype == "INT8" || domaintype == "UINT8") {
      buf->size = sizeof(int8_t);
+#if TILEDB_VERSION >= TileDB_Version(2,7,0)
+  } else if (domaintype == "BLOB") {
+     buf->size = sizeof(int8_t);
+#endif
   } else if (domaintype == "INT64" ||
              domaintype == "UINT64" ||
              domaintype == "DATETIME_YEAR" ||
@@ -3114,6 +3091,16 @@ RObject libtiledb_query_get_buffer_ptr(XPtr<query_buf_t> buf, bool asint64 = fal
     if (buf->nullable)
         setValidityMapForInteger(out, buf->validity_map);
     return out;
+#if TILEDB_VERSION >= TileDB_Version(2,7,0)
+  } else if (dtype == "BLOB") {
+    size_t n = buf->ncells;
+    Rcpp::RawVector out(n);
+    std::memcpy(out.begin(), buf->vec.data(), n*buf->size);
+    // -- raw has no NA type so no mapping possible here
+    // if (buf->nullable)
+    //    setValidityMapForRaw(out, buf->validity_map);
+    return out;
+#endif
   } else {
     Rcpp::stop("Unsupported type '%s'", dtype.c_str());
   }
@@ -4393,7 +4380,7 @@ XPtr<tiledb::Group> libtiledb_group(XPtr<tiledb::Context> ctx,
                                     const std::string& uri,
                                     const std::string& querytypestr) {
     check_xptr_tag<tiledb::Context>(ctx);
-#if TILEDB_VERSION == TileDB_Version(2,8,0)
+#if TILEDB_VERSION >= TileDB_Version(2,8,0)
     tiledb_query_type_t querytype = _string_to_tiledb_query_type(querytypestr);
     auto p = new tiledb::Group(*ctx.get(), uri, querytype);
     XPtr<tiledb::Group> ptr = make_xptr<tiledb::Group>(p);
@@ -4407,7 +4394,7 @@ XPtr<tiledb::Group> libtiledb_group(XPtr<tiledb::Context> ctx,
 XPtr<tiledb::Group> libtiledb_group_open(XPtr<tiledb::Group> grp,
                                          const std::string& querytypestr) {
     check_xptr_tag<tiledb::Group>(grp);
-#if TILEDB_VERSION == TileDB_Version(2,8,0)
+#if TILEDB_VERSION >= TileDB_Version(2,8,0)
     tiledb_query_type_t querytype = _string_to_tiledb_query_type(querytypestr);
     grp->open(querytype);
 #endif
@@ -4418,7 +4405,7 @@ XPtr<tiledb::Group> libtiledb_group_open(XPtr<tiledb::Group> grp,
 XPtr<tiledb::Group> libtiledb_group_set_config(XPtr<tiledb::Group> grp, XPtr<tiledb::Config> cfg) {
     check_xptr_tag<tiledb::Group>(grp);
     check_xptr_tag<tiledb::Config>(cfg);
-#if TILEDB_VERSION == TileDB_Version(2,8,0)
+#if TILEDB_VERSION >= TileDB_Version(2,8,0)
     grp->set_config(*cfg.get());
 #endif
     return grp;
@@ -4427,7 +4414,7 @@ XPtr<tiledb::Group> libtiledb_group_set_config(XPtr<tiledb::Group> grp, XPtr<til
 // [[Rcpp::export]]
 XPtr<tiledb::Config> libtiledb_group_get_config(XPtr<tiledb::Group> grp) {
     check_xptr_tag<tiledb::Group>(grp);
-#if TILEDB_VERSION == TileDB_Version(2,8,0)
+#if TILEDB_VERSION >= TileDB_Version(2,8,0)
     auto ptr = make_xptr<tiledb::Config>(new tiledb::Config(grp.get()->config()));
     return ptr;
 #else
@@ -4438,7 +4425,7 @@ XPtr<tiledb::Config> libtiledb_group_get_config(XPtr<tiledb::Group> grp) {
 // [[Rcpp::export]]
 XPtr<tiledb::Group> libtiledb_group_close(XPtr<tiledb::Group> grp) {
     check_xptr_tag<tiledb::Group>(grp);
-#if TILEDB_VERSION == TileDB_Version(2,8,0)
+#if TILEDB_VERSION >= TileDB_Version(2,8,0)
     grp->close();
 #endif
     return grp;
@@ -4447,7 +4434,7 @@ XPtr<tiledb::Group> libtiledb_group_close(XPtr<tiledb::Group> grp) {
 // [[Rcpp::export]]
 std::string libtiledb_group_create(XPtr<tiledb::Context> ctx, const std::string& uri) {
     check_xptr_tag<tiledb::Context>(ctx);
-#if TILEDB_VERSION == TileDB_Version(2,8,0)
+#if TILEDB_VERSION >= TileDB_Version(2,8,0)
     tiledb::Group::create(*ctx.get(), uri);
 #endif
     return uri;
@@ -4456,7 +4443,7 @@ std::string libtiledb_group_create(XPtr<tiledb::Context> ctx, const std::string&
 // [[Rcpp::export]]
 bool libtiledb_group_is_open(XPtr<tiledb::Group> grp) {
     check_xptr_tag<tiledb::Group>(grp);
-#if TILEDB_VERSION == TileDB_Version(2,8,0)
+#if TILEDB_VERSION >= TileDB_Version(2,8,0)
     return grp->is_open();
 #else
     return FALSE;
@@ -4466,7 +4453,7 @@ bool libtiledb_group_is_open(XPtr<tiledb::Group> grp) {
 // [[Rcpp::export]]
 std::string libtiledb_group_uri(XPtr<tiledb::Group> grp) {
     check_xptr_tag<tiledb::Group>(grp);
-#if TILEDB_VERSION == TileDB_Version(2,8,0)
+#if TILEDB_VERSION >= TileDB_Version(2,8,0)
     return grp->uri();
 #else
     return std::string("");
@@ -4476,7 +4463,7 @@ std::string libtiledb_group_uri(XPtr<tiledb::Group> grp) {
 // [[Rcpp::export]]
 std::string libtiledb_group_query_type(XPtr<tiledb::Group> grp) {
     check_xptr_tag<tiledb::Group>(grp);
-#if TILEDB_VERSION == TileDB_Version(2,8,0)
+#if TILEDB_VERSION >= TileDB_Version(2,8,0)
     return _tiledb_query_type_to_string(grp->query_type());
 #else
     return std::string("");
@@ -4486,7 +4473,7 @@ std::string libtiledb_group_query_type(XPtr<tiledb::Group> grp) {
 // [[Rcpp::export]]
 bool libtiledb_group_put_metadata(XPtr<tiledb::Group> grp, std::string key, SEXP obj) {
     check_xptr_tag<tiledb::Group>(grp);
-#if TILEDB_VERSION == TileDB_Version(2,8,0)
+#if TILEDB_VERSION >= TileDB_Version(2,8,0)
     // we implement a simpler interface here as the 'type' is given from
     // the supplied SEXP, as is the extent
     switch(TYPEOF(obj)) {
@@ -4527,7 +4514,7 @@ bool libtiledb_group_put_metadata(XPtr<tiledb::Group> grp, std::string key, SEXP
 // [[Rcpp::export]]
 XPtr<tiledb::Group> libtiledb_group_delete_metadata(XPtr<tiledb::Group> grp, std::string key) {
     check_xptr_tag<tiledb::Group>(grp);
-#if TILEDB_VERSION == TileDB_Version(2,8,0)
+#if TILEDB_VERSION >= TileDB_Version(2,8,0)
     grp->delete_metadata(key);
 #endif
     return grp;
@@ -4536,7 +4523,7 @@ XPtr<tiledb::Group> libtiledb_group_delete_metadata(XPtr<tiledb::Group> grp, std
 // [[Rcpp::export]]
 SEXP libtiledb_group_get_metadata(XPtr<tiledb::Group> grp, std::string key) {
     check_xptr_tag<tiledb::Group>(grp);
-#if TILEDB_VERSION == TileDB_Version(2,8,0)
+#if TILEDB_VERSION >= TileDB_Version(2,8,0)
     tiledb_datatype_t v_type;
     uint32_t v_num;
     const void* v;
@@ -4555,7 +4542,7 @@ SEXP libtiledb_group_get_metadata(XPtr<tiledb::Group> grp, std::string key) {
 // [[Rcpp::export]]
 bool libtiledb_group_has_metadata(XPtr<tiledb::Group> grp, std::string key) {
     check_xptr_tag<tiledb::Group>(grp);
-#if TILEDB_VERSION == TileDB_Version(2,8,0)
+#if TILEDB_VERSION >= TileDB_Version(2,8,0)
     tiledb_datatype_t value_type; // set by C++ API on return, not returned to R
     return grp->has_metadata(key, &value_type);
 #else
@@ -4566,7 +4553,7 @@ bool libtiledb_group_has_metadata(XPtr<tiledb::Group> grp, std::string key) {
 // [[Rcpp::export]]
 double libtiledb_group_metadata_num(XPtr<tiledb::Group> grp) {
     check_xptr_tag<tiledb::Group>(grp);
-#if TILEDB_VERSION == TileDB_Version(2,8,0)
+#if TILEDB_VERSION >= TileDB_Version(2,8,0)
     return grp->metadata_num();
 #else
     return 0;
@@ -4576,7 +4563,7 @@ double libtiledb_group_metadata_num(XPtr<tiledb::Group> grp) {
 // [[Rcpp::export]]
 SEXP libtiledb_group_get_metadata_from_index(XPtr<tiledb::Group> grp, int idx) {
     check_xptr_tag<tiledb::Group>(grp);
-#if TILEDB_VERSION == TileDB_Version(2,8,0)
+#if TILEDB_VERSION >= TileDB_Version(2,8,0)
     std::string key;
     tiledb_datatype_t v_type;
     uint32_t v_num;
@@ -4598,7 +4585,7 @@ XPtr<tiledb::Group> libtiledb_group_add_member(XPtr<tiledb::Group> grp,
                                                std::string uri, bool relative,
                                                Nullable<Rcpp::String> optional_name = R_NilValue) {
     check_xptr_tag<tiledb::Group>(grp);
-#if TILEDB_VERSION == TileDB_Version(2,8,0)
+#if TILEDB_VERSION >= TileDB_Version(2,8,0)
     if (optional_name.isNotNull()) {
         Rcpp::String string_name(optional_name);
         std::string name(string_name);
@@ -4613,7 +4600,7 @@ XPtr<tiledb::Group> libtiledb_group_add_member(XPtr<tiledb::Group> grp,
 // [[Rcpp::export]]
 XPtr<tiledb::Group> libtiledb_group_remove_member(XPtr<tiledb::Group> grp, std::string uri) {
     check_xptr_tag<tiledb::Group>(grp);
-#if TILEDB_VERSION == TileDB_Version(2,8,0)
+#if TILEDB_VERSION >= TileDB_Version(2,8,0)
     grp->remove_member(uri);
 #endif
     return grp;
@@ -4622,7 +4609,7 @@ XPtr<tiledb::Group> libtiledb_group_remove_member(XPtr<tiledb::Group> grp, std::
 // [[Rcpp::export]]
 double libtiledb_group_member_count(XPtr<tiledb::Group> grp) {
     check_xptr_tag<tiledb::Group>(grp);
-#if TILEDB_VERSION == TileDB_Version(2,8,0)
+#if TILEDB_VERSION >= TileDB_Version(2,8,0)
     return grp->member_count();
 #else
     return 0;
@@ -4632,11 +4619,11 @@ double libtiledb_group_member_count(XPtr<tiledb::Group> grp) {
 // [[Rcpp::export]]
 CharacterVector libtiledb_group_member(XPtr<tiledb::Group> grp, int idx) {
     check_xptr_tag<tiledb::Group>(grp);
-#if TILEDB_VERSION == TileDB_Version(2,8,0)
+#if TILEDB_VERSION >= TileDB_Version(2,8,0)
     tiledb::Object obj = grp->member(idx);
-    CharacterVector v = CharacterVector::create(_object_type_to_string(obj.type()), obj.uri());
+    CharacterVector v = CharacterVector::create(_object_type_to_string(obj.type()), obj.uri(), obj.name().value_or(""));
 #else
-    CharacterVector v = CharacterVector::create("", "");
+    CharacterVector v = CharacterVector::create("", "", "");
 #endif
     return v;
 }
@@ -4644,9 +4631,151 @@ CharacterVector libtiledb_group_member(XPtr<tiledb::Group> grp, int idx) {
 // [[Rcpp::export]]
 std::string libtiledb_group_dump(XPtr<tiledb::Group> grp, bool recursive) {
     check_xptr_tag<tiledb::Group>(grp);
-#if TILEDB_VERSION == TileDB_Version(2,8,0)
+#if TILEDB_VERSION >= TileDB_Version(2,8,0)
     return grp->dump(recursive);
 #else
     return std::string("");
+#endif
+}
+
+
+/**
+ * Filestore (via tiledb_experimental.h)
+ */
+
+// Creates array schema based on URL, or default schema if no URI provided
+// [[Rcpp::export]]
+XPtr<tiledb::ArraySchema> libtiledb_filestore_schema_create(XPtr<tiledb::Context> ctx,
+                                                            std::string uri) {
+#if TILEDB_VERSION >= TileDB_Version(2,9,0)
+    tiledb_ctx_t* ctx_ptr = ctx->ptr().get();
+    tiledb_array_schema_t* schema_type_ptr;
+    if (tiledb_filestore_schema_create(ctx_ptr,
+                                       (uri == "" ? nullptr : uri.c_str()),
+                                       &schema_type_ptr) == TILEDB_ERR) {
+        Rcpp::stop("Error creating array schema from defaults");
+    }
+    auto schptr = new tiledb::ArraySchema(*ctx.get(), schema_type_ptr);
+    auto schema = make_xptr<tiledb::ArraySchema>(schptr);
+    return schema;
+#else
+    auto schptr = new tiledb::ArraySchema(*ctx.get(), TILEDB_SPARSE);
+    auto schema = make_xptr<tiledb::ArraySchema>(schptr);
+    return schema;
+#endif
+}
+
+// Imports a file into a TileDB filestore array
+// [[Rcpp::export]]
+bool libtiledb_filestore_uri_import(XPtr<tiledb::Context> ctx,
+                                    std::string filestore_uri,
+                                    std::string file_uri) {
+#if TILEDB_VERSION >= TileDB_Version(2,9,0)
+    tiledb_ctx_t* ctx_ptr = ctx->ptr().get();
+    if (tiledb_filestore_uri_import(ctx_ptr, filestore_uri.c_str(),
+                                    file_uri.c_str(), TILEDB_MIME_AUTODETECT) == TILEDB_ERR) {
+        Rcpp::stop("Error importing file into filestore");
+        return false;           // not reached
+    }
+    return true;
+#else
+    return false;
+#endif
+
+}
+
+// Export from a TileDB filestore array into a file uri
+// [[Rcpp::export]]
+bool libtiledb_filestore_uri_export(XPtr<tiledb::Context> ctx,
+                                    std::string file_uri,
+                                    std::string filestore_uri) {
+#if TILEDB_VERSION >= TileDB_Version(2,9,0)
+    tiledb_ctx_t* ctx_ptr = ctx->ptr().get();
+    if (tiledb_filestore_uri_export(ctx_ptr, file_uri.c_str(), filestore_uri.c_str())  == TILEDB_ERR) {
+        Rcpp::stop("Error exporting file from filestore");
+        return false;           // not reached
+    }
+    return true;
+#else
+    return false;
+#endif
+}
+
+// Write size bytes from buf into TileDB filestore
+// [[Rcpp::export]]
+bool libtiledb_filestore_buffer_import(XPtr<tiledb::Context> ctx,
+                                       std::string filestore_uri,
+                                       std::string buf, size_t size) {
+#if TILEDB_VERSION >= TileDB_Version(2,9,0)
+    tiledb_ctx_t* ctx_ptr = ctx->ptr().get();
+    if (tiledb_filestore_buffer_import(ctx_ptr, filestore_uri.c_str(),
+                                       static_cast<void*>(buf.data()), size,
+                                       TILEDB_MIME_AUTODETECT) == TILEDB_ERR) {
+        Rcpp::stop("Error importing file into filestore");
+        return false;           // not reached
+    }
+    return true;
+#else
+    return false;
+#endif
+}
+
+// Retrieve TileDB filestore content into buffer
+// [[Rcpp::export]]
+std::string libtiledb_filestore_buffer_export(XPtr<tiledb::Context> ctx,
+                                              std::string filestore_uri,
+                                              size_t offset, size_t size) {
+    std::string buf("");
+#if TILEDB_VERSION >= TileDB_Version(2,9,0)
+    tiledb_ctx_t* ctx_ptr = ctx->ptr().get();
+    buf.resize(size);
+    if (tiledb_filestore_buffer_export(ctx_ptr, filestore_uri.c_str(), offset,
+                                       static_cast<void*>(buf.data()), size) == TILEDB_ERR) {
+        Rcpp::stop("Error exporting file from filestore");
+    }
+#endif
+    return buf;
+
+}
+
+// Get size of uncompressed TileDB filestore array
+// [[Rcpp::export]]
+size_t libtiledb_filestore_size(XPtr<tiledb::Context> ctx, std::string filestore_uri) {
+    size_t sz = 0;
+#if TILEDB_VERSION >= TileDB_Version(2,9,0)
+    tiledb_ctx_t* ctx_ptr = ctx->ptr().get();
+    if (tiledb_filestore_size(ctx_ptr, filestore_uri.c_str(), &sz) == TILEDB_ERR) {
+        Rcpp::stop("Error accessize filestore uri size");
+    }
+#endif
+    return sz;
+}
+
+// Get MIME type of TileDB filestore as string
+// [[Rcpp::export]]
+std::string libtiledb_mime_type_to_str(int32_t mime_type) {
+#if TILEDB_VERSION >= TileDB_Version(2,9,0)
+    const char* ptr;
+    if (tiledb_mime_type_to_str(static_cast<tiledb_mime_type_t>(mime_type),
+                                &ptr) == TILEDB_ERR) {
+        Rcpp::stop("Error converting mime type to string");
+    }
+    return std::string(ptr);
+#else
+    return std::string("");
+#endif
+}
+
+// Create MIME type of TileDB filestore from string
+// [[Rcpp::export]]
+int32_t libtiledb_mime_type_from_str(std::string mime_type) {
+#if TILEDB_VERSION >= TileDB_Version(2,9,0)
+    tiledb_mime_type_t mt;
+    if (tiledb_mime_type_from_str(mime_type.c_str(), &mt) == TILEDB_ERR) {
+        Rcpp::stop("Error converting mime type from string");
+    }
+    return static_cast<int32_t>(mt);
+#else
+    return -1;
 #endif
 }
