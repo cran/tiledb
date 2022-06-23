@@ -988,7 +988,9 @@ J <- letters[1:3]
 data <- c(1L, 2L, 3L)
 arr <- tiledb_array(uri = tmp)
 arr[I, J] <- data
+expect_false(tiledb_array_is_open(arr))
 arr <- tiledb_array_open(arr)
+expect_true(tiledb_array_is_open(arr))
 expect_equal(tiledb_array_get_non_empty_domain_from_index(arr, 1), c(1, 3))
 expect_equal(tiledb_array_get_non_empty_domain_from_name(arr, "d1"), c(1, 3))
 expect_equal(tiledb_array_get_non_empty_domain_from_index(arr, 2), c("a", "c"))
@@ -1418,3 +1420,32 @@ arr <- tiledb_array(uri, as.data.frame = TRUE, attrs = NA_character_)
 res <- arr[]
 expect_equal(NCOL(res), 2)
 expect_equal(colnames(res), c("species", "year"))
+
+## check that we can specify no attributes with the setter
+arr <- tiledb_array(uri)
+expect_identical(attrs(arr), character(length = 0L))
+
+attrs(arr) <- NA_character_
+expect_true(is.na(attrs(arr)))
+
+
+## check for incomplete status on unsuccessful query
+set_allocation_size_preference(256)     # too low for penguins to return something
+array <- tiledb_array(uri, as.data.frame=TRUE)
+expect_warning(res <- array[])          # warning emitted
+expect_equal(attr(res, "query_status"), "INCOMPLETE") # and query status reported
+
+
+## check for batched operation
+set_allocation_size_preference(1024)
+arr <- tiledb_array(uri, as.data.frame=TRUE)
+lst <- tiledb:::createBatched(arr)
+res1 <- tiledb:::fetchBatched(arr, lst)
+expect_false(completedBatched(lst))
+res2 <- tiledb:::fetchBatched(arr, lst)
+expect_false(completedBatched(lst))
+res3 <- tiledb:::fetchBatched(arr, lst)
+expect_false(completedBatched(lst))
+res4 <- tiledb:::fetchBatched(arr, lst)
+expect_true(completedBatched(lst))
+expect_equal(nrow(res1) + nrow(res2) + nrow(res3) + nrow(res4), 344)

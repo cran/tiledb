@@ -791,6 +791,8 @@ setMethod("[", "tiledb_array",
           if (resrv == 0 && counter > 1L) {
               finished <- TRUE
               #if (verbose) message("Breaking loop at zero length expected")
+              if (status != "COMPLETE") warning("Query returned '", status, "'.", call. = FALSE)
+              .pkgenv[["query_status"]] <- status
               break
           }
           ## get results
@@ -1201,7 +1203,8 @@ setReplaceMethod("attrs",
                  signature = "tiledb_array",
                  function(x, value) {
   nm <- names(attrs(schema(x)))
-  if (length(nm) == 0) {                # none set so far
+  value_is_na <- length(value) == 1 && is.na(value)  # no attribute query
+  if (length(nm) == 0 || value_is_na) {              # none set so far
     x@attrs <- value
   } else {
     pm <- pmatch(value, nm)
