@@ -1,3 +1,44 @@
+# tiledb 0.16.0
+
+## Improvements
+
+* Several deprecated API entry points of TileDB Embedded are no longer used (#452, #453)
+
+* Support for DELETE queries has been added (requires TileDB Embedded 2.12.0 or later) (#455, #456)
+
+* Use of TileDB Embedded was upgraded to release 2.11.1, 2.11.2, and 2.11.3 (#460, #466, #474)
+
+* Support for XOR filters has been added (#472)
+
+* Support for deletion of fragments has been added (#473)
+
+## Bug Fixes
+
+* Treatment of character columns with missing values has been corrected (#454)
+
+* Accessing encrypted arrays has been reverted to the older API accessors (#458)
+
+* Int64 domain values in excess of int range are now expressed as integer64 objects (#465)
+
+## Build and Test Systems
+
+* Sparse matrix conversion used mainly in tests have been updated for version 1.4-2 of the Matrix packages (#457)
+
+* Support builds on the riskv64 platform by adding a missing link instruction (#459)
+
+* The test setup was tweaked to not trigger a spurious valgrind report from libcrypto (#461)
+
+* The test setup was tweaked to make a group comparison more resilient to ordering (#462)
+
+* The test setup was refined for two filter tests (#467, #468)
+
+* A parameterized test for the SCALE_FLOAT filter has been added (#469)
+
+* The test setup ensures that the per-session directory remains accessible (#470)
+
+* Continuous integration testing for Linux and macOS has been moved to GitHub Actions (#471)
+
+
 # tiledb 0.15.0
 
 * This release of the R package builds against [TileDB 2.11.0](https://github.com/TileDB-Inc/TileDB/releases/tag/2.11.0), and has also been tested against earlier releases as well as the development version.

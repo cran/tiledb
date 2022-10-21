@@ -940,35 +940,9 @@ if (requireNamespace("bit64", quietly=TRUE)) {
   unlink(tmp, recursive = TRUE)
 }
 
+if (tiledb_version(TRUE) >= "2.8.0" && tiledb_version(TRUE) < "2.10.0") exit_file("2.8.* and 2.9.* skip remainder")
+
 ## FYI: 101 tests here
-## test encrypted arrays via high-level accessor
-## (lower-level tests in test_densearray and test_arrayschema)
-tmp <- tempfile()
-dir.create(tmp)
-encryption_key <- "0123456789abcdeF0123456789abcdeF"
-
-## create 4x4 with single attribute
-dom <- tiledb_domain(dims = c(tiledb_dim("rows", c(1L, 4L), 4L, "INT32"),
-                              tiledb_dim("cols", c(1L, 4L), 4L, "INT32")))
-schema <- tiledb_array_schema(dom, attrs=c(tiledb_attr("a", type = "INT32")), sparse = TRUE)
-invisible( tiledb_array_create(tmp, schema, encryption_key) )
-
-## write
-I <- c(1, 2, 2)
-J <- c(1, 4, 3)
-data <- c(1L, 2L, 3L)
-A <- tiledb_array(uri = tmp, encryption_key = encryption_key)
-A[I, J] <- data
-
-## read
-A <- tiledb_array(uri = tmp, as.data.frame=TRUE, encryption_key = encryption_key)
-chk <- A[1:2, 2:4]
-expect_equal(nrow(chk), 2)
-expect_equal(chk[,"rows"], c(2L,2L))
-expect_equal(chk[,"cols"], c(3L,4L))
-expect_equal(chk[,"a"], c(3L,2L))
-
-unlink(tmp, recursive = TRUE)
 
 
 ## FYI: 105 tests here
@@ -1018,7 +992,7 @@ I <- c(1, 2, 2)
 J <- c(1, 4, 3)
 data <- c(1L, 2L, 3L)
 now1 <- Sys.time()
-A <- tiledb_array(uri = tmp, timestamp=now1)
+A <- tiledb_array(uri = tmp, timestamp_end=now1)
 A[I, J] <- data
 
 twot <- 1 + isMacOS*5
@@ -1029,17 +1003,28 @@ now2 <- Sys.time()
 I <- c(8, 6, 9)
 J <- c(5, 7, 8)
 data <- c(11L, 22L, 33L)
-A <- tiledb_array(uri = tmp, timestamp=now2)
+A <- tiledb_array(uri = tmp, timestamp_end=now2)
 A[I, J] <- data
 
-A <- tiledb_array(uri = tmp, as.data.frame=TRUE, timestamp=now1 - onet)
-expect_equal(nrow(A[]), 0)
-A <- tiledb_array(uri = tmp, as.data.frame=TRUE, timestamp=now1 + onet)
-expect_equal(nrow(A[]), 3)
-A <- tiledb_array(uri = tmp, as.data.frame=TRUE, timestamp=now2 - onet)
-expect_equal(nrow(A[]), 3)
-A <- tiledb_array(uri = tmp, as.data.frame=TRUE, timestamp=now2 + onet)
-expect_equal(nrow(A[]), 6)
+if (tiledb_version(TRUE) >= "2.10.0") {
+    A <- tiledb_array(uri = tmp, as.data.frame=TRUE, timestamp_end=now1 - onet)
+    expect_equal(nrow(A[]), 0)
+    A <- tiledb_array(uri = tmp, as.data.frame=TRUE, timestamp_end=now1 + onet)
+    expect_equal(nrow(A[]), 3)
+    A <- tiledb_array(uri = tmp, as.data.frame=TRUE, timestamp_end=now2 - onet)
+    expect_equal(nrow(A[]), 3)
+    A <- tiledb_array(uri = tmp, as.data.frame=TRUE, timestamp_end=now2 + onet)
+    expect_equal(nrow(A[]), 6)
+} else if (tiledb_version(TRUE) >= "2.8.0") {
+    A <- tiledb_array(uri = tmp, as.data.frame=TRUE, timestamp=now1 - onet)
+    expect_equal(nrow(A[]), 0)
+    A <- tiledb_array(uri = tmp, as.data.frame=TRUE, timestamp=now1 + onet)
+    expect_equal(nrow(A[]), 3)
+    A <- tiledb_array(uri = tmp, as.data.frame=TRUE, timestamp=now2 - onet)
+    expect_equal(nrow(A[]), 3)
+    A <- tiledb_array(uri = tmp, as.data.frame=TRUE, timestamp=now2 + onet)
+    expect_equal(nrow(A[]), 6)
+}
 
 ## as.matrix
 tmp <- tempfile()
@@ -1095,6 +1080,7 @@ expect_equal(length(res), 2L)
 expect_equal(res$vals, mat)
 expect_equal(res$vals2, 10*mat)
 
+## FYI: 135 tests here
 ## PR #245 (variant of examples/ex_1.R)
 uri <- tempfile()
 dom <- tiledb_domain(dims = c(tiledb_dim("rows", c(1L, 10L), 10L, "INT32"),
@@ -1178,6 +1164,7 @@ res2 <- arr[]
 expect_equal(nrow(res2), 2)
 expect_equal(res1, res2)
 
+## FYI: 152 tests here
 ## check for strings_as_factors
 arr <- tiledb_array(uri, as.data.frame=TRUE)
 res <- arr[]
@@ -1221,6 +1208,7 @@ schema <- tiledb_array_schema(dom, attrs = c(tiledb_attr("a", type = "INT32"),
                                              tiledb_attr("b", type = "FLOAT64"),
                                              tiledb_attr("c", type = "CHAR", ncells = NA_integer_)))
 
+## FYI: 160 tests here
 uri <- tempfile()
 res <- tiledb_array_create(uri, schema)
 data <- list(a=array(seq(1:100), dim = c(10,5, 2)),
@@ -1245,7 +1233,6 @@ expect_equal(array_vacuum(uri), NULL)
 expect_error(array_vacuum(uri, start_time="abc")) # not a datetime
 expect_error(array_vacuum(uri, end_time="def"))   # not a datetime
 if (tiledb_version(TRUE) >= "2.3.0") expect_equal(array_vacuum(uri, start_time=now-60, end_time=now), NULL)
-
 
 
 
@@ -1449,3 +1436,14 @@ expect_false(completedBatched(lst))
 res4 <- tiledb:::fetchBatched(arr, lst)
 expect_true(completedBatched(lst))
 expect_equal(nrow(res1) + nrow(res2) + nrow(res3) + nrow(res4), 344)
+
+
+## check NAs in character column
+library(palmerpenguins)
+uri <- tempfile()
+fromDataFrame(penguins, uri, sparse = TRUE, col_index = c("species", "year"))
+pp <- tiledb_array(uri, return_as="data.frame")[]
+oo <- penguins
+expect_equal(sum(is.na(oo$sex)), sum(is.na(pp$sex)))
+expect_equal(sum(oo$sex == "male"), sum(pp$sex == "male"))
+expect_equal(sum(oo$sex == "female"), sum(pp$sex == "female"))

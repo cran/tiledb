@@ -74,7 +74,6 @@ tiledb_filter_set_option(flt, "POSITIVE_DELTA_MAX_WINDOW", 10)
 expect_equal(tiledb_filter_get_option(flt, "POSITIVE_DELTA_MAX_WINDOW"), 10)
 #})
 
-
 ## add some bulk checking for filters
 name_list <- c("NONE",
                "GZIP",
@@ -87,9 +86,10 @@ name_list <- c("NONE",
                "BITSHUFFLE",
                "BYTESHUFFLE",
                "CHECKSUM_MD5",
-               "CHECKSUM_SHA256",
-               "DICTIONARY_ENCODING",
-               "SCALE_FLOAT")
+               "CHECKSUM_SHA256"
+               #"DICTIONARY_ENCODING",  # cannot be used here, see below for explicit block
+               #"SCALE_FLOAT"           # cannot be used here, see below for explicit block
+               )
 
 if (!requireNamespace("palmerpenguins", quietly=TRUE)) exit_file("remainder needs 'palmerpenguins'")
 dat <- palmerpenguins::penguins
@@ -101,14 +101,6 @@ if (Sys.info()[["sysname"]]=="Linux" && isFALSE(any(grepl("avx2", readLines("/pr
 vfs <- tiledb_vfs()                     # use an explicit VFS instance for the ops in loop over filters
 for (name in name_list) {
     dat2 <- dat
-    if (name == "DICTIONARY_ENCODING") {
-        if (tiledb_version(TRUE) < "2.9.0") next             # skip if not 2.9.0 or later
-        dat2 <- dat2[, sapply(dat2, class) == "character"]
-    }
-    if (name == "SCALE_FLOAT") {
-        if (tiledb_version(TRUE) < "2.11.0") next            # skip if not 2.11.0 or later
-    }
-
     basepath <- file.path(tempdir())
     uri <- file.path(basepath, name)
     fromDataFrame(dat2, uri, filter=name)
@@ -123,4 +115,94 @@ for (name in name_list) {
         #message("None ", size_none, " vs ", name, " ", size_curr)
     }
 }
+
+## add some bulk checking for filters on character data
+name_list <- c("NONE",
+               "RLE",
+               "DICTIONARY_ENCODING")
+for (name in name_list) {
+    dat3 <- data.frame(SP=as.character(dat$species),
+                       IS=as.character(dat$island),
+                       SX=as.character(dat$sex))
+    if (tiledb_version(TRUE) < "2.8.0") next                 # skip if not 2.8.0 or later
+    if (name == "DICTIONARY_ENCODING") {
+        if (tiledb_version(TRUE) < "2.9.0") next             # skip if not 2.9.0 or later
+        dat2 <- dat2[, sapply(dat2, class) == "character"]
+    }
+    basepath <- file.path(tempdir())
+    uri <- file.path(basepath, name)
+    if (dir.exists(uri)) unlink(uri, recursive=TRUE)
+    fromDataFrame(dat3, uri, filter=name)
+
+    if (is.na(match(name, c("NONE")))) {
+        size_none <- tiledb_vfs_dir_size(file.path(basepath, "NONE"), vfs)
+        expect_true(size_none > 0)
+        size_curr <- tiledb_vfs_dir_size(uri, vfs)
+        expect_true(size_curr > 0)
+        expect_true(size_curr < size_none)
+        #message("None ", size_none, " vs ", name, " ", size_curr)
+    }
+}
+
+## add some bulk checking for filters on float/double
+name_list <- c("NONE",
+               "SCALE_FLOAT")
+for (name in name_list) {
+    dat4 <- data.frame(BL=dat$bill_length_mm,
+                       BD=dat$bill_depth_mm,
+                       FL=as.double(dat$flipper_length_mm),
+                       BM=as.double(dat$body_mass_g))
+    if (name == "SCALE_FLOAT") {
+        if (tiledb_version(TRUE) < "2.11.0") next            # skip if not 2.11.0 or later
+    }
+    basepath <- file.path(tempdir())
+    uri <- file.path(basepath, name)
+    if (dir.exists(uri)) unlink(uri, recursive=TRUE)
+    fromDataFrame(dat4, uri, filter=name)
+
+    if (is.na(match(name, c("NONE")))) {
+        size_none <- tiledb_vfs_dir_size(file.path(basepath, "NONE"), vfs)
+        expect_true(size_none > 0)
+        size_curr <- tiledb_vfs_dir_size(uri, vfs)
+        expect_true(size_curr > 0)
+        #expect_true(size_curr < size_none)
+        #message("None ", size_none, " vs ", name, " ", size_curr)
+    }
+}
+
+## scale_float with parameters (cf test in TileDB-Py PR #1195)
+if (tiledb_version(TRUE) >= "2.11.0") {
+    dat4 <- data.frame(BL=dat$bill_length_mm,
+                       BD=dat$bill_depth_mm,
+                       FL=as.double(dat$flipper_length_mm),
+                       BM=as.double(dat$body_mass_g))
+    pars <- expand.grid(factor=c(1,0.5,2), offset=0, bytewidth=c(1,0))
+    for (i in seq_len(nrow(pars))) {
+        flt <- tiledb_filter("SCALE_FLOAT")
+        tiledb_filter_set_option(flt, "SCALE_FLOAT_FACTOR", pars[i, "factor"])
+        tiledb_filter_set_option(flt, "SCALE_FLOAT_OFFSET", pars[i, "offset"])
+        tiledb_filter_set_option(flt, "SCALE_FLOAT_BYTEWIDTH", pars[i, "bytewidth"])
+
+        uri <- file.path(tempdir())
+        fromDataFrame(dat4, uri, filter_list=tiledb_filter_list(flt))
+        res <- tiledb_array(uri, return_as="data.frame", extended=FALSE)[]
+        expect_equivalent(dat4, res)
+        if (dir.exists(uri)) unlink(uri, recursive=TRUE)
+    }
+    if (!dir.exists(tempdir())) dir.create(tempdir())
+}
+
+if (tiledb_version(TRUE) >= "2.12.0") {
+    D <- data.frame(index=sample(100, 26, FALSE),
+                    key=LETTERS,
+                    value=cumsum(runif(26)))
+    uri <- file.path(tempdir())
+    fromDataFrame(D, uri, filter="FILTER_XOR")
+    arr <- tiledb_array(uri, return_as="data.frame", extended=FALSE)[]
+    expect_equal(D$value, arr$value)
+
+    if (dir.exists(uri)) unlink(uri, recursive=TRUE)
+    if (!dir.exists(tempdir())) dir.create(tempdir())
+}
+
 rm(vfs)
