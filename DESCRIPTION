@@ -1,6 +1,6 @@
 Package: tiledb
 Type: Package
-Version: 0.16.0
+Version: 0.17.0
 Title: Universal Storage Engine for Sparse and Dense Multidimensional
         Arrays
 Authors@R: c(person("TileDB, Inc.", role = c("aut", "cph")),
@@ -25,17 +25,18 @@ SystemRequirements: A C++17 compiler is required, and on macOS
         TileDB Embedded libraries are available at GitHub and are used
         if no TileDB installation is detected, and no other option to
         build or download was specified by the user.
-Imports: methods, Rcpp (>= 1.0.8), nanotime
-LinkingTo: Rcpp
+Imports: methods, Rcpp (>= 1.0.8), nanotime, spdl
+LinkingTo: Rcpp, RcppSpdlog
 Suggests: tinytest, simplermarkdown, curl, bit64, Matrix,
         palmerpenguins, nycflights13, data.table, tibble
 VignetteBuilder: simplermarkdown
-RoxygenNote: 7.2.1
+RoxygenNote: 7.2.2
 Encoding: UTF-8
+Additional_repositories: https://ghrr.github.io/drat
 NeedsCompilation: yes
-Packaged: 2022-10-21 13:15:33 UTC; edd
+Packaged: 2022-12-01 16:35:23 UTC; edd
 Author: TileDB, Inc. [aut, cph],
   Dirk Eddelbuettel [cre]
 Maintainer: Dirk Eddelbuettel <dirk@tiledb.com>
 Repository: CRAN
-Date/Publication: 2022-10-21 14:40:02 UTC
+Date/Publication: 2022-12-02 09:40:02 UTC

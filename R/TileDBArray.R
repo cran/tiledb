@@ -38,6 +38,8 @@
 #' columns are returned as well.
 #' @slot selected_ranges An optional list with matrices where each matrix i
 #' describes the (min,max) pair of ranges for dimension i
+#' @slot selected_points An optional list with vectors where each vector i
+#' describes the selected points for dimension i
 #' @slot query_layout An optional character value
 #' @slot datetimes_as_int64 A logical value
 #' @slot encryption_key A character value
@@ -70,6 +72,7 @@ setClass("tiledb_array",
                       attrs = "character",
                       extended = "logical",
                       selected_ranges = "list",
+                      selected_points = "list",
                       query_layout = "character",
                       datetimes_as_int64 = "logical",
                       encryption_key = "character",
@@ -101,7 +104,9 @@ setClass("tiledb_array",
 #' @param extended optional logical switch selecting wide \sQuote{data.frame}
 #' format, defaults to \code{TRUE}
 #' @param selected_ranges optional A list with matrices where each matrix i
-#' describes the (min,max) pair of ranges for dimension i
+#' describes the (min,max) pair of ranges selected for dimension i
+#' @param selected_points optional A list with vectors where each vector i
+#' describes the points selected in dimension i
 #' @param query_layout optional A value for the TileDB query layout, defaults to
 #' an empty character variable indicating no special layout is set
 #' @param datetimes_as_int64 optional A logical value selecting date and datetime value
@@ -138,6 +143,7 @@ setClass("tiledb_array",
 #' @param buffers An optional list with full pathnames of shared memory buffers to read data from
 #' @param ctx optional tiledb_ctx
 #' @return tiledb_array object
+#' @importFrom spdl set_level
 #' @export
 tiledb_array <- function(uri,
                          query_type = c("READ", "WRITE"),
@@ -146,6 +152,7 @@ tiledb_array <- function(uri,
                          attrs = character(),
                          extended = TRUE,
                          selected_ranges = list(),
+                         selected_points = list(),
                          query_layout = character(),
                          datetimes_as_int64 = FALSE,
                          encryption_key = character(),
@@ -167,6 +174,7 @@ tiledb_array <- function(uri,
             `At most one argument of as.data.frame, as.matrix and as.array can be selected` = sum(as.data.frame, as.matrix, as.array) <= 1,
             `Argument 'as.matrix' cannot be selected for sparse arrays` = !(isTRUE(is.sparse) && as.matrix))
   query_type <- match.arg(query_type)
+  spdl::debug("[tiledb_array] query is {}", query_type)
   if (sum(as.data.frame, as.matrix, as.array) == 1 && return_as != "asis")
       return_as <- "asis"
   if (length(encryption_key) > 0) {
@@ -214,6 +222,7 @@ tiledb_array <- function(uri,
       attrs = attrs,
       extended = extended,
       selected_ranges = selected_ranges,
+      selected_points = selected_points,
       query_layout = query_layout,
       datetimes_as_int64 = datetimes_as_int64,
       encryption_key = encryption_key,
@@ -284,6 +293,8 @@ setMethod("show", signature = "tiledb_array",
                             else paste(object@attrs, collapse=","), "\n"
      ,"  selected_ranges    = ", if (length(object@selected_ranges) > 0) sprintf("(%d non-null sets)", sum(sapply(object@selected_ranges, function(x) !is.null(x))))
                             else "(none)", "\n"
+     ,"  selected_points    = ", if (length(object@selected_points) > 0) sprintf("(%d non-null points)", sum(sapply(object@selected_points, function(x) !is.null(x))))
+                            else "(none)", "\n"
      ,"  extended           = ", if (object@extended) "TRUE" else "FALSE" ,"\n"
      ,"  query_layout       = ", if (length(object@query_layout) == 0) "(none)" else object@query_layout, "\n"
      ,"  datetimes_as_int64 = ", if (object@datetimes_as_int64) "TRUE" else "FALSE", "\n"
@@ -347,6 +358,20 @@ setValidity("tiledb_array", function(object) {
         if (ncol(object@selected_ranges[[i]]) != 2) {
           valid <- FALSE
           msg <- c(msg, sprintf("Element '%d' of 'selected_ranges' is not two column.", i))
+        }
+      }
+    }
+  }
+
+  if (!is.list(object@selected_points)) {
+    valid <- FALSE
+    msg <- c(msg, "The 'selected_points' slot does not contain a list.")
+  } else {
+    for (i in (seq_len(length(object@selected_points)))) {
+      if (!is.null(object@selected_points[[i]])) {
+        if (!is.vector(object@selected_points[[i]]) && !inherits(object@selected_points[[i]], "integer64")) {
+          valid <- FALSE
+          msg <- c(msg, sprintf("Element '%d' of 'selected_ranges' is not a vector.", i))
         }
       }
     }
@@ -488,13 +513,15 @@ setMethod("[", "tiledb_array",
   k <- NULL
   #verbose <- getOption("verbose", FALSE)
 
+  spdl::trace("[tiledb_array] '[' accessor started")
+
   ## deal with possible n-dim indexing
   ndlist <- nd_index_from_syscall(sys.call(), parent.frame())
   if (length(ndlist) >= 0) {
     if (length(ndlist) >= 1 && !is.null(ndlist[[1]])) i <- ndlist[[1]]
     if (length(ndlist) >= 2 && !is.null(ndlist[[2]])) j <- ndlist[[2]]
     if (length(ndlist) >= 3 && !is.null(ndlist[[3]])) k <- ndlist[[3]]
-    if (length(ndlist) >= 4) message("Indices beyond the third dimension not supported in [i,j,k] form. Use selected_ranges().")
+    if (length(ndlist) >= 4) message("Indices beyond the third dimension not supported in [i,j,k] form. Use selected_ranges() or selected_points().")
   }
 
   ctx <- x@ctx
@@ -552,7 +579,7 @@ setMethod("[", "tiledb_array",
   ## A preference can be set in a local per-user configuration file; if no value
   ## is set a fallback from the TileDB config object is used.
   memory_budget <- get_allocation_size_preference()
-  #if (verbose) message("Memory budget set to ", memory_budget, " bytes or ", memory_budget/8, " rows")
+  spdl::debug("['['] memory budget is {}", memory_budget)
 
   if (length(enckey) > 0) {
     if (length(tstamp) > 0) {
@@ -588,7 +615,9 @@ setMethod("[", "tiledb_array",
   nonemptydom <- mapply(getDomain, dimnames, dimtypes, SIMPLIFY=FALSE)
   ## open query
   qryptr <- libtiledb_query(ctx@ptr, arrptr, "READ")
-  if (length(layout) > 0) libtiledb_query_set_layout(qryptr, layout)
+  qryptr <- libtiledb_query_set_layout(qryptr,
+                                       if (isTRUE(nchar(layout) > 0)) layout
+                                       else { if (sparse) "UNORDERED" else "COL_MAJOR" })
 
   ## ranges seem to interfere with the byte/element adjustment below so set up toggle
   rangeunset <- TRUE
@@ -598,6 +627,14 @@ setMethod("[", "tiledb_array",
       length(x@selected_ranges) != length(dimnames) &&
       is.null(names(x@selected_ranges))) {
       stop(paste0("If ranges are selected by index alone (and not named), ",
+                  "one is required for each dimension."), call. = FALSE)
+  }
+
+  ## ensure selected_points, if submitted, is of correct length
+  if (length(x@selected_points) != 0 &&
+      length(x@selected_points) != length(dimnames) &&
+      is.null(names(x@selected_points))) {
+      stop(paste0("If points are selected by index alone (and not named), ",
                   "one is required for each dimension."), call. = FALSE)
   }
 
@@ -613,6 +650,18 @@ setMethod("[", "tiledb_array",
       x@selected_ranges <- fulllist
   }
 
+  ## expand a shorter-but-named selected_points list
+  if (   (length(x@selected_points) < length(dimnames))
+      && (!is.null(names(x@selected_points)))          ) {
+      fulllist <- vector(mode="list", length=length(dimnames))
+      ind <- match(names(x@selected_points), dimnames)
+      if (any(is.na(ind))) stop("Name for selected points does not match dimension names.")
+      for (ii in seq_len(length(ind))) {
+          fulllist[[ ind[ii] ]] <- x@selected_points[[ii]]
+      }
+      x@selected_points <- fulllist
+  }
+
   ## selected_ranges may be in different order than dimnames, so reorder if need be
   if ((length(x@selected_ranges) == length(dimnames))
       && (!is.null(names(x@selected_ranges)))
@@ -620,9 +669,21 @@ setMethod("[", "tiledb_array",
       x@selected_ranges <- x@selected_ranges[dimnames]
   }
 
+  ## selected_points may be in different order than dimnames, so reorder if need be
+  if ((length(x@selected_points) == length(dimnames))
+      && (!is.null(names(x@selected_points)))
+      && (!identical(names(x@selected_points), dimnames))) {
+      x@selected_points <- x@selected_points[dimnames]
+  }
+
   ## if selected_ranges is still an empty list, make it an explicit one
   if (length(x@selected_ranges) == 0) {
       x@selected_ranges <- vector(mode="list", length=length(dimnames))
+  }
+
+  ## if selected_points is still an empty list, make it an explicit one
+  if (length(x@selected_points) == 0) {
+      x@selected_points <- vector(mode="list", length=length(dimnames))
   }
 
   if (!is.null(i)) {
@@ -650,25 +711,42 @@ setMethod("[", "tiledb_array",
 
   ## if ranges selected, use those
   for (k in seq_len(length(x@selected_ranges))) {
-    if (is.null(x@selected_ranges[[k]])) {
+    if (is.null(x@selected_ranges[[k]]) && is.null(x@selected_points[[k]])) {
       #cat("Adding null dim", k, "on", dimtypes[k], "\n")
       vec <- .map2integer64(nonemptydom[[k]], dimtypes[k])
       if (vec[1] != 0 || vec[2] != 0) { # corner case of A[] on empty array
         qryptr <- libtiledb_query_add_range_with_type(qryptr, k-1, dimtypes[k], vec[1], vec[2])
+        spdl::debug("[tiledb_array] Adding non-zero dim {}:{} on {} with ({},{})", k, i, dimtypes[k], vec[1], vec[2])
         rangeunset <- FALSE
       }
-    } else if (is.null(nrow(x@selected_ranges[[k]]))) {
+    } else if (is.null(nrow(x@selected_ranges[[k]])) && is.null(x@selected_points[[k]])) {
       #cat("Adding nrow null dim", k, "on", dimtypes[k], "\n")
       vec <- x@selected_ranges[[k]]
       vec <- .map2integer64(vec, dimtypes[k])
       qryptr <- libtiledb_query_add_range_with_type(qryptr, k-1, dimtypes[k], min(vec), max(vec))
+      spdl::debug("[tiledb_array] Adding non-zero dim {}:{} on {} with ({},{})", k, i, dimtypes[k], vec[1], vec[2])
       rangeunset <- FALSE
-    } else {
+    } else if (is.null(x@selected_points[[k]])) {
       #cat("Adding non-zero dim", k, "on", dimtypes[k], "\n")
       m <- x@selected_ranges[[k]]
       for (i in seq_len(nrow(m))) {
         vec <- .map2integer64(c(m[i,1], m[i,2]), dimtypes[k])
         qryptr <- libtiledb_query_add_range_with_type(qryptr, k-1, dimtypes[k], vec[1], vec[2])
+        spdl::debug("[tiledb_array] Adding non-zero dim {}:{} on {} with ({},{})", k, i, dimtypes[k], vec[1], vec[2])
+      }
+      rangeunset <- FALSE
+    }
+  }
+
+  ## if points selected, use those (and fewer special cases as A[i,j,k] not folded into points)
+  for (k in seq_len(length(x@selected_points))) {
+    if (!is.null(x@selected_points[[k]])) {
+      spdl::debug("[tiledb_array] Adding non-zero dim {} on {}", k, dimtypes[k])
+      m <- x@selected_points[[k]]
+      for (i in seq_along(m)) {
+        vec <- .map2integer64(c(m[i], m[i]), dimtypes[k])
+        qryptr <- libtiledb_query_add_range_with_type(qryptr, k-1, dimtypes[k], vec[1], vec[2])
+        spdl::debug("[tiledb_array] Adding point on non-zero dim {}:{} on {} with ({},{})", k, i, dimtypes[k], vec[1], vec[2])
       }
       rangeunset <- FALSE
     }
@@ -718,29 +796,38 @@ setMethod("[", "tiledb_array",
 
       ## retrieve est_result_size
       getEstimatedSize <- function(name, varnum, nullable, qryptr, datatype) {
-          if (is.na(varnum) && !nullable)
+          if (is.na(varnum) && !nullable) {
               res <- libtiledb_query_get_est_result_size_var(qryptr, name)[1]
-          else if (is.na(varnum) && nullable)
+              spdl::debug("[getEstimatedSize] column '{}' (is.na(varnum) and !nullable) {}", name, res)
+          } else if (is.na(varnum) && nullable) {
               res <- libtiledb_query_get_est_result_size_var_nullable(qryptr, name)[1]
-          else if (!is.na(varnum) && !nullable)
+              spdl::debug("[getEstimatedSize] column '{}' (is.na(varnum) and nullable) {}", name, res)
+          } else if (!is.na(varnum) && !nullable) {
               res <- libtiledb_query_get_est_result_size(qryptr, name)
-          else if (!is.na(varnum) && nullable)
+              spdl::debug("[getEstimatedSize] column '{}' (!is.na(varnum) and !nullable) {}", name, res)
+          } else if (!is.na(varnum) && nullable) {
               res <- libtiledb_query_get_est_result_size_nullable(qryptr, name)[1]
+              spdl::debug("[getEstimatedSize] column '{}' (!is.na(varnum) and nullable) {}", name, res)
+          }
           if (rangeunset && tiledb::tiledb_version(TRUE) >= "2.2.0") {
               sz <- tiledb_datatype_string_to_sizeof(datatype)
               res <- res / sz
+              spdl::debug("[getEstimatedSize] column '{}' rangeunset and res scaled to {}", name, res)
           }
           res
       }
       ressizes <- mapply(getEstimatedSize, allnames, allvarnum, allnullable, alltypes,
                          MoreArgs=list(qryptr=qryptr), SIMPLIFY=TRUE)
       ## ensure > 0 for correct handling of zero-length outputs, ensure respecting memory budget
-      resrv <- max(1, min(memory_budget/8, ressizes))
+      spdl::debug("['['] result of size estimates is {}", paste(ressizes, collapse=","))
+      resrv <- max(1, min(memory_budget/8, ressizes[ressizes > 0]))
+      spdl::debug("['['] overall estimate {} rows", resrv)
+
       ## allocate and set buffers
       getBuffer <- function(name, type, varnum, nullable, resrv, qryptr, arrptr) {
           if (is.na(varnum)) {
               if (type %in% c("CHAR", "ASCII", "UTF8")) {
-                  #if (verbose) message("Allocating with ", resrv, " and ", memory_budget)
+                  spdl::debug("[getBuffer] '{}' allocating 'char' {} rows given budget of {}", name, resrv, memory_budget)
                   buf <- libtiledb_query_buffer_var_char_alloc_direct(resrv, memory_budget, nullable)
                   qryptr <- libtiledb_query_set_buffer_var_char(qryptr, name, buf)
                   buf
@@ -748,7 +835,7 @@ setMethod("[", "tiledb_array",
                   message("Non-char var.num columns are not currently supported.")
               }
           } else {
-              ##if (verbose) message("Alloc ", resrv, " and ", memory_budget, " and ", ifelse(nullable,"(yes)", "(no)"))
+              spdl::debug("[getBuffer] '{}' allocating non-char {} rows given budget of {}", name, resrv, memory_budget)
               buf <- libtiledb_query_buffer_alloc_ptr(type, resrv, nullable, varnum)
               qryptr <- libtiledb_query_set_buffer_ptr(qryptr, name, buf)
               buf
@@ -757,6 +844,7 @@ setMethod("[", "tiledb_array",
       buflist <- mapply(getBuffer, allnames, alltypes, allvarnum, allnullable,
                         MoreArgs=list(resrv=resrv, qryptr=qryptr, arrptr=arrptr),
                         SIMPLIFY=FALSE)
+      spdl::debug("['['] buffers allocated")
 
       ## if we have a query condition, apply it
       if (isTRUE(x@query_condition@init)) {
@@ -769,11 +857,13 @@ setMethod("[", "tiledb_array",
       while (!finished) {
 
           ## fire off query
+          spdl::debug("['['] query submission: {}", counter)
           qryptr <- libtiledb_query_submit(qryptr)
 
           ## check status
           status <- libtiledb_query_status(qryptr)
           #if (status != "COMPLETE") warning("Query returned '", status, "'.", call. = FALSE)
+          if (status != "COMPLETE") spdl::debug("['['] query returned '{}'.", status)
 
           ## close array
           if (status == "COMPLETE") {
@@ -790,16 +880,16 @@ setMethod("[", "tiledb_array",
                   libtiledb_query_result_buffer_elements(qryptr, name)
           }
           estsz <- mapply(getResultSize, allnames, allvarnum, MoreArgs=list(qryptr=qryptr), SIMPLIFY=TRUE)
+          spdl::debug("['['] estimated result sizes", paste(estsz, collapse=","))
           if (any(!is.na(estsz))) {
               resrv <- max(estsz, na.rm=TRUE)
           } else {
               resrv <- resrv/8                  # character case where bytesize of offset vector was used
           }
-          #if (verbose) message("Expected size ", resrv)
+          spdl::debug("['['] expected size", resrv)
           ## Permit one pass to allow zero-row schema read
           if (resrv == 0 && counter > 1L) {
               finished <- TRUE
-              #if (verbose) message("Breaking loop at zero length expected")
               if (status != "COMPLETE") warning("Query returned '", status, "'.", call. = FALSE)
               .pkgenv[["query_status"]] <- status
               break
@@ -843,7 +933,6 @@ setMethod("[", "tiledb_array",
           ## the list columns are now all of equal lenthth as R needs and we can form a data.frame
           res <- data.frame(reslist)[,,drop=FALSE]
           colnames(res) <- allnames
-          #if (verbose) cat("Retrieved ", paste(dim(res), collapse="x"), "...\n")
           overallresults[[counter]] <- res
           counter <- counter + 1L
       }
@@ -896,6 +985,7 @@ setMethod("[", "tiledb_array",
   if (x@query_statistics)
       attr(res, "query_statistics") <- libtiledb_query_stats(qryptr)
 
+  spdl::debug("['['] returning result")
   invisible(res)
 })
 
@@ -999,6 +1089,7 @@ setMethod("[<-", "tiledb_array",
   ## add defaults
   if (missing(i)) i <- NULL
   if (missing(j)) j <- NULL
+  spdl::debug("[tiledb_array] '[<-' accessor started")
 
   ctx <- x@ctx
   uri <- x@uri
@@ -1035,6 +1126,14 @@ setMethod("[<-", "tiledb_array",
       alltypes <- dimtypes
       allvarnum <- dimvarnum
       allnullable <- dimnullable
+  }
+
+  ## check we have complete columns (as we cannot write subset of attributes)
+  missing_names <- setdiff(attrnames, names(value))
+  if (sparse
+      && length(missing_names) > 0
+      && names(value)[1] != "value") { # special case of unnamed vector 'value' becoming one-col df
+      stop("Columns '", paste(missing_names, collapse=", "), "' are missing. Please add them", call. = FALSE)
   }
 
   ## we will recognize two standard cases
@@ -1130,7 +1229,7 @@ setMethod("[<-", "tiledb_array",
 
     qryptr <- libtiledb_query(ctx@ptr, arrptr, "WRITE")
     qryptr <- libtiledb_query_set_layout(qryptr,
-                                         if (length(layout) > 0) layout
+                                         if (isTRUE(nchar(layout) > 0)) layout
                                          else { if (sparse) "UNORDERED" else "COL_MAJOR" })
 
     buflist <- vector(mode="list", length=nc)
@@ -1140,7 +1239,7 @@ setMethod("[<-", "tiledb_array",
       k <- match(colnam, nm)
       if (alltypes[k] %in% c("CHAR", "ASCII")) { # variable length
         txtvec <- as.character(value[[k]])
-        #cat("Alloc char buffer", k, "for", colnam, ":", alltypes[k], "\n")
+        spdl::debug("[tiledb_array] '[<-' alloc char buffer {} '{}': {}", k, colnam, alltypes[k])
         buflist[[k]] <- libtiledb_query_buffer_var_char_create(txtvec, allnullable[k])
         qryptr <- libtiledb_query_set_buffer_var_char(qryptr, colnam, buflist[[k]])
       } else {
@@ -1149,8 +1248,7 @@ setMethod("[<-", "tiledb_array",
             col <- unname(do.call(c, col))
         }
         nr <- NROW(col)
-        #cat("Alloc buf", i, " ", colnam, ":", alltypes[i], "nr:", nr,
-        #    "null:", ifelse(allnullable[k], "(yes)", "(no)"), "asint64:", asint64, "\n")
+        spdl::debug("[tiledb_array] '[<-' alloc buf {} '{}': {}, rows: {} null: {} asint64: {}", k, colnam, alltypes[k], nr, allnullable[k], asint64)
         buflist[[k]] <- libtiledb_query_buffer_alloc_ptr(alltypes[k], nr, allnullable[k], allvarnum[k])
         buflist[[k]] <- libtiledb_query_buffer_assign_ptr(buflist[[k]], alltypes[k], col, asint64)
         qryptr <- libtiledb_query_set_buffer_ptr(qryptr, colnam, buflist[[k]])
@@ -1336,6 +1434,47 @@ setReplaceMethod("selected_ranges", signature = "tiledb_array",
   x
 })
 
+## -- selected_points accessor
+
+#' @rdname selected_points-tiledb_array-method
+#' @export
+setGeneric("selected_points", function(object) standardGeneric("selected_points"))
+
+#' @rdname selected_points-set-tiledb_array-method
+#' @export
+setGeneric("selected_points<-", function(x, value) standardGeneric("selected_points<-"))
+
+#' Retrieve selected_points values for the array
+#'
+#' A \code{tiledb_array} object can have a range selection for each dimension
+#' attribute. This methods returns the selection value for \sQuote{selected_points}
+#' and returns a list (with one element per dimension) of vectors where
+#' each row describes one selected points. Alternatively, the list
+#' can be named with the names providing the match to the corresponding dimension.
+#' @param object A \code{tiledb_array} object
+#' @return A list which can contain a vector for each dimension
+#' @export
+setMethod("selected_points", signature = "tiledb_array",
+          function(object) object@selected_points)
+
+#' Set selected_points return values for the array
+#'
+#' A \code{tiledb_array} object can have a range selection for each dimension
+#' attribute. This methods sets the selection value for \sQuote{selected_points}
+#' which is a list (with one element per dimension) of two-column matrices where
+#' each row describes one pair of minimum and maximum values. Alternatively, the list
+#' can be named with the names providing the match to the corresponding dimension.
+#' @param x A \code{tiledb_array} object
+#' @param value A list of vectors where each list element \sQuote{i}
+#' corresponds to the dimension attribute \sQuote{i}.
+#' @return The modified \code{tiledb_array} array object
+#' @export
+setReplaceMethod("selected_points", signature = "tiledb_array",
+                 function(x, value) {
+  x@selected_points <- value
+  validObject(x)
+  x
+})
 
 
 ## -- query_layout accessor
