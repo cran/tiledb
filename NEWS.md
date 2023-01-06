@@ -1,3 +1,43 @@
+# tiledb 0.17.1
+
+* This release of the R package builds against [TileDB 2.13.1](https://github.com/TileDB-Inc/TileDB/releases/tag/2.13.0), and has also been tested against earlier releases as well as the development version (#502).
+
+## Improvements
+
+* Support for Subarrays to set ranges has been extended (#496)
+
+* Deprecated Core API functions for Array access and range setting are longer used (#496)
+
+* TileDB Group objects now have a default `show()` method (#498, #499)
+
+* Domain and tile sizes for int64 dimension objects are now internally converted (#500)
+
+* Use of TileDB Embedded was upgraded to release 2.13.1 (#501)
+
+## Bug Fixes
+
+* Fragment info domain getters now work with ASCII domains (#495)
+
+* The scale filter option setting was corrected to use the proper types (#503)
+
+## Build and Test Systems
+
+* The nightly valgrind job setup was updated to include two new dependencies (#493)
+
+* The Windows setup for continuous integration was updated (#494)
+
+## Deprecations
+
+* Functions `libtiledb_query_add_range{,_with_type}` relying on depecreated Core
+  functionality are deprecated, and will be removed with the Core functions.
+  Subarray range setters are available. This is a mostly internal change.
+
+## Removals
+
+* Functions `libtiledb_query_set_coordinates()` and `libtiledb_coords()`
+  which have been deprecated since June 2000 have been removed. (#497)
+
+
 # tiledb 0.17.0
 
 * This release of the R package builds against [TileDB 2.13.0](https://github.com/TileDB-Inc/TileDB/releases/tag/2.13.0), and has also been tested against earlier releases as well as the development version (#492).

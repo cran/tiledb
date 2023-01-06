@@ -50,7 +50,7 @@
     code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
     code span.at { color: #7d9029; } /* Attribute */
     code span.bn { color: #40a070; } /* BaseN */
-    code span.bu { } /* BuiltIn */
+    code span.bu { color: #008000; } /* BuiltIn */
     code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
     code span.ch { color: #4070a0; } /* Char */
     code span.cn { color: #880000; } /* Constant */
@@ -63,7 +63,7 @@
     code span.ex { } /* Extension */
     code span.fl { color: #40a070; } /* Float */
     code span.fu { color: #06287e; } /* Function */
-    code span.im { } /* Import */
+    code span.im { color: #008000; font-weight: bold; } /* Import */
     code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
     code span.kw { color: #007020; font-weight: bold; } /* Keyword */
     code span.op { color: #666666; } /* Operator */
@@ -154,9 +154,6 @@ background-color: unset;
 color: unset;
 }
 </style>
-  <!--[if lt IE 9]>
-    <script src="//cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv-printshiv.min.js"></script>
-  <![endif]-->
 </head>
 <body>
 <header id="title-block-header">
@@ -168,29 +165,52 @@ color: unset;
 %\VignetteEncoding{UTF-8}
 -->
 <h2 id="introduction">Introduction</h2>
-<p><a href="https://www.tiledb.com/">TileDB</a> provides the <em>Universal Data Engine</em> that can be accessed in a variety of ways. The C/C++ library offered by <a href="https://www.tiledb.com/embedded">TileDB Embedded</a> is one approach, and the <a href="https://github.com/TileDB-Inc/TileDB-R">R package</a>, as well as the <a href="https://github.com/TileDB-Inc/TileDB-Py">Python package</a> and other language bindings use it. Another interface is provided by the <a href="https://docs.tiledb.com/mariadb/">MariaDB Integration via the MyTile storage plugin</a>.</p>
-<p>This provides TileDB integration with any frontend that interfaces with MariaDB—such as the <a href="https://cran.r-project.org/package=RMariaDB">RMariaDB</a> package for R. So this vignette illustrates the use of TileDB via MariaDB using R and the RMariaDB packages.</p>
+<p><a href="https://www.tiledb.com/">TileDB</a> provides the
+<em>Universal Data Engine</em> that can be accessed in a variety of
+ways. The C/C++ library offered by <a href="https://www.tiledb.com/embedded">TileDB Embedded</a> is one
+approach, and the <a href="https://github.com/TileDB-Inc/TileDB-R">R
+package</a>, as well as the <a href="https://github.com/TileDB-Inc/TileDB-Py">Python package</a> and
+other language bindings use it. Another interface is provided by the <a href="https://docs.tiledb.com/mariadb/">MariaDB Integration via the
+MyTile storage plugin</a>.</p>
+<p>This provides TileDB integration with any frontend that interfaces
+with MariaDB—such as the <a href="https://cran.r-project.org/package=RMariaDB">RMariaDB</a> package
+for R. So this vignette illustrates the use of TileDB via MariaDB using
+R and the RMariaDB packages.</p>
 <h2 id="installation-or-using-docker">Installation or Using Docker</h2>
-<p>In order to use the MyTile storage plugin, one has to compile both the storage plugin itself and the MariaDB server with consistent compiler flags. As the build also requires the TileDB Embedded library and headers, using a Docker container may be easiest. The Dockerfile also provides a concrete example of the build setup.</p>
-<p>So here we will use the <a href="https://hub.docker.com/r/tiledb/tiledb-mariadb-r"><code>tiledb/tiledb-mariadb-r</code></a> container.</p>
-<h4 id="launch-container-in-background">Launch Container in Background</h4>
-<p>We launch the container ‘tiledb/tiledb-mariadb-r’ as a daemon, allowing MariaDB to accept an empty password (using an older MySQL variable setting), and name the running image ‘tiledb-mariadb-r’:</p>
+<p>In order to use the MyTile storage plugin, one has to compile both
+the storage plugin itself and the MariaDB server with consistent
+compiler flags. As the build also requires the TileDB Embedded library
+and headers, using a Docker container may be easiest. The Dockerfile
+also provides a concrete example of the build setup.</p>
+<p>So here we will use the <a href="https://hub.docker.com/r/tiledb/tiledb-mariadb-r"><code>tiledb/tiledb-mariadb-r</code></a>
+container.</p>
+<h4 id="launch-container-in-background">Launch Container in
+Background</h4>
+<p>We launch the container ‘tiledb/tiledb-mariadb-r’ as a daemon,
+allowing MariaDB to accept an empty password (using an older MySQL
+variable setting), and name the running image ‘tiledb-mariadb-r’:</p>
 <div class="sourceCode" id="cb1"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ex">docker</span> run <span class="at">--name</span> tiledb-mariadb-r <span class="at">-it</span> <span class="at">-d</span> <span class="at">--rm</span> <span class="dt">\</span></span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>       <span class="at">-e</span> MYSQL_ALLOW_EMPTY_PASSWORD=1 tiledb/tiledb-mariadb-r</span></code></pre></div>
-<h4 id="access-container-once-to-write-via-tiledb">Access Container Once to Write via TileDB</h4>
-<p>Using the name given to the running instance, we start an R session to write data with TileDB:</p>
+<h4 id="access-container-once-to-write-via-tiledb">Access Container Once
+to Write via TileDB</h4>
+<p>Using the name given to the running instance, we start an R session
+to write data with TileDB:</p>
 <div class="sourceCode" id="cb2"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="ex">docker</span> exec <span class="at">-it</span> <span class="at">-u</span> root tiledb-mariadb-r R</span></code></pre></div>
 <h2 id="examples">Examples</h2>
 <h3 id="palmer-penguins">Palmer Penguins</h3>
-<p>With the sessions started as in the previous section, we start an R session.</p>
+<p>With the sessions started as in the previous section, we start an R
+session.</p>
 <div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="sc">&gt;</span> <span class="fu">library</span>(tiledb)</span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="sc">&gt;</span> <span class="fu">library</span>(palmerpenguins)</span>
 <span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="sc">&gt;</span> praw <span class="ot">&lt;-</span> penguins_raw</span>
 <span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="sc">&gt;</span> <span class="fu">fromDataFrame</span>(praw, <span class="st">&quot;/tmp/penguinsraw&quot;</span>)</span></code></pre></div>
-<h4 id="access-container-again-to-read-via-rmariadb">Access Container Again to Read via RMariaDB</h4>
-<p>In another shell, we can access the container once more and launch another R process:</p>
+<h4 id="access-container-again-to-read-via-rmariadb">Access Container
+Again to Read via RMariaDB</h4>
+<p>In another shell, we can access the container once more and launch
+another R process:</p>
 <div class="sourceCode" id="cb4"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="ex">docker</span> exec <span class="at">-it</span> <span class="at">-u</span> root tiledb-mariadb-r R</span></code></pre></div>
-<p>where we use RMariaDB to access the data via a <code>tibble</code> object and <code>magrittr</code> pipe</p>
+<p>where we use RMariaDB to access the data via a <code>tibble</code>
+object and <code>magrittr</code> pipe</p>
 <div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="sc">&gt;</span> <span class="fu">library</span>(RMariaDB)</span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="sc">&gt;</span> <span class="fu">library</span>(dplyr, <span class="at">warn.conflicts=</span><span class="cn">FALSE</span>)</span>
 <span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="sc">&gt;</span> con <span class="ot">&lt;-</span> DBI<span class="sc">::</span><span class="fu">dbConnect</span>(RMariaDB<span class="sc">::</span><span class="fu">MariaDB</span>(), <span class="at">dbname=</span><span class="st">&quot;test&quot;</span>)</span>
@@ -211,8 +231,14 @@ color: unset;
 <span id="cb5-18"><a href="#cb5-18" aria-hidden="true" tabindex="-1"></a> <span class="dv">9</span>                 <span class="fl">34.1</span>                   <span class="dv">193</span></span>
 <span id="cb5-19"><a href="#cb5-19" aria-hidden="true" tabindex="-1"></a><span class="dv">10</span>                 <span class="dv">42</span>                     <span class="dv">190</span></span>
 <span id="cb5-20"><a href="#cb5-20" aria-hidden="true" tabindex="-1"></a><span class="co"># ... with more rows</span></span></code></pre></div>
-<p>Note that this R session uses TileDB only via the MyTile plugin which is activated implicitly via the ‘table location’ (here <code>/tmp/penguinsraw</code>) of the test database enabling plugins.</p>
-<p>Also note that the query is still ‘lazy’: only column names and the first ten observations have been retrieved, and the total size is still unknown as indicated by <code>lazy query [?? x 2]</code>. Adding a <code>collect()</code> verb materialized the full subset.</p>
+<p>Note that this R session uses TileDB only via the MyTile plugin which
+is activated implicitly via the ‘table location’ (here
+<code>/tmp/penguinsraw</code>) of the test database enabling
+plugins.</p>
+<p>Also note that the query is still ‘lazy’: only column names and the
+first ten observations have been retrieved, and the total size is still
+unknown as indicated by <code>lazy query [?? x 2]</code>. Adding a
+<code>collect()</code> verb materialized the full subset.</p>
 <div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="sc">&gt;</span> <span class="fu">tbl</span>(con, <span class="st">&quot;/tmp/penguinsraw&quot;</span>)  <span class="sc">%&gt;%</span></span>
 <span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="sc">+</span>     dplyr<span class="sc">::</span><span class="fu">select</span>(<span class="fu">contains</span>(<span class="st">&quot;Length&quot;</span>)) <span class="sc">%&gt;%</span></span>
 <span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="sc">+</span>     <span class="fu">collect</span>()</span>
@@ -231,7 +257,8 @@ color: unset;
 <span id="cb6-16"><a href="#cb6-16" aria-hidden="true" tabindex="-1"></a><span class="dv">10</span>                 <span class="dv">42</span>                     <span class="dv">190</span></span>
 <span id="cb6-17"><a href="#cb6-17" aria-hidden="true" tabindex="-1"></a><span class="co"># ... with 334 more rows</span></span>
 <span id="cb6-18"><a href="#cb6-18" aria-hidden="true" tabindex="-1"></a><span class="sc">&gt;</span></span></code></pre></div>
-<p>We now see that all 344 rows of this particular result set have been accessed.</p>
+<p>We now see that all 344 rows of this particular result set have been
+accessed.</p>
 <p>Similarly, we can also run summaries on selected column:</p>
 <div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="sc">&gt;</span> <span class="fu">tbl</span>(con, <span class="st">&quot;/tmp/penguinsraw&quot;</span>) <span class="sc">%&gt;%</span></span>
 <span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="sc">+</span>     <span class="fu">group_by</span>(Species) <span class="sc">%&gt;%</span></span>
@@ -246,7 +273,8 @@ color: unset;
 <span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a><span class="dv">3</span> Gentoo <span class="fu">penguin</span> (Pyg<span class="sc">~</span>                          <span class="fl">217.</span>                        <span class="fl">6.48</span></span>
 <span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a><span class="sc">&gt;</span></span></code></pre></div>
 <h3 id="dbi">DBI</h3>
-<p>We can connect directly using the <code>DBI</code> package along with the <code>RMariaDB</code> package and its MyTile bindings:</p>
+<p>We can connect directly using the <code>DBI</code> package along with
+the <code>RMariaDB</code> package and its MyTile bindings:</p>
 <div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(DBI)</span>
 <span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>con <span class="ot">&lt;-</span> <span class="fu">dbConnect</span>(RMariaDB<span class="sc">::</span><span class="fu">MariaDB</span>(), <span class="at">dbname=</span><span class="st">&quot;test&quot;</span>)</span>
 <span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>res <span class="ot">&lt;-</span> <span class="fu">dbSendQuery</span>(con, <span class="st">&quot;select * from `/work/penguins` as `q91` limit 10&quot;</span>)</span>
@@ -255,7 +283,8 @@ color: unset;
 <span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(df)</span>
 <span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a><span class="fu">dbDisconnect</span>(con)</span></code></pre></div>
 <h3 id="s3">S3</h3>
-<p>When using Docker, the container setup needs to be modified to include the required AWS access environment variables:</p>
+<p>When using Docker, the container setup needs to be modified to
+include the required AWS access environment variables:</p>
 <div class="sourceCode" id="cb9"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="ex">docker</span> run <span class="at">--name</span> tiledb-mariadb-r <span class="dt">\</span></span>
 <span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>       <span class="at">-it</span> <span class="at">-d</span> <span class="at">--rm</span> <span class="dt">\</span></span>
 <span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>       <span class="at">-v</span> <span class="va">$PWD</span>:/work <span class="at">-w</span> /work <span class="dt">\</span></span>
@@ -263,8 +292,13 @@ color: unset;
 <span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>       <span class="at">-e</span> AWS_SECRET_ACCESS_KEY=<span class="va">${AWS_SECRET_ACCESS_KEY}</span> <span class="dt">\</span></span>
 <span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>       <span class="at">-e</span> AWS_ACCESS_KEY_ID=<span class="va">${AWS_ACCESS_KEY_ID}</span> <span class="dt">\</span></span>
 <span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>       tiledb/tiledb-mariadb-r</span></code></pre></div>
-<p>This exports the current working directory (accessed as <code>$PWD</code> in the shell) as <code>/work</code> inside the container (via the <code>-v</code> switch), and instructs the container to start in directory <code>/work</code> (via the <code>-w</code> switch).</p>
-<p>In the following example we also set a TileDB configuration option to switch AWS regions.</p>
+<p>This exports the current working directory (accessed as
+<code>$PWD</code> in the shell) as <code>/work</code> inside the
+container (via the <code>-v</code> switch), and instructs the container
+to start in directory <code>/work</code> (via the <code>-w</code>
+switch).</p>
+<p>In the following example we also set a TileDB configuration option to
+switch AWS regions.</p>
 <div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="sc">&gt;</span> <span class="fu">library</span>(dplyr, <span class="at">warn.conflicts=</span><span class="cn">FALSE</span>)</span>
 <span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="sc">&gt;</span> <span class="co"># connect as usual</span></span>
 <span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a><span class="er">&gt;</span> con <span class="ot">&lt;-</span> DBI<span class="sc">::</span><span class="fu">dbConnect</span>(RMariaDB<span class="sc">::</span><span class="fu">MariaDB</span>(), <span class="at">dbname=</span><span class="st">&quot;test&quot;</span>)</span>
@@ -295,10 +329,12 @@ color: unset;
 <span id="cb10-28"><a href="#cb10-28" aria-hidden="true" tabindex="-1"></a><span class="sc">&gt;</span></span>
 <span id="cb10-29"><a href="#cb10-29" aria-hidden="true" tabindex="-1"></a><span class="er">&gt;</span> DBI<span class="sc">::</span><span class="fu">dbDisconnect</span>(con)  <span class="co"># close connection</span></span></code></pre></div>
 <h3 id="nyc-taxis">NYC Taxis</h3>
-<p>We can write the New York taxi data into TileDB (in the current directory) after reading it as a csv:</p>
+<p>We can write the New York taxi data into TileDB (in the current
+directory) after reading it as a csv:</p>
 <div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="sc">&gt;</span> nyc <span class="ot">&lt;-</span> data.table<span class="sc">::</span><span class="fu">fread</span>(<span class="st">&quot;trip_data_1.csv&quot;</span>)</span>
 <span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="sc">&gt;</span> tiledb<span class="sc">::</span><span class="fu">fromDataFrame</span>(nyc, <span class="st">&quot;trip_data_1&quot;</span>)</span></code></pre></div>
-<p>Then we can access it via the path <code>/work/trip_data_1</code> via RMariaDB.</p>
+<p>Then we can access it via the path <code>/work/trip_data_1</code> via
+RMariaDB.</p>
 <div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="sc">&gt;</span> <span class="fu">library</span>(dplyr, <span class="at">warn.conflicts=</span><span class="cn">FALSE</span>)</span>
 <span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="sc">&gt;</span> con <span class="ot">&lt;-</span> DBI<span class="sc">::</span><span class="fu">dbConnect</span>(RMariaDB<span class="sc">::</span><span class="fu">MariaDB</span>(), <span class="at">dbname=</span><span class="st">&quot;test&quot;</span>)</span>
 <span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a><span class="sc">&gt;</span> <span class="co"># list column names</span></span>
@@ -358,6 +394,7 @@ color: unset;
 <span id="cb12-57"><a href="#cb12-57" aria-hidden="true" tabindex="-1"></a><span class="sc">&gt;</span></span>
 <span id="cb12-58"><a href="#cb12-58" aria-hidden="true" tabindex="-1"></a><span class="er">&gt;</span> DBI<span class="sc">::</span><span class="fu">dbDisconnect</span>(con)  <span class="co"># close connection</span></span></code></pre></div>
 <h2 id="summary">Summary</h2>
-<p>This short vignette demonstrates the use of TileDB-stored data from R using RMariaDB via the MyTile storage extension to MariaBD.</p>
+<p>This short vignette demonstrates the use of TileDB-stored data from R
+using RMariaDB via the MyTile storage extension to MariaBD.</p>
 </body>
 </html>

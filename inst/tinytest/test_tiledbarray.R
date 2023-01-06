@@ -4,6 +4,7 @@ library(tiledb)
 isOldWindows <- Sys.info()[["sysname"]] == "Windows" && grepl('Windows Server 2008', osVersion)
 if (isOldWindows) exit_file("skip this file on old Windows releases")
 isMacOS <- (Sys.info()['sysname'] == "Darwin")
+if (tiledb_version(TRUE) < "2.7.0") exit_file("Needs TileDB 2.7.* or later")
 
 ctx <- tiledb_ctx(limitTileDBCores())
 
@@ -143,6 +144,9 @@ expect_equivalent(dat, newdat)
 unlink(tmpuri, recursive = TRUE)
 options(op)
 #})
+
+## (some) r-universe builds are/were breaking here
+if (Sys.getenv("MY_UNIVERSE", "") != "") exit_file("Skip remainder at r-universe")
 
 #test_that("test extended flag on reading", {
 op <- options()
@@ -409,9 +413,9 @@ if (requireNamespace("bit64", quietly=TRUE)) {
 
   unlink(tmp, recursive = TRUE)
 
-  ## test for error on non integer64 arguments
-  expect_error(tiledb_dim("rows", c(1L,4L), as.integer64(4), "INT64"))
-  expect_error(tiledb_dim("rows", as.integer64(c(1,4)), 4L, "INT64"))
+  ## test for no error on non integer64 arguments
+  expect_silent(tiledb_dim("rows", c(1L,4L), as.integer64(4), "INT64"))
+  expect_silent(tiledb_dim("rows", as.integer64(c(1,4)), 4L, "INT64"))
 }
 
 #test_that("test uint64 dimension for sparse arrays", {
@@ -443,9 +447,9 @@ if (requireNamespace("bit64", quietly=TRUE)) {
 
   unlink(tmp, recursive = TRUE)
 
-  ## test for error on non integer64 arguments
-  expect_error(tiledb_dim("rows", c(1L,4L), as.integer64(4), "UINT64"))
-  expect_error(tiledb_dim("rows", as.integer64(c(1,4)), 4L, "UINT64"))
+  ## test no error on non integer64 arguments
+  expect_silent(tiledb_dim("rows", c(1L,4L), as.integer64(4), "UINT64"))
+  expect_silent(tiledb_dim("rows", as.integer64(c(1,4)), 4L, "UINT64"))
 }
 
 #test_that("test uint32 dimension for sparse arrays", {

@@ -51,7 +51,7 @@
     code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
     code span.at { color: #7d9029; } /* Attribute */
     code span.bn { color: #40a070; } /* BaseN */
-    code span.bu { } /* BuiltIn */
+    code span.bu { color: #008000; } /* BuiltIn */
     code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
     code span.ch { color: #4070a0; } /* Char */
     code span.cn { color: #880000; } /* Constant */
@@ -64,7 +64,7 @@
     code span.ex { } /* Extension */
     code span.fl { color: #40a070; } /* Float */
     code span.fu { color: #06287e; } /* Function */
-    code span.im { } /* Import */
+    code span.im { color: #008000; font-weight: bold; } /* Import */
     code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
     code span.kw { color: #007020; font-weight: bold; } /* Keyword */
     code span.op { color: #666666; } /* Operator */
@@ -155,9 +155,6 @@ background-color: unset;
 color: unset;
 }
 </style>
-  <!--[if lt IE 9]>
-    <script src="//cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv-printshiv.min.js"></script>
-  <![endif]-->
 </head>
 <body>
 <header id="title-block-header">
@@ -170,35 +167,65 @@ color: unset;
 %\VignetteEncoding{UTF-8}
 -->
 <h2 id="overview">Overview</h2>
-<p>This vignette discusses different options for installing the TileDB R package.</p>
+<p>This vignette discusses different options for installing the TileDB R
+package.</p>
 <h3 id="cran">CRAN</h3>
 <h4 id="binaries">Binaries</h4>
-<p>The TileDB R package is released via the Comprehensive R Archive Network, or CRAN. CRAN generally provides binaries for the two most widely operating systems, Windows and macOS. So issueing the command</p>
+<p>The TileDB R package is released via the Comprehensive R Archive
+Network, or CRAN. CRAN generally provides binaries for the two most
+widely operating systems, Windows and macOS. So issueing the command</p>
 <div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">install.packages</span>(<span class="st">&quot;tiledb&quot;</span>)</span></code></pre></div>
-<p>will, on those two operating system, default to <code>type=&quot;binary&quot;</code> and install a ready-to-run binary package.</p>
+<p>will, on those two operating system, default to
+<code>type=&quot;binary&quot;</code> and install a ready-to-run binary
+package.</p>
 <h4 id="source">Source</h4>
-<p>On other operating systems such as Linux, or by explicitly selecting <code>type=&quot;source&quot; on Windows or macOS, an installation from source is attempted when using</code>install.packages(“tiledb”)`.</p>
-<p>On Linux or macOS, this invokes the standard R build process which will rely on <code>configure</code>. If <code>pkg-config</code> is found, it is used to query the system about a possible TileDB installation. If one is found, it used. Otherwise, on all three main operating systems a prebuilt archive with the TileDB Embedded library is downloaded from GitHub and unpacked. Each build of the R package will have one matching build of TileDB Embedded associated with it via file the <code>tools/tiledbVersion.txt</code> specifying a version and release commit sha1. These two values are used to find the corresponding binary artifacts from a release at GitHub.</p>
-<p>The location of an existing installed version of TileDB Embedded can also be provided to the <code>configure</code> script which supplies an argument <code>--with-tiledb=PATH</code>. So on the command-line, one could say</p>
+<p>On other operating systems such as Linux, or by explicitly selecting
+<code>type=&quot;source&quot; on Windows or macOS, an installation from source is attempted when using</code>install.packages(“tiledb”)`.</p>
+<p>On Linux or macOS, this invokes the standard R build process which
+will rely on <code>configure</code>. If <code>pkg-config</code> is
+found, it is used to query the system about a possible TileDB
+installation. If one is found, it used. Otherwise, on all three main
+operating systems a prebuilt archive with the TileDB Embedded library is
+downloaded from GitHub and unpacked. Each build of the R package will
+have one matching build of TileDB Embedded associated with it via file
+the <code>tools/tiledbVersion.txt</code> specifying a version and
+release commit sha1. These two values are used to find the corresponding
+binary artifacts from a release at GitHub.</p>
+<p>The location of an existing installed version of TileDB Embedded can
+also be provided to the <code>configure</code> script which supplies an
+argument <code>--with-tiledb=PATH</code>. So on the command-line, one
+could say</p>
 <div class="sourceCode" id="cb2"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="ex">R</span> CMD INSTALL <span class="at">--configure-args</span><span class="op">=</span><span class="st">&#39;--with-tiledb=/some/path&#39;</span> tiledb_<span class="pp">*</span>.tar.gz</span></code></pre></div>
-<p>to pass the <code>configure</code> argument on. From within R, the equivalent command is</p>
+<p>to pass the <code>configure</code> argument on. From within R, the
+equivalent command is</p>
 <div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="fu">install.packages</span>(<span class="st">&quot;tiledb&quot;</span>, <span class="at">repos=</span><span class="cn">NULL</span>, <span class="at">configure.args=</span><span class="st">&quot;--with-tiledb=/some/path&quot;</span>)</span></code></pre></div>
-<p>Lastly, one can also override the default download location (otherwise inferred via <code>tools/tiledbVersion.txt</code>. The <code>configure</code> script supports an option <code>--with-download=URL</code> so the two calls become, respectively</p>
+<p>Lastly, one can also override the default download location
+(otherwise inferred via <code>tools/tiledbVersion.txt</code>. The
+<code>configure</code> script supports an option
+<code>--with-download=URL</code> so the two calls become,
+respectively</p>
 <div class="sourceCode" id="cb4"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="ex">R</span> CMD INSTALL <span class="at">--configure-args</span><span class="op">=</span><span class="st">&#39;--with-download=https://some.where.net/file.tgz&#39;</span> tiledb_<span class="pp">*</span>.tar.gz</span></code></pre></div>
 <p>and</p>
 <div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="fu">install.packages</span>(<span class="st">&quot;tiledb_0.11.0.tar.gz&quot;</span>, <span class="at">repos=</span><span class="cn">NULL</span>,</span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>                 <span class="at">configure.args=</span><span class="st">&quot;--with-download=https://some.where.net/file.tgz&quot;</span>)</span></code></pre></div>
 <h2 id="conda">Conda</h2>
-<p>Using for example the current <a href="https://hub.docker.com/r/condaforge/mambaforge"><code>condaforge/mambaforge</code></a> container from the <a href="https://github.com/conda-forge/miniforge">conda-forge project</a>, we can do</p>
+<p>Using for example the current <a href="https://hub.docker.com/r/condaforge/mambaforge"><code>condaforge/mambaforge</code></a>
+container from the <a href="https://github.com/conda-forge/miniforge">conda-forge project</a>,
+we can do</p>
 <div class="sourceCode" id="cb6"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="ex">mamba</span> install <span class="at">-y</span> r-tiledb                <span class="co"># installs R, tiledb and deps without extra prompt</span></span>
 <span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="co"># ...several lines of installation detail omitted</span></span>
 <span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="ex">R</span></span>
 <span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="co"># ... several lines of R startup output omitted</span></span>
 <span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;</span> library<span class="kw">(</span><span class="ex">tiledb</span><span class="kw">)</span></span></code></pre></div>
-<p>which installs R, the tiledb package and all respective dependencies.</p>
+<p>which installs R, the tiledb package and all respective
+dependencies.</p>
 <h2 id="docker">Docker</h2>
-<p>Builds of the TileDB package could also be provided via Docker containers. At present, no official TileDB R containers are provided by TileDB. However, the discussion of installation from source above describes how to create such containers.</p>
+<p>Builds of the TileDB package could also be provided via Docker
+containers. At present, no official TileDB R containers are provided by
+TileDB. However, the discussion of installation from source above
+describes how to create such containers.</p>
 <h2 id="summary">Summary</h2>
-<p>This note described several installation options for the TileDB R package.</p>
+<p>This note described several installation options for the TileDB R
+package.</p>
 </body>
 </html>

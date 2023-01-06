@@ -1,5 +1,6 @@
 
-// sadly we need to define it here too to reach RcppExports.cpp
+// We need to define this here to reach RcppExports.cpp
+// TileDB 2.14.0 or later no longer need it
 #define TILEDB_DEPRECATED
 
 #include <tiledb/tiledb>
@@ -88,6 +89,14 @@ namespace tiledb {
 // we need a placeholder as tiledb::Group as it is in function signatures
 namespace tiledb {
     class Group {
+    };
+}
+#endif
+
+#if TILEDB_VERSION_MAJOR == 2 && TILEDB_VERSION_MINOR < 7
+// we need a placeholder as tiledb::Subarray as it is in function signatures
+namespace tiledb {
+    class Subarray {
     };
 }
 #endif
