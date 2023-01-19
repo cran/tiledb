@@ -1,7 +1,7 @@
-794a7578639b913a20645708a6d906fd *DESCRIPTION
+0eefe87ce8dfe5db85ece6ddac417175 *DESCRIPTION
 e829c3b63cbb3ae914d6385c9cb49ad0 *LICENSE
 442bee5e8a6cc38991897756810bedd6 *NAMESPACE
-69b2c112708efe5a60925bfd93a22376 *NEWS.md
+04c2479712d925e4c4364d39b783f0a1 *NEWS.md
 1903922332d635f910d67f3f56bd5a07 *R/AllGenerics.R
 95626a252e22fb261b8bf441989aa742 *R/Array.R
 9b12e89514a479d317d9584452f0b6ae *R/ArraySchema.R
@@ -97,6 +97,11 @@ f4a9e1e4869cd8da1d2ff302beab51be *inst/examples/writing_dense_sparse.R
 af46ffd10843c67d5627dc75f56c9a97 *inst/include/tiledb.h
 ea469adc4e49450caf926697b3cfb3f3 *inst/include/tiledb_types.h
 0ef20a6d6ae806cd53271bcae06f19e5 *inst/include/tiledb_version.h
+8a7fb5d4b884b40680bfa35e75718b81 *inst/include/tinyspdl.h
+551cfda428561ad6778ad2ceabaa7c58 *inst/include/tinyspdl/RcppSpdlog.h
+1a098300f91de9ec6cb3c9ef05d01f14 *inst/include/tinyspdl/RcppSpdlog_RcppExports.h
+8a2d76bcc3247a5f0987e44ac0b5151f *inst/include/tinyspdl/RcppSpdlog_types.h
+d5dcdeadc516ecd51591997c6b1c877a *inst/include/tinyspdl/stopwatch.h
 8076a7dd0641f57f40186817d1ece78a *inst/notebooks/datetimes.Rmd
 c4072b17c49a89125eeae178f61af211 *inst/notebooks/datetimes.html
 0dc1d3a7e274c2055d6b2402c973f4c1 *inst/sampledata/bankSample.R
@@ -122,7 +127,7 @@ c8d233c7f24c4a331d43d7fce2fb9383 *inst/tinytest/test_group.R
 0560574c25622f36450e087301841535 *inst/tinytest/test_metadata.R
 a924dd87ea97a27c3872d848bc8bf099 *inst/tinytest/test_misc.R
 7401478a3b040ecafcf9578625b5d3f1 *inst/tinytest/test_query.R
-b90b5744084901894be9903fdaf723af *inst/tinytest/test_querycondition.R
+3c308faa8fdea55e282e583468324fc0 *inst/tinytest/test_querycondition.R
 1c5105456c55cbe96e49f16e6967cfd5 *inst/tinytest/test_shmem.R
 1fadc5fd3bff87f3117591186af1e24f *inst/tinytest/test_sparsematrix.R
 4f3e0c6accc52a4306cce9986bd5ff11 *inst/tinytest/test_tiledbarray.R
@@ -448,14 +453,14 @@ be9d51c456b25880c3e274ee5dbdc02e *src/batched.cpp
 6e25ac5a4043ee7a09c0eaf4d69643d9 *src/deprecation.cpp
 85ac37f45d60588d1a5f3362c3f99984 *src/durations.cpp
 c0cb446d6daa166b37cf844a4e0fc81e *src/libtiledb.cpp
-70e01e6c0bb5397824ec2a64e3fcd697 *src/libtiledb.h
+c6c7afe8635a9042bedc52cc989f98d7 *src/libtiledb.h
 88ae282a31ff4aaa1f34868e8ea94863 *src/nullable.cpp
 b8e1be9ca4908592817d81308af6b2fe *src/shmem.cpp
 c5f8af0ca598023a20a541ca23e9bfec *src/utilities.cpp
 8b35325468f06f33423b1ead01678fcd *tests/tinytest.R
 24744771374a606ad867e4596fff6fdf *tools/buildTileDB.sh
 31d32c7fc1c817b55e839aab7e5bdcbb *tools/ci/valgrind/buildAndCheckPackage.sh
-da3a8d68e15376263b65c0312257591f *tools/ci/valgrind/buildTileDB.sh
+531386d245f1be1c2e48f8561f528f04 *tools/ci/valgrind/buildTileDB.sh
 b867023ff8892cfe627aebc169cb53e3 *tools/ci/valgrind/installDependencies.sh
 2c3e681f94ae0632b2ee3f938063ca15 *tools/ci/valgrind/showTestLogs.sh
 5e3cdf66692c8c3147107412808a256c *tools/ci/valgrind/sumLosses.awk
@@ -469,7 +474,7 @@ f5eae4c8e8fea894c76d330b2baa2604 *tools/fetchTileDBSrc.R
 77ab42e02328160fdbc5df4637caefc2 *tools/testBuildFromSource.sh
 04e59a8e5c1ef6ca3276b325124573ce *tools/testDownloadUrl.sh
 befbc9c1030a03aceafa5575dcabce12 *tools/testLocalPrebuilt.sh
-a5fb09fb9adb49965c0cfa0a6dfa2be3 *tools/tiledbVersion.txt
+bf9ac90b14c11961434d382d287db11a *tools/tiledbVersion.txt
 8313a4d0cff68f71299b355535d8e972 *tools/winlibs.R
 24380be5d6de376cbbc8184ff889fcdd *vignettes/data-ingestion-from-sql.md
 921a86d821f7a5723b610b9b1f9f385d *vignettes/documentation.md
