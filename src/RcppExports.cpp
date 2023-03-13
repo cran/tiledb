@@ -1639,15 +1639,41 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// libtiledb_query_buffer_var_char_get_legacy_validity_value
+bool libtiledb_query_buffer_var_char_get_legacy_validity_value(XPtr<tiledb::Context> ctx, bool validity_override);
+RcppExport SEXP _tiledb_libtiledb_query_buffer_var_char_get_legacy_validity_value(SEXP ctxSEXP, SEXP validity_overrideSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< XPtr<tiledb::Context> >::type ctx(ctxSEXP);
+    Rcpp::traits::input_parameter< bool >::type validity_override(validity_overrideSEXP);
+    rcpp_result_gen = Rcpp::wrap(libtiledb_query_buffer_var_char_get_legacy_validity_value(ctx, validity_override));
+    return rcpp_result_gen;
+END_RCPP
+}
+// libtiledb_query_buffer_var_char_legacy_validity_mode
+XPtr<vlc_buf_t> libtiledb_query_buffer_var_char_legacy_validity_mode(XPtr<tiledb::Context> ctx, XPtr<vlc_buf_t> buf, bool validity_override);
+RcppExport SEXP _tiledb_libtiledb_query_buffer_var_char_legacy_validity_mode(SEXP ctxSEXP, SEXP bufSEXP, SEXP validity_overrideSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< XPtr<tiledb::Context> >::type ctx(ctxSEXP);
+    Rcpp::traits::input_parameter< XPtr<vlc_buf_t> >::type buf(bufSEXP);
+    Rcpp::traits::input_parameter< bool >::type validity_override(validity_overrideSEXP);
+    rcpp_result_gen = Rcpp::wrap(libtiledb_query_buffer_var_char_legacy_validity_mode(ctx, buf, validity_override));
+    return rcpp_result_gen;
+END_RCPP
+}
 // libtiledb_query_buffer_var_char_create
-XPtr<vlc_buf_t> libtiledb_query_buffer_var_char_create(CharacterVector vec, bool nullable);
-RcppExport SEXP _tiledb_libtiledb_query_buffer_var_char_create(SEXP vecSEXP, SEXP nullableSEXP) {
+XPtr<vlc_buf_t> libtiledb_query_buffer_var_char_create(CharacterVector vec, bool nullable, bool legacy_validity);
+RcppExport SEXP _tiledb_libtiledb_query_buffer_var_char_create(SEXP vecSEXP, SEXP nullableSEXP, SEXP legacy_validitySEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< CharacterVector >::type vec(vecSEXP);
     Rcpp::traits::input_parameter< bool >::type nullable(nullableSEXP);
-    rcpp_result_gen = Rcpp::wrap(libtiledb_query_buffer_var_char_create(vec, nullable));
+    Rcpp::traits::input_parameter< bool >::type legacy_validity(legacy_validitySEXP);
+    rcpp_result_gen = Rcpp::wrap(libtiledb_query_buffer_var_char_create(vec, nullable, legacy_validity));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -2524,13 +2550,13 @@ BEGIN_RCPP
 END_RCPP
 }
 // libtiledb_stats_raw_dump
-void libtiledb_stats_raw_dump(std::string path);
-RcppExport SEXP _tiledb_libtiledb_stats_raw_dump(SEXP pathSEXP) {
+std::string libtiledb_stats_raw_dump();
+RcppExport SEXP _tiledb_libtiledb_stats_raw_dump() {
 BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< std::string >::type path(pathSEXP);
-    libtiledb_stats_raw_dump(path);
-    return R_NilValue;
+    rcpp_result_gen = Rcpp::wrap(libtiledb_stats_raw_dump());
+    return rcpp_result_gen;
 END_RCPP
 }
 // libtiledb_stats_raw_get
@@ -3312,7 +3338,9 @@ static const R_CallMethodDef CallEntries[] = {
     {"_tiledb_libtiledb_query_set_subarray", (DL_FUNC) &_tiledb_libtiledb_query_set_subarray, 2},
     {"_tiledb_libtiledb_query_set_buffer", (DL_FUNC) &_tiledb_libtiledb_query_set_buffer, 3},
     {"_tiledb_libtiledb_query_buffer_var_char_alloc_direct", (DL_FUNC) &_tiledb_libtiledb_query_buffer_var_char_alloc_direct, 4},
-    {"_tiledb_libtiledb_query_buffer_var_char_create", (DL_FUNC) &_tiledb_libtiledb_query_buffer_var_char_create, 2},
+    {"_tiledb_libtiledb_query_buffer_var_char_get_legacy_validity_value", (DL_FUNC) &_tiledb_libtiledb_query_buffer_var_char_get_legacy_validity_value, 2},
+    {"_tiledb_libtiledb_query_buffer_var_char_legacy_validity_mode", (DL_FUNC) &_tiledb_libtiledb_query_buffer_var_char_legacy_validity_mode, 3},
+    {"_tiledb_libtiledb_query_buffer_var_char_create", (DL_FUNC) &_tiledb_libtiledb_query_buffer_var_char_create, 3},
     {"_tiledb_libtiledb_query_set_buffer_var_char", (DL_FUNC) &_tiledb_libtiledb_query_set_buffer_var_char, 3},
     {"_tiledb_libtiledb_query_get_buffer_var_char", (DL_FUNC) &_tiledb_libtiledb_query_get_buffer_var_char, 3},
     {"_tiledb_libtiledb_query_get_buffer_var_char_simple", (DL_FUNC) &_tiledb_libtiledb_query_get_buffer_var_char_simple, 1},
@@ -3385,7 +3413,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_tiledb_libtiledb_stats_disable", (DL_FUNC) &_tiledb_libtiledb_stats_disable, 0},
     {"_tiledb_libtiledb_stats_reset", (DL_FUNC) &_tiledb_libtiledb_stats_reset, 0},
     {"_tiledb_libtiledb_stats_dump", (DL_FUNC) &_tiledb_libtiledb_stats_dump, 1},
-    {"_tiledb_libtiledb_stats_raw_dump", (DL_FUNC) &_tiledb_libtiledb_stats_raw_dump, 1},
+    {"_tiledb_libtiledb_stats_raw_dump", (DL_FUNC) &_tiledb_libtiledb_stats_raw_dump, 0},
     {"_tiledb_libtiledb_stats_raw_get", (DL_FUNC) &_tiledb_libtiledb_stats_raw_get, 0},
     {"_tiledb_libtiledb_fragment_info", (DL_FUNC) &_tiledb_libtiledb_fragment_info, 2},
     {"_tiledb_libtiledb_fragment_info_uri", (DL_FUNC) &_tiledb_libtiledb_fragment_info_uri, 2},

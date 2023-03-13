@@ -1,3 +1,43 @@
+# tiledb 0.19.0
+
+* This release of the R package builds against [TileDB 2.15.0](https://github.com/TileDB-Inc/TileDB/releases/tag/2.15.0), and has also been tested against earlier releases as well as the development
+  version (#516, #521).
+
+## Breaking Changes
+
+* The validity map coding of nullable strings has been corrected: validity map values of one are now interpreted as valid/non-null for full compatibility with other TileDB projects. Previously written arrays with nullable strings can be read by setting the config option `r.legacy_validity_mode` to `true`; the option also permits to write to an older installation. A conversion helper script is provided in `scripts/legacy_validity_convert.r`. (#517)
+
+## Improvements
+
+* Attributes can now be created, written and read from in (explicit) UTF8 types (and CHAR and ASCII already behaved correctly with respect to utf8 data) (#510)
+
+* Compilation under `clang++` no longer complains about two unused member variables (#512)
+
+* Query conditions for character columns can now be expressed using the `%in%` operator and a vector of values (#513)
+
+* Use of TileDB Embedded was upgraded to releases 2.14.1 and 2.15.0 (#516, #521)
+
+* Safer checking of `NAs` in `tiledb_config()` to support R 4.2 conditional lengths (#519)
+
+* Query conditions can now be combined using `&` and `|` (in addition to `&&` and `||`) (#526)
+
+## Bug Fixes
+
+* The access to JSON-formatted performance statistics has been simplified (#514)
+
+## Build and Test Systems
+
+* The TileDB Embedded version is now used to determine whether a dampener is needed for the deprecation warning (#511)
+
+* One of the test data sets included with #517 has been regenerated under an older TileDB version in order to test on more systems (#523)
+
+* Documentation for Metadata accessors no longer states URIs strings are accepted (#527)
+
+## Deprecations
+
+## Removals
+
+
 # tiledb 0.18.0
 
 * This release of the R package builds against [TileDB 2.14.0](https://github.com/TileDB-Inc/TileDB/releases/tag/2.14.0), and has also been tested against earlier releases as well as the development version (#502).

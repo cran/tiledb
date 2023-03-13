@@ -1,6 +1,6 @@
 #  MIT License
 #
-#  Copyright (c) 2017-2021 TileDB Inc.
+#  Copyright (c) 2017-2023 TileDB Inc.
 #
 #  Permission is hereby granted, free of charge, to any person obtaining a copy
 #  of this software and associated documentation files (the "Software"), to deal
@@ -37,7 +37,7 @@ tiledb_has_metadata <- function(arr, key) {
 
 ##' Return count of TileDB Array Metadata objects
 ##'
-##' @param arr A TileDB Array object, or a character URI describing one
+##' @param arr A TileDB Array object
 ##' @return A integer variable with the number of Metadata objects
 ##' @export
 tiledb_num_metadata <- function(arr) {
@@ -48,7 +48,7 @@ tiledb_num_metadata <- function(arr) {
 
 ##' Return a TileDB Array Metadata object given by key
 ##'
-##' @param arr A TileDB Array object, or a character URI describing one
+##' @param arr A TileDB Array object
 ##' @param key A character value describing a metadata key
 ##' @return A object stored in the Metadata under the given key,
 ##' or \sQuote{NULL} if none found.
@@ -65,7 +65,7 @@ tiledb_get_metadata <- function(arr, key) {
 
 ##' Store an object in TileDB Array Metadata under given key
 ##'
-##' @param arr A TileDB Array object, or a character URI describing one
+##' @param arr A TileDB Array object
 ##' @param key A character value describing a metadata key
 ##' @param val An object to be stored
 ##' @return A boolean value indicating success
@@ -77,10 +77,10 @@ tiledb_put_metadata <- function(arr, key, val) {
 }
 
 
-##' Return a TileDB Array Metadata object given by key
+##' Return all TileDB Array Metadata objects as a named list
 ##'
-##' @param arr A TileDB Array object, or a character URI describing one
-##' @return A object stored in the Metadata under the given key
+##' @param arr A TileDB Array object
+##' @return A named list with all Metadata objects indexed by the given key
 ##' @export
 tiledb_get_all_metadata <- function(arr) {
   stopifnot(`Argument 'arr' must be a (dense or sparse) TileDB array` = .isArray(arr),

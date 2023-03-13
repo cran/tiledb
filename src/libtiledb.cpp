@@ -1,6 +1,6 @@
 //  MIT License
 //
-//  Copyright (c) 2017-2022 TileDB Inc.
+//  Copyright (c) 2017-2023 TileDB Inc.
 //
 //  Permission is hereby granted, free of charge, to any person obtaining a copy
 //  of this software and associated documentation files (the "Software"), to deal
@@ -1420,7 +1420,8 @@ XPtr<tiledb::Attribute> libtiledb_attribute(XPtr<tiledb::Context> ctx,
         attr = make_xptr<tiledb::Attribute>(new tiledb::Attribute(*ctx.get(), name, attr_dtype));
         attr->set_cell_val_num(static_cast<uint64_t>(ncells));
     } else if (attr_dtype == TILEDB_CHAR ||
-               attr_dtype == TILEDB_STRING_ASCII) {
+               attr_dtype == TILEDB_STRING_ASCII ||
+               attr_dtype == TILEDB_STRING_UTF8) {
         attr = make_xptr<tiledb::Attribute>(new tiledb::Attribute(*ctx.get(), name, attr_dtype));
         uint64_t num = static_cast<uint64_t>(ncells);
         if (ncells == R_NaInt) {
@@ -1437,7 +1438,7 @@ XPtr<tiledb::Attribute> libtiledb_attribute(XPtr<tiledb::Context> ctx,
 #if TILEDB_VERSION >= TileDB_Version(2,10,0)
                    "logical (BOOL), "
 #endif
-                   "and character (CHAR,ASCII) attributes are supported "
+                   "and character (CHAR,ASCII,UTF8) attributes are supported "
                    "-- seeing %s which is not", type.c_str());
     }
     attr->set_filter_list(*fltrlst);
@@ -2690,17 +2691,41 @@ XPtr<vlc_buf_t> libtiledb_query_buffer_var_char_alloc_direct(double szoffsets, d
     buf->cols = cols;
     buf->nullable = nullable;
     buf->validity_map.resize(static_cast<size_t>(szdata));
+    buf->legacy_validity = false; 		              // for legacy validity mode
+    return buf;
+}
+
+// [[Rcpp::export]]
+bool libtiledb_query_buffer_var_char_get_legacy_validity_value(XPtr<tiledb::Context> ctx,
+                                                               bool validity_override = false) {
+    check_xptr_tag<tiledb::Context>(ctx);
+    XPtr<tiledb::Config> cfg = libtiledb_ctx_config(ctx);
+    Rcpp::CharacterVector vec = libtiledb_config_get(cfg, "r.legacy_validity_mode");
+    bool legacy_validity = std::string("true") == std::string(vec[0]) || validity_override;
+    return legacy_validity;
+}
+
+// [[Rcpp::export]]
+XPtr<vlc_buf_t> libtiledb_query_buffer_var_char_legacy_validity_mode(XPtr<tiledb::Context> ctx,
+                                                                     XPtr<vlc_buf_t> buf,
+                                                                     bool validity_override = false) {
+    buf->legacy_validity = libtiledb_query_buffer_var_char_get_legacy_validity_value(ctx,
+                                                                                     validity_override);
+    spdl::debug(tfm::format("[libtiledb_query_buffer_var_char_legacy_validity_mode] "
+                            "legacy_validity set to %s", buf->legacy_validity ? "true" : "false"));
     return buf;
 }
 
 // assigning (for a write) allocates
 // [[Rcpp::export]]
-XPtr<vlc_buf_t> libtiledb_query_buffer_var_char_create(CharacterVector vec, bool nullable) {
+XPtr<vlc_buf_t> libtiledb_query_buffer_var_char_create(CharacterVector vec, bool nullable,
+                                                       bool legacy_validity = false) {
     size_t n = vec.size();
     XPtr<vlc_buf_t> bufptr = make_xptr<vlc_buf_t>(new vlc_buf_t);
     bufptr->offsets.resize(n);
     bufptr->validity_map.resize(n);
     bufptr->nullable = nullable;
+    bufptr->legacy_validity = legacy_validity;
     bufptr->str = "";
     uint64_t cumlen = 0;
     for (size_t i=0; i<n; i++) {
@@ -2709,7 +2734,11 @@ XPtr<vlc_buf_t> libtiledb_query_buffer_var_char_create(CharacterVector vec, bool
         bufptr->str += s;
         cumlen += s.length();
         if (nullable) {
-          bufptr->validity_map[i] = vec[i] == NA_STRING;
+            if (legacy_validity) {
+                bufptr->validity_map[i] = vec[i] == R_NaString;
+            } else {
+                bufptr->validity_map[i] = vec[i] != R_NaString;
+            }
         }
     }
     bufptr->rows = bufptr->cols = 0; // signal unassigned for the write case
@@ -2762,10 +2791,17 @@ CharacterMatrix libtiledb_query_get_buffer_var_char(XPtr<vlc_buf_t> bufptr,
   CharacterMatrix mat(bufptr->rows, bufptr->cols);
   for (size_t i = 0; i < n; i++) {
       if (bufptr->nullable) {
-          if (bufptr->validity_map[i] == 0)
-              mat[i] = std::string(&bufptr->str[bufptr->offsets[i]], str_sizes[i]);
-          else
-              mat[i] = R_NaString;
+          if (bufptr->legacy_validity) {
+              if (bufptr->validity_map[i] == 0)
+                  mat[i] = std::string(&bufptr->str[bufptr->offsets[i]], str_sizes[i]);
+              else
+                  mat[i] = R_NaString;
+          } else {
+              if (bufptr->validity_map[i] != 0)
+                  mat[i] = std::string(&bufptr->str[bufptr->offsets[i]], str_sizes[i]);
+              else
+                  mat[i] = R_NaString;
+          }
       } else {
           mat[i] = std::string(&bufptr->str[bufptr->offsets[i]], str_sizes[i]);
       }
@@ -3302,6 +3338,8 @@ R_xlen_t libtiledb_query_result_buffer_elements(XPtr<tiledb::Query> query,
                                                 int32_t which = 1) {
     check_xptr_tag<tiledb::Query>(query);
     auto nelements = query->result_buffer_elements()[attribute];
+    spdl::debug(tfm::format("[libtiledb_query_result_buffer_elements] attribute %s : (%d,%d)",
+                            attribute, nelements.first, nelements.second));
     R_xlen_t nelem = (which == 0 ? nelements.first : nelements.second);
     return nelem;
 }
@@ -4162,33 +4200,24 @@ void libtiledb_stats_dump(std::string path = "") {
 }
 
 // [[Rcpp::export]]
-void libtiledb_stats_raw_dump(std::string path = "") {
+std::string libtiledb_stats_raw_dump() {
 #if TILEDB_VERSION < TileDB_Version(2,0,3)
-  Rcpp::stop("This function requires TileDB Embedded 2.0.3 or later.");
+    Rcpp::stop("This function requires TileDB Embedded 2.0.3 or later.");
 #else
-  if (path == "") {
-    tiledb::Stats::raw_dump();
-  } else {
-    FILE* fptr = nullptr;
-    fptr = fopen(path.c_str(), "w");
-    if (fptr == nullptr) {
-      Rcpp::stop("error opening stats dump file for writing");
-    }
-    tiledb::Stats::raw_dump(fptr);
-    fclose(fptr);
-  }
+    std::string txt;
+    tiledb::Stats::raw_dump(&txt);
+    return txt;
 #endif
 }
 
 // [[Rcpp::export]]
 std::string libtiledb_stats_raw_get() {
 #if TILEDB_VERSION < TileDB_Version(2,0,3)
-  Rcpp::stop("This function requires TileDB Embedded 2.0.3 or later.");
-  return(std::string());//not reached
+    Rcpp::stop("This function requires TileDB Embedded 2.0.3 or later.");
+    return(std::string());//not reached
 #else
-  std::string result;
-  tiledb::Stats::raw_dump(&result);
-  return result;
+    Rcpp::message(Rcpp::wrap("This function is deprecated, please use 'libtiledb_stats_raw_dump'."));
+    return libtiledb_stats_raw_dump();
 #endif
 }
 

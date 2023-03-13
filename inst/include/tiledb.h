@@ -1,7 +1,9 @@
 
 // We need to define this here to reach RcppExports.cpp
-// TileDB 2.14.0 or later no longer need it
-#define TILEDB_DEPRECATED
+// TileDB 2.15.0 or later no longer need it
+#if defined(TILEDB_SILENT_BUILD)
+  #define TILEDB_DEPRECATED
+#endif
 
 #include <tiledb/tiledb>
 #if TILEDB_VERSION_MAJOR == 2 && TILEDB_VERSION_MINOR >= 4
@@ -27,6 +29,7 @@ struct var_length_char_buffer {
     int32_t rows, cols;              	// dimension from subarray
     bool nullable;                      // flag
     std::vector<uint8_t> validity_map;  // for nullable vectors
+    bool legacy_validity;               // for legacy validity mode
 };
 typedef struct var_length_char_buffer vlc_buf_t;
 
