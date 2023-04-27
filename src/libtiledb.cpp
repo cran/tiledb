@@ -3832,9 +3832,13 @@ void libtiledb_query_condition_init(XPtr<tiledb::QueryCondition> query_cond,
         float v = static_cast<float>(as<double>(condition_value));
         uint64_t cond_val_size = sizeof(float);
         query_cond->init(attr_name, (void*) &v, cond_val_size, op);
-    } else if (cond_val_type == "ASCII") {
+    } else if (cond_val_type == "ASCII" || cond_val_type == "UTF8") {
         std::string v = as<std::string>(condition_value);
         query_cond->init(attr_name, v, op);
+    } else if (cond_val_type == "BOOL") {
+        bool v = as<bool>(condition_value);
+        uint64_t cond_val_size = sizeof(bool);
+        query_cond->init(attr_name, (void*) &v, cond_val_size, op);
     } else {
         Rcpp::stop("Currently unsupported type: %s", cond_val_type);
     }
@@ -4577,6 +4581,29 @@ XPtr<tiledb::Group> libtiledb_group(XPtr<tiledb::Context> ctx,
 #endif
     return ptr;
 }
+
+// Interfaces to R are C-based so we cannot overload just on signature
+// [[Rcpp::export]]
+XPtr<tiledb::Group> libtiledb_group_with_config(XPtr<tiledb::Context> ctx,
+                                                const std::string& uri,
+                                                const std::string& querytypestr,
+                                                XPtr<tiledb::Config> cfg) {
+    check_xptr_tag<tiledb::Context>(ctx);
+    check_xptr_tag<tiledb::Config>(cfg);
+    tiledb_query_type_t querytype = _string_to_tiledb_query_type(querytypestr);
+#if TILEDB_VERSION >= TileDB_Version(2,15,1)
+    auto p = new tiledb::Group(*ctx.get(), uri, querytype, *cfg.get());
+    XPtr<tiledb::Group> ptr = make_xptr<tiledb::Group>(p);
+#elif TILEDB_VERSION >= TileDB_Version(2,8,0)
+    Rcpp::warning("libtiledb_group_with_config should only called with TileDB 2.15.1 or later");
+    auto p = new tiledb::Group(*ctx.get(), uri, querytype); // placeholder
+    XPtr<tiledb::Group> ptr = make_xptr<tiledb::Group>(p);
+#else
+    XPtr<tiledb::Group> ptr(new tiledb::Group()); // placeholder
+#endif
+    return ptr;
+}
+
 
 // [[Rcpp::export]]
 XPtr<tiledb::Group> libtiledb_group_open(XPtr<tiledb::Group> grp,

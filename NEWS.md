@@ -1,3 +1,30 @@
+# tiledb ongoing development
+
+## Improvements
+
+* Query conditions can now be expressed for attributes of type UTF-8 (#529)
+
+* The startup message now displays the operating system and version (#532)
+
+* Use of TileDB Embedded was upgraded to release 2.15.1 and 2.15.2 (#534, #541)
+
+* Group objects can be opened while supplying a Config object when 2.15.1 or newer is used (#535, #536)
+
+* For character column buffer allocations, the R function now accepts a `nullable` option (#537)
+
+* For standard buffer allocations, the R function now accepts `nullable` and `varnum` options (#538)
+
+* Query conditions can now be expressed on boolean attributes (#540)
+
+## Build and Test Systems
+
+* Testing for Groups reflect the stricter behavior in config setting requiring a close array (#530)
+
+* The use of binary packages in continuous integration has been made a little more robust (#531)
+
+* A small subset of tests are skipped if testing against the older release 2.14.* (#542)
+
+
 # tiledb 0.19.0
 
 * This release of the R package builds against [TileDB 2.15.0](https://github.com/TileDB-Inc/TileDB/releases/tag/2.15.0), and has also been tested against earlier releases as well as the development
