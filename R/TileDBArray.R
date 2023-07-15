@@ -43,7 +43,6 @@
 #' @slot query_layout An optional character value
 #' @slot datetimes_as_int64 A logical value
 #' @slot encryption_key A character value
-#' @slot timestamp A POSIXct datetime variable (deprecated, use timestamp_start)
 #' @slot as.matrix A logical value
 #' @slot as.array A logical value
 #' @slot query_condition A Query Condition object
@@ -52,7 +51,9 @@
 #' @slot return_as A character value with the desired \code{tiledb_array} conversion,
 #' permitted values are \sQuote{asis} (default, returning a list of columns),
 #' \sQuote{array}, \sQuote{matrix},\sQuote{data.frame}, \sQuote{data.table}
-#' or \sQuote{tibble}; the latter two require the respective packages installed
+#' \sQuote{tibble}, \sQuote{arrow_table} or \sQuote{arrow} (where the last two are synomyms);
+#' note that \sQuote{data.table}, \sQuote{tibble} and \sQuote{arrow} require the respective
+#' packages to installed.
 #' @slot query_statistics A logical value, defaults to \sQuote{FALSE}; if \sQuote{TRUE} the
 #' query statistics are returned (as a JSON string) via the attribute
 #' \sQuote{query_statistics} of the return object.
@@ -76,7 +77,6 @@ setClass("tiledb_array",
                       query_layout = "character",
                       datetimes_as_int64 = "logical",
                       encryption_key = "character",
-                      timestamp = "POSIXct",
                       as.matrix = "logical",
                       as.array = "logical",
                       query_condition = "tiledb_query_condition",
@@ -114,8 +114,6 @@ setClass("tiledb_array",
 #' \code{POSIXct} or \code{nanotime} objects.
 #' @param encryption_key optional A character value with an AES-256 encryption key
 #' in case the array was written with encryption.
-#' @param timestamp optional A POSIXct Datetime value determining where in time the array is
-#' to be openened. Deprecated, use \sQuote{timestamp_start} instead
 #' @param as.matrix optional logical switch, defaults to "FALSE"; currently limited to dense
 #' matrices; in the case of multiple attributes in query a list of matrices is returned
 #' @param as.array optional logical switch, defaults to "FALSE"; in the case of multiple
@@ -128,9 +126,10 @@ setClass("tiledb_array",
 #' until which the array is to be openened. No fragments written earlier later be considered.
 #' @param return_as optional A character value with the desired \code{tiledb_array} conversion,
 #' permitted values are \sQuote{asis} (default, returning a list of columns), \sQuote{array},
-#' \sQuote{matrix},\sQuote{data.frame}, \sQuote{data.table} or \sQuote{tibble}; the latter
-#' two require the respective packages installed. The existing \code{as.*} arguments take precedent
-#' over this.
+#' \sQuote{matrix},\sQuote{data.frame}, \sQuote{data.table}, \sQuote{tibble}, \sQuote{arrow_table},
+#' or \sQuote{arrow} (as an alias for \sQuote{arrow_table}; here \sQuote{data.table},
+#' \sQuote{tibble} and \sQuote{arrow} require the respective packages to be installed.
+#' The existing \code{as.*} arguments take precedent over this.
 #' @param query_statistics optional A logical value, defaults to \sQuote{FALSE}; if \sQuote{TRUE} the
 #' query statistics are returned (as a JSON string) via the attribute
 #' \sQuote{query_statistics} of the return object.
@@ -156,7 +155,6 @@ tiledb_array <- function(uri,
                          query_layout = character(),
                          datetimes_as_int64 = FALSE,
                          encryption_key = character(),
-                         timestamp = as.POSIXct(double(), origin="1970-01-01"),
                          as.matrix = FALSE,
                          as.array = FALSE,
                          query_condition = new("tiledb_query_condition"),
@@ -178,23 +176,17 @@ tiledb_array <- function(uri,
   if (sum(as.data.frame, as.matrix, as.array) == 1 && return_as != "asis")
       return_as <- "asis"
   if (length(encryption_key) > 0) {
-    if (!is.character(encryption_key))
-      stop("if used, argument aes_key must be character", call. = FALSE)
-    if (length(timestamp) > 0) {
-      array_xptr <- libtiledb_array_open_at_with_key(ctx@ptr, uri, query_type, encryption_key, timestamp)
-    } else {
-      array_xptr <- libtiledb_array_open_with_key(ctx@ptr, uri, query_type, encryption_key)
-    }
+    stopifnot("if used, argument aes_key must be character" = is.character(encryption_key))
+    array_xptr <- libtiledb_array_open_with_key(ctx@ptr, uri, query_type, encryption_key)
   } else {
-    if (length(timestamp) > 0) {
-      array_xptr <- libtiledb_array_open_at(ctx@ptr, uri, query_type, timestamp)
-    } else {
-      array_xptr <- libtiledb_array_open(ctx@ptr, uri, query_type)
-    }
+    array_xptr <- libtiledb_array_open(ctx@ptr, uri, query_type)
   }
 
-  if (length(timestamp) > 0)
-      .Deprecated(msg="Use 'timestamp_start' (and maybe 'timestamp_end') instead of 'timestamp'.")
+  ## Deprecated July 2023, to removed by July 2024 or later
+  if (as.data.frame) .Deprecated(old="as.data.frame", new=r"(return_as="data.frame")")
+  if (as.matrix) .Deprecated(old="as.matrix", new=r"(return_as="matrix")")
+  if (as.array) .Deprecated(old="as.array", new=r"(return_as="array")")
+
   if (length(timestamp_start) > 0) {
       libtiledb_array_set_open_timestamp_start(array_xptr, timestamp_start)
   }
@@ -226,7 +218,6 @@ tiledb_array <- function(uri,
       query_layout = query_layout,
       datetimes_as_int64 = datetimes_as_int64,
       encryption_key = encryption_key,
-      timestamp = timestamp,
       as.matrix = as.matrix,
       as.array = as.array,
       query_condition = query_condition,
@@ -299,7 +290,6 @@ setMethod("show", signature = "tiledb_array",
      ,"  query_layout       = ", if (length(object@query_layout) == 0) "(none)" else object@query_layout, "\n"
      ,"  datetimes_as_int64 = ", if (object@datetimes_as_int64) "TRUE" else "FALSE", "\n"
      ,"  encryption_key     = ", if (length(object@encryption_key) == 0) "(none)" else "(set)", "\n"
-     ,"  timestamp          = ", if (length(object@timestamp) == 0) "(none)" else format(object@timestamp), "\n"
      ,"  as.matrix          = ", if (object@as.matrix) "TRUE" else "FALSE", "\n"
      ,"  as.array           = ", if (object@as.array) "TRUE" else "FALSE", "\n"
      ,"  query_condition    = ", if (isTRUE(object@query_condition@init)) "(set)" else "(none)", "\n"
@@ -392,11 +382,6 @@ setValidity("tiledb_array", function(object) {
     msg <- c(msg, "The 'encryption_key' slot does not contain a character vector.")
   }
 
-  if (!inherits(object@timestamp, "POSIXct")) {
-    valid <- FALSE
-    msg <- c(msg, "The 'timestamp' slot does not contain a POSIXct value.")
-  }
-
   if (!is.logical(object@as.matrix)) {
     valid <- FALSE
     msg <- c(msg, "The 'as.matrix' slot does not contain a logical value.")
@@ -432,9 +417,11 @@ setValidity("tiledb_array", function(object) {
     msg <- c(msg, "The 'ptr' slot does not contain an external pointer.")
   }
 
-  if (!(object@return_as %in% c("asis", "array", "matrix", "data.frame", "data.table", "tibble"))) {
+  if (!(object@return_as %in% c("asis", "array", "matrix", "data.frame",
+                                "data.table", "tibble", "arrow_table", "arrow"))) {
     valid <- FALSE
-    msg <- c(msg, "The 'return_as' slot must contain one of 'asis', 'array', 'matrix', 'data.frame', 'data.table', 'tibble'.")
+    msg <- c(msg, paste("The 'return_as' slot must contain one of 'asis', 'array', 'matrix',",
+                        "'data.frame', 'data.table', 'tibble', 'arrow_table' or 'arrow'."))
   }
 
   if (!is.logical(object@query_statistics)) {
@@ -532,11 +519,22 @@ setMethod("[", "tiledb_array",
   layout <- x@query_layout
   asint64 <- x@datetimes_as_int64
   enckey <- x@encryption_key
-  tstamp <- x@timestamp
+  tstamp <- x@timestamp_end
 
   sparse <- libtiledb_array_schema_sparse(sch@ptr)
 
+  if (x@return_as == "arrow_table")
+    x@return_as <- "arrow" # normalize
+
+  if (x@return_as %in% c("data.table", "tibble", "arrow"))
+    if (!requireNamespace(x@return_as, quietly=TRUE))
+      stop("The 'return_as' argument value '", x@return_as, "' requires the package '",
+           x@return_as, "' to be installed.", call. = FALSE)
+
+  use_arrow <- x@return_as == "arrow"
+
   dims <- tiledb::dimensions(dom)
+  ndims <- length(dims)
   dimnames <- sapply(dims, function(d) libtiledb_dim_get_name(d@ptr))
   dimtypes <- sapply(dims, function(d) libtiledb_dim_get_datatype(d@ptr))
   dimvarnum <- sapply(dims, function(d) libtiledb_dim_get_cell_val_num(d@ptr))
@@ -582,22 +580,16 @@ setMethod("[", "tiledb_array",
   spdl::debug("['['] memory budget is {}", memory_budget)
 
   if (length(enckey) > 0) {
-    if (length(tstamp) > 0) {
-      arrptr <- libtiledb_array_open_at_with_key(ctx@ptr, uri, "READ", enckey, tstamp)
-    } else {
-      arrptr <- libtiledb_array_open_with_key(ctx@ptr, uri, "READ", enckey)
-    }
+    arrptr <- libtiledb_array_open_with_key(ctx@ptr, uri, "READ", enckey)
   } else {
-    if (length(tstamp) > 0) {
-      arrptr <- libtiledb_array_open_at(ctx@ptr, uri, "READ", tstamp)
-    } else {
-      arrptr <- libtiledb_array_open(ctx@ptr, uri, "READ")
-    }
+    arrptr <- libtiledb_array_open(ctx@ptr, uri, "READ")
   }
   if (length(x@timestamp_start) > 0) {
+      spdl::debug("['['] set open_timestamp_start to {}", x@timestamp_start)
       arrptr <- libtiledb_array_set_open_timestamp_start(arrptr, x@timestamp_start)
   }
   if (length(x@timestamp_end) > 0) {
+      spdl::debug("['['] set open_timestamp_end to {}", x@timestamp_end)
       arrptr <- libtiledb_array_set_open_timestamp_end(arrptr, x@timestamp_end)
   }
   if (length(x@timestamp_start) > 0 || length(x@timestamp_end) > 0) {
@@ -694,6 +686,9 @@ setMethod("[", "tiledb_array",
   }
 
   if (!is.null(j)) {
+      if (ndims == 1) {
+          stop("Setting dimension 'j' requires at least two dimensions.", call. = FALSE)
+      }
       if (!is.null(x@selected_ranges[[2]])) {
           stop("Cannot set both 'j' and second element of 'selected_ranges'.", call. = FALSE)
       }
@@ -701,6 +696,9 @@ setMethod("[", "tiledb_array",
   }
 
   if (!is.null(k)) {
+      if (ndims <= 2) {
+          stop("Setting dimension 'k' requires at least three dimensions.", call. = FALSE)
+      }
       if (!is.null(x@selected_ranges[[3]])) {
           stop("Cannot set both 'k' and second element of 'selected_ranges'.", call. = FALSE)
       }
@@ -831,28 +829,30 @@ setMethod("[", "tiledb_array",
       spdl::debug("['['] overall estimate {} rows", resrv)
 
       ## allocate and set buffers
-      getBuffer <- function(name, type, varnum, nullable, resrv, qryptr, arrptr) {
-          if (is.na(varnum)) {
-              if (type %in% c("CHAR", "ASCII", "UTF8")) {
-                  spdl::debug("[getBuffer] '{}' allocating 'char' {} rows given budget of {}", name, resrv, memory_budget)
-                  buf <- libtiledb_query_buffer_var_char_alloc_direct(resrv, memory_budget, nullable)
-                  buf <- libtiledb_query_buffer_var_char_legacy_validity_mode(ctx@ptr, buf)
-                  qryptr <- libtiledb_query_set_buffer_var_char(qryptr, name, buf)
-                  buf
+      if (!use_arrow) {
+          getBuffer <- function(name, type, varnum, nullable, resrv, qryptr, arrptr) {
+              if (is.na(varnum)) {
+                  if (type %in% c("CHAR", "ASCII", "UTF8")) {
+                      spdl::debug("[getBuffer] '{}' allocating 'char' {} rows given budget of {}", name, resrv, memory_budget)
+                      buf <- libtiledb_query_buffer_var_char_alloc_direct(resrv, memory_budget, nullable)
+                      buf <- libtiledb_query_buffer_var_char_legacy_validity_mode(ctx@ptr, buf)
+                      qryptr <- libtiledb_query_set_buffer_var_char(qryptr, name, buf)
+                      buf
+                  } else {
+                      message("Non-char var.num columns are not currently supported.")
+                  }
               } else {
-                  message("Non-char var.num columns are not currently supported.")
+                  spdl::debug("[getBuffer] '{}' allocating non-char {} rows given budget of {}", name, resrv, memory_budget)
+                  buf <- libtiledb_query_buffer_alloc_ptr(type, resrv, nullable, varnum)
+                  qryptr <- libtiledb_query_set_buffer_ptr(qryptr, name, buf)
+                  buf
               }
-          } else {
-              spdl::debug("[getBuffer] '{}' allocating non-char {} rows given budget of {}", name, resrv, memory_budget)
-              buf <- libtiledb_query_buffer_alloc_ptr(type, resrv, nullable, varnum)
-              qryptr <- libtiledb_query_set_buffer_ptr(qryptr, name, buf)
-              buf
           }
+          buflist <- mapply(getBuffer, allnames, alltypes, allvarnum, allnullable,
+                            MoreArgs=list(resrv=resrv, qryptr=qryptr, arrptr=arrptr),
+                            SIMPLIFY=FALSE)
+          spdl::debug("['['] buffers allocated in list")
       }
-      buflist <- mapply(getBuffer, allnames, alltypes, allvarnum, allnullable,
-                        MoreArgs=list(resrv=resrv, qryptr=qryptr, arrptr=arrptr),
-                        SIMPLIFY=FALSE)
-      spdl::debug("['['] buffers allocated")
 
       ## if we have a query condition, apply it
       if (isTRUE(x@query_condition@init)) {
@@ -864,14 +864,26 @@ setMethod("[", "tiledb_array",
       finished <- FALSE
       while (!finished) {
 
+          if (use_arrow) {
+              abptr <- libtiledb_allocate_column_buffers(ctx@ptr, qryptr, uri, allnames, memory_budget)
+              spdl::debug("['['] buffers allocated and set")
+          }
+
           ## fire off query
-          spdl::debug("['['] query submission: {}", counter)
+          spdl::debug("['['] query submission: {} array_open {}", counter,
+                      if (libtiledb_array_is_open(arrptr)) "true" else "false")
           qryptr <- libtiledb_query_submit(qryptr)
 
           ## check status
           status <- libtiledb_query_status(qryptr)
           #if (status != "COMPLETE") warning("Query returned '", status, "'.", call. = FALSE)
           if (status != "COMPLETE") spdl::debug("['['] query returned '{}'.", status)
+
+          if (use_arrow) {
+              rl <- libtiledb_to_arrow(abptr, qryptr)
+              overallresults[[counter]] <- .as_arrow_table(rl)
+              spdl::info("['['] received arrow table {}", counter)
+          }
 
           ## close array
           if (status == "COMPLETE") {
@@ -880,103 +892,118 @@ setMethod("[", "tiledb_array",
               finished <- TRUE
           }
 
-          ## retrieve actual result size (from fixed size element columns)
-          getResultSize <- function(name, varnum, qryptr) {
-              val <- if (is.na(varnum))                  # symbols come up with higher count
-                         libtiledb_query_result_buffer_elements(qryptr, name, 0)
-                     else
-                         libtiledb_query_result_buffer_elements(qryptr, name)
-              spdl::debug("[getResultSize] name {} varnum {} has {}", name, varnum, val)
-              val
-          }
-          estsz <- mapply(getResultSize, allnames, allvarnum, MoreArgs=list(qryptr=qryptr), SIMPLIFY=TRUE)
-          spdl::debug("['['] estimated result sizes {}", paste(estsz, collapse=","))
-          if (any(!is.na(estsz))) {
-              resrv <- max(estsz, na.rm=TRUE)
-          } else {
-              resrv <- resrv/8              # character case where bytesize of offset vector was used
-          }
-          spdl::debug("['['] expected size {}", resrv)
-          ## Permit one pass to allow zero-row schema read
-          if (resrv == 0 && counter > 1L) {
-              finished <- TRUE
-              if (status != "COMPLETE") warning("Query returned '", status, "'.", call. = FALSE)
-              .pkgenv[["query_status"]] <- status
-              break
-          }
-          ## get results
-          getResult <- function(buf, name, varnum, estsz, qryptr) {
-              has_dumpbuffers <- length(x@dumpbuffers) > 0
-              ## message("For ", name, " seeing ", estsz, " and ", varnum)
-              if (is.na(varnum)) {
-                  vec <- libtiledb_query_result_buffer_elements_vec(qryptr, name)
-                  if (has_dumpbuffers) {
-                      vlcbuf_to_shmem(x@dumpbuffers, name, buf, vec)
-                  }
-                  libtiledb_query_get_buffer_var_char(buf, vec[1], vec[2])[,1][seq_len(estsz)]
+          if (!use_arrow) {
+              ## retrieve actual result size (from fixed size element columns)
+              getResultSize <- function(name, varnum, qryptr) {
+                  val <- if (is.na(varnum))                  # symbols come up with higher count
+                             libtiledb_query_result_buffer_elements(qryptr, name, 0)
+                         else
+                             libtiledb_query_result_buffer_elements(qryptr, name)
+                  spdl::debug("[getResultSize] name {} varnum {} has {}", name, varnum, val)
+                  val
+              }
+              estsz <- mapply(getResultSize, allnames, allvarnum, MoreArgs=list(qryptr=qryptr), SIMPLIFY=TRUE)
+              spdl::debug("['['] estimated result sizes {}", paste(estsz, collapse=","))
+              if (any(!is.na(estsz))) {
+                  resrv <- max(estsz, na.rm=TRUE)
               } else {
-                  if (has_dumpbuffers) {
-                      vecbuf_to_shmem(x@dumpbuffers, name, buf, estsz, varnum)
+                  resrv <- resrv/8              # character case where bytesize of offset vector was used
+              }
+              spdl::debug("['['] expected size {}", resrv)
+              ## Permit one pass to allow zero-row schema read
+              if (resrv == 0 && counter > 1L) {
+                  finished <- TRUE
+                  if (status != "COMPLETE") warning("Query returned '", status, "'.", call. = FALSE)
+                  .pkgenv[["query_status"]] <- status
+                  break
+              }
+              ## get results
+              getResult <- function(buf, name, varnum, estsz, qryptr) {
+                  has_dumpbuffers <- length(x@dumpbuffers) > 0
+                  ## message("For ", name, " seeing ", estsz, " and ", varnum)
+                  if (is.na(varnum)) {
+                      vec <- libtiledb_query_result_buffer_elements_vec(qryptr, name)
+                      if (has_dumpbuffers) {
+                          vlcbuf_to_shmem(x@dumpbuffers, name, buf, vec)
+                      }
+                      libtiledb_query_get_buffer_var_char(buf, vec[1], vec[2])[,1][seq_len(estsz)]
+                  } else {
+                      if (has_dumpbuffers) {
+                          vecbuf_to_shmem(x@dumpbuffers, name, buf, estsz, varnum)
+                      }
+                      libtiledb_query_get_buffer_ptr(buf, asint64)[seq_len(estsz)]
                   }
-                  libtiledb_query_get_buffer_ptr(buf, asint64)[seq_len(estsz)]
               }
-          }
-          reslist <- mapply(getResult, buflist, allnames, allvarnum, estsz,
-                            MoreArgs=list(qryptr=qryptr), SIMPLIFY=FALSE)
-          ## convert list into data.frame (possibly dealing with list columns) and subset
-          vnum <- 1   # default value of variable number of elements per cell
-          if (is.list(allvarnum)) allvarnum <- unlist(allvarnum)
-          if (length(allvarnum) > 0 && any(!is.na(allvarnum))) vnum <- max(allvarnum, na.rm=TRUE)
-          if (is.finite(vnum) && (vnum > 1)) {
-              ## turn to list col if a varnum != 1 (and not NA) seen
-              ind <- which(allvarnum != 1 & !is.na(allvarnum))
-              for (k in ind) {
-                  ncells <- allvarnum[k]
-                  v <- reslist[[k]]
-                  ## we split a vector v into 'list-columns' which element containing
-                  ## ncells value (and we get ncells from the Array schema)
-                  ## see https://stackoverflow.com/a/9547594/143305 for I()
-                  ## and https://stackoverflow.com/a/3321659/143305 for split()
-                  reslist[[k]] <- I(unname(split(v, ceiling(seq_along(v)/ncells))))
+              spdl::debug("['['] getting results")
+              reslist <- mapply(getResult, buflist, allnames, allvarnum, estsz,
+                                MoreArgs=list(qryptr=qryptr), SIMPLIFY=FALSE)
+              spdl::debug("['['] got results")
+              ## convert list into data.frame (possibly dealing with list columns) and subset
+              vnum <- 1   # default value of variable number of elements per cell
+              if (is.list(allvarnum)) allvarnum <- unlist(allvarnum)
+              if (length(allvarnum) > 0 && any(!is.na(allvarnum))) vnum <- max(allvarnum, na.rm=TRUE)
+              if (is.finite(vnum) && (vnum > 1)) {
+                  ## turn to list col if a varnum != 1 (and not NA) seen
+                  ind <- which(allvarnum != 1 & !is.na(allvarnum))
+                  for (k in ind) {
+                      ncells <- allvarnum[k]
+                      v <- reslist[[k]]
+                      ## we split a vector v into 'list-columns' which element containing
+                      ## ncells value (and we get ncells from the Array schema)
+                      ## see https://stackoverflow.com/a/9547594/143305 for I()
+                      ## and https://stackoverflow.com/a/3321659/143305 for split()
+                      reslist[[k]] <- I(unname(split(v, ceiling(seq_along(v)/ncells))))
+                  }
               }
+              ## the list columns are now all of equal lenthth as R needs and we can form a data.frame
+              res <- data.frame(reslist)[,,drop=FALSE]
+              colnames(res) <- allnames
+              overallresults[[counter]] <- res
           }
-          ## the list columns are now all of equal lenthth as R needs and we can form a data.frame
-          res <- data.frame(reslist)[,,drop=FALSE]
-          colnames(res) <- allnames
-          overallresults[[counter]] <- res
+          spdl::debug("['['] completed {}", counter)
           counter <- counter + 1L
       }
-      if (requireNamespace("data.table", quietly=TRUE)) { 		# use very efficient rbindlist if available
+
+      if (!use_arrow && requireNamespace("data.table", quietly=TRUE)) { 		# use very efficient rbindlist if available
           res <- as.data.frame(data.table::rbindlist(overallresults))
       } else {
           res <- do.call(rbind, overallresults)
       }
+      spdl::info("['['] returning 'res'")
       res
   }                                     # end of 'big else' for query build, submission and read
 
-  ## convert to factor if that was asked
-  if (x@strings_as_factors) {
-      for (n in colnames(res))
-          if (is.character(res[[n]]))
-              res[[n]] <- as.factor(res[[n]])
+  if (!use_arrow) {
+      ## convert to factor if that was asked
+      if (x@strings_as_factors) {
+          for (n in colnames(res))
+              if (is.character(res[[n]]))
+                  res[[n]] <- as.factor(res[[n]])
+      }
+
+      ## reduce output if extended is false, or attrs given
+      if (!x@extended) {
+          if (length(sel) > 0) {
+              res <- res[, if (sparse) allnames else attrnames, drop=FALSE]
+          }
+          k <- match("__tiledb_rows", colnames(res))
+          if (is.finite(k)) {
+              res <- res[, -k, drop=FALSE]
+          }
+      }
   }
 
-  ## reduce output if extended is false, or attrs given
-  if (!x@extended) {
-      if (length(sel) > 0) {
-          res <- res[, if (sparse) allnames else attrnames, drop=FALSE]
-      }
-      k <- match("__tiledb_rows", colnames(res))
-      if (is.finite(k)) {
-          res <- res[, -k, drop=FALSE]
-      }
-  }
+  spdl::debug("['['] before preparing final data form")
   if (x@return_as == "asis") {
+      spdl::debug("['['] return asis")
       if (!x@as.data.frame && !x@as.matrix && !x@as.array) {
+          spdl::debug("['['] return asis list")
           res <- as.list(res)
       } else if (x@as.matrix) {
+          spdl::debug("['['] return asis to matrix")
           res <- .convertToMatrix(res)
       } else if (x@as.array) {
+          spdl::debug("['['] return asis to array")
           res <- .convertToArray(dimnames, attrnames, res)
       }
   } else if (x@return_as == "array") {       	# if a conversion preference has been given, use it
@@ -986,11 +1013,15 @@ setMethod("[", "tiledb_array",
   } else if (x@return_as == "data.frame") {
       res <- as.data.frame(res)         		# should already be one per above
   } else if (x@return_as == "data.table" && requireNamespace("data.table", quietly=TRUE)) {
-      res <- data.table::data.table(as.data.frame(res))
+      res <- data.table::data.table(res)
   } else if (x@return_as == "tibble" && requireNamespace("tibble", quietly=TRUE)) {
       res <- tibble::as_tibble(res)
+  } else if (use_arrow) {
+      ## possible list already collapsed above
+      res
   }
 
+  spdl::debug("['['] getting query status")
   attr(res, "query_status") <- .pkgenv[["query_status"]]
   if (x@query_statistics)
       attr(res, "query_statistics") <- libtiledb_query_stats(qryptr)
@@ -1109,7 +1140,7 @@ setMethod("[<-", "tiledb_array",
   layout <- x@query_layout
   asint64 <- x@datetimes_as_int64
   enckey <- x@encryption_key
-  tstamp <- x@timestamp
+  tstamp <- x@timestamp_end
 
   sparse <- libtiledb_array_schema_sparse(sch@ptr)
 
@@ -1229,8 +1260,10 @@ setMethod("[<-", "tiledb_array",
         }
       } else {
         if (length(tstamp) > 0) {
+          spdl::debug("['[<-'] openning for WRITE at {}", tstamp)
           arrptr <- libtiledb_array_open_at(ctx@ptr, uri, "WRITE", tstamp)
         } else {
+          spdl::debug("['[<-'] openning for WRITE")
           arrptr <- libtiledb_array_open(ctx@ptr, uri, "WRITE")
         }
       }
@@ -1591,7 +1624,7 @@ array_consolidate <- function(uri, cfg = NULL,
                               ctx = tiledb_get_context()) {
     stopifnot(`Argument 'uri' must be character` = is.character(uri))
     if (is.null(cfg)) {
-        cfg <- tiledb_config()
+        cfg <- config(ctx)
     }
 
     if (!missing(start_time)) {
@@ -1635,7 +1668,7 @@ array_vacuum <- function(uri, cfg = NULL,
 
     stopifnot(`Argument 'uri' must be character` = is.character(uri))
     if (is.null(cfg)) {
-        cfg <- tiledb_config()
+        cfg <- config(ctx)
     }
 
     if (!missing(start_time)) {

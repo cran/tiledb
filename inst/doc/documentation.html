@@ -455,7 +455,7 @@ Offset Filters</h4>
 <span id="cb23-8"><a href="#cb23-8" aria-hidden="true" tabindex="-1"></a><span class="fu">tiledb_array_create</span>(tmp, sch)</span>
 <span id="cb23-9"><a href="#cb23-9" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb23-10"><a href="#cb23-10" aria-hidden="true" tabindex="-1"></a>dat <span class="ot">&lt;-</span> <span class="fu">matrix</span>(<span class="fu">as.integer</span>(<span class="fu">rnorm</span>(<span class="dv">25</span>)<span class="sc">*</span><span class="dv">100</span>), <span class="dv">5</span>, <span class="dv">5</span>)</span>
-<span id="cb23-11"><a href="#cb23-11" aria-hidden="true" tabindex="-1"></a>arr <span class="ot">&lt;-</span> <span class="fu">tiledb_dense</span>(tmp, <span class="at">as.data.frame=</span><span class="cn">FALSE</span>)</span>
+<span id="cb23-11"><a href="#cb23-11" aria-hidden="true" tabindex="-1"></a>arr <span class="ot">&lt;-</span> <span class="fu">tiledb_array</span>(tmp, <span class="at">return_as =</span> <span class="st">&quot;data.frame&quot;</span>)</span>
 <span id="cb23-12"><a href="#cb23-12" aria-hidden="true" tabindex="-1"></a>arr[] <span class="ot">&lt;-</span> dat</span>
 <span id="cb23-13"><a href="#cb23-13" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb23-14"><a href="#cb23-14" aria-hidden="true" tabindex="-1"></a></span>
@@ -808,7 +808,7 @@ Low-Level Code</h4>
 <span id="cb41-4"><a href="#cb41-4" aria-hidden="true" tabindex="-1"></a>arr<span class="sc">@</span>ptr <span class="ot">&lt;-</span> tiledb<span class="sc">:::</span><span class="fu">libtiledb_array_reopen</span>(arr<span class="sc">@</span>ptr)</span></code></pre></div>
 <h3 id="reading-encrypted-arrays">Reading Encrypted Arrays</h3>
 <div class="sourceCode" id="cb42"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb42-1"><a href="#cb42-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Open the array and read as a data.frame from it.</span></span>
-<span id="cb42-2"><a href="#cb42-2" aria-hidden="true" tabindex="-1"></a>A <span class="ot">&lt;-</span> <span class="fu">tiledb_array</span>(<span class="at">uri =</span> array_name, <span class="at">as.data.frame=</span><span class="cn">TRUE</span>,</span>
+<span id="cb42-2"><a href="#cb42-2" aria-hidden="true" tabindex="-1"></a>A <span class="ot">&lt;-</span> <span class="fu">tiledb_array</span>(<span class="at">uri =</span> array_name, <span class="at">return_as =</span> <span class="st">&quot;data.frame&quot;</span>,</span>
 <span id="cb42-3"><a href="#cb42-3" aria-hidden="true" tabindex="-1"></a>                  <span class="at">encryption_key =</span> encryption_key)</span>
 <span id="cb42-4"><a href="#cb42-4" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb42-5"><a href="#cb42-5" aria-hidden="true" tabindex="-1"></a><span class="co"># Slice rows 1 and 2, and cols 2, 3 and 4</span></span>

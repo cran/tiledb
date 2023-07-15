@@ -1310,14 +1310,14 @@ XPtr<tiledb::Filter> libtiledb_filter_set_option(XPtr<tiledb::Filter> filter, st
     // For scale_float filters we need either a double, or an
     if (filter_option == TILEDB_SCALE_FLOAT_FACTOR || filter_option == TILEDB_SCALE_FLOAT_OFFSET) {
         double value = Rcpp::as<double>(valuesxp);
-        spdl::debug("[libtiledb_filter_set_option] setting {} to {}", filter_option_str, value);
+        spdl::debug(tfm::format("[libtiledb_filter_set_option] setting %s to %f", filter_option_str, value));
         filter->set_option(filter_option, &value);
         return filter;
     } else if (filter_option == TILEDB_SCALE_FLOAT_BYTEWIDTH) {
         double dblval = Rcpp::as<double>(valuesxp);
         int64_t int64val = makeScalarInteger64(dblval);
         uint64_t value = static_cast<uint64_t>(int64val);
-        spdl::debug("[libtiledb_filter_set_option] setting {} to {}", filter_option_str, value);
+        spdl::debug(tfm::format("[libtiledb_filter_set_option] setting %s to %ld", filter_option_str, value));
         filter->set_option(filter_option, &value);
         return filter;
     }
@@ -2001,7 +2001,10 @@ XPtr<tiledb::Array> libtiledb_array_open_at(XPtr<tiledb::Context> ctx, std::stri
     auto query_type = _string_to_tiledb_query_type(type);
     // get timestamp as seconds since epoch (plus fractional seconds, returns double), scale to millisec
     uint64_t ts_ms = static_cast<uint64_t>(std::round(tstamp.getFractionalTimestamp() * 1000));
-#if TILEDB_VERSION >= TileDB_Version(2,3,0)
+#if TILEDB_VERSION >= TileDB_Version(2,15,0)
+    auto ptr = new tiledb::Array(*ctx.get(), uri, query_type, tiledb::TemporalPolicy(tiledb::TimeTravel, ts_ms));
+    ptr->set_open_timestamp_end(ts_ms);
+#elif TILEDB_VERSION >= TileDB_Version(2,3,0)
     auto ptr = new tiledb::Array(*ctx.get(), uri, query_type);
     ptr->set_open_timestamp_end(ts_ms);
 #else
@@ -2332,7 +2335,12 @@ bool libtiledb_array_put_metadata(XPtr<tiledb::Array> array,
     }
     case REALSXP: {
       Rcpp::NumericVector v(obj);
-      array->put_metadata(key.c_str(), TILEDB_FLOAT64, v.size(), v.begin());
+      if (isInteger64(v)) {
+          std::vector<int64_t> iv = getInt64Vector(v);
+          array->put_metadata(key.c_str(), TILEDB_INT64, iv.size(), (void*) &iv[0]);
+      } else {
+          array->put_metadata(key.c_str(), TILEDB_FLOAT64, v.size(), v.begin());
+      }
       break;
     }
     case INTSXP: {
@@ -2422,7 +2430,9 @@ SEXP _metadata_to_sexp(const tiledb_datatype_t v_type, const uint32_t v_num, con
   } else if (v_type == TILEDB_UINT32) {
     return copy_int_vector<uint32_t>(v_num, v);
   } else if (v_type == TILEDB_INT64) {
-    return copy_int_vector<int64_t>(v_num, v);
+    std::vector<int64_t> iv(v_num);
+    std::memcpy(&(iv[0]), v, v_num*sizeof(int64_t));
+    return makeInteger64(iv);
   } else if (v_type == TILEDB_UINT64) {
     return copy_int_vector<uint64_t>(v_num, v);
   } else {
@@ -2578,7 +2588,7 @@ XPtr<tiledb::Query> libtiledb_query_set_subarray_with_type(XPtr<tiledb::Query> q
                                                            SEXP subarray, std::string typestr) {
     check_xptr_tag<tiledb::Query>(query);
 #if TILEDB_VERSION >= TileDB_Version(2,7,0)
-    spdl::debug("libtiledb_query_set_subarray_with_type] setting subarray for type {}", typestr);
+    spdl::debug(tfm::format("libtiledb_query_set_subarray_with_type] setting subarray for type %s", typestr));
     tiledb::Subarray subarr(query->ctx(), query->array());
     if (typestr == "INT32") {
         IntegerVector vec(subarray);
@@ -2628,7 +2638,7 @@ XPtr<tiledb::Query> libtiledb_query_set_subarray(XPtr<tiledb::Query> query,
                                                  SEXP subarray) {
     check_xptr_tag<tiledb::Query>(query);
 #if TILEDB_VERSION >= TileDB_Version(2,7,0)
-    spdl::debug("libtiledb_query_set_subarray] setting subarray for type {}", Rf_type2char(TYPEOF(subarray)));
+    spdl::debug(tfm::format("libtiledb_query_set_subarray] setting subarray for type %s", Rf_type2char(TYPEOF(subarray))));
     tiledb::Subarray subarr(query->ctx(), query->array());
     if (TYPEOF(subarray) == INTSXP) {
         IntegerVector vec(subarray);
@@ -3465,55 +3475,55 @@ XPtr<tiledb::Subarray> libtiledb_subarray_add_range_with_type(XPtr<tiledb::Subar
         int32_t end = as<int32_t>(ends);
         int32_t stride = (strides == R_NilValue) ? 0 : Rcpp::as<int32_t>(strides);
         subarr->add_range(uidx, start, end, stride);
-        spdl::debug("[libtiledb_subarry_add_range_with type] {} dim {} added {} to {} by {}", typestr, uidx, start, end, stride);
+        spdl::debug(tfm::format("[libtiledb_subarry_add_range_with type] %s dim %d added %d to %d by %d", typestr, uidx, start, end, stride));
     } else if (typestr == "FLOAT64") {
         double start = as<double>(starts);
         double end = as<double>(ends);
         double stride = (strides == R_NilValue) ? 0 : Rcpp::as<double_t>(strides);
         subarr->add_range(uidx, start, end, stride);
-        spdl::debug("[libtiledb_subarry_add_range_with type] {} dim {} added {} to {} by {}", typestr, uidx, start, end, stride);
+        spdl::debug(tfm::format("[libtiledb_subarry_add_range_with type] %s dim %d added %d to %d by %d", typestr, uidx, start, end, stride));
     } else if (typestr == "INT64") {
         int64_t start = makeScalarInteger64(as<double>(starts));
         int64_t end = makeScalarInteger64(as<double>(ends));
         int64_t stride = (strides == R_NilValue) ? 0 : makeScalarInteger64(as<double>(strides));
         subarr->add_range(uidx, start, end, stride);
-        spdl::debug("[libtiledb_subarry_add_range_with type] {} dim {} added {} to {} by {}", typestr, uidx, start, end, stride);
+        spdl::debug(tfm::format("[libtiledb_subarry_add_range_with type] %s dim %d added %d to %d by %d", typestr, uidx, start, end, stride));
     } else if (typestr == "UINT64") {
         uint64_t start = static_cast<uint64_t>(makeScalarInteger64(as<double>(starts)));
         uint64_t end = static_cast<uint64_t>(makeScalarInteger64(as<double>(ends)));
         uint64_t stride = (strides == R_NilValue) ? 0 : makeScalarInteger64(as<double>(strides));
         subarr->add_range(uidx, start, end, stride);
-        spdl::debug("[libtiledb_subarry_add_range_with type] {} dim {} added {} to {} by {}", typestr, uidx, start, end, stride);
+        spdl::debug(tfm::format("[libtiledb_subarry_add_range_with type] %s dim %d added %d to %d by %d", typestr, uidx, start, end, stride));
     } else if (typestr == "UINT32") {
         uint32_t start = as<uint32_t>(starts);
         uint32_t end   = as<uint32_t>(ends);
         uint32_t stride = (strides == R_NilValue) ? 0 : as<int32_t>(strides);
         subarr->add_range(uidx, start, end, stride);
-        spdl::debug("[libtiledb_subarry_add_range_with type] {} dim {} added {} to {} by {}", typestr, uidx, start, end, stride);
+        spdl::debug(tfm::format("[libtiledb_subarry_add_range_with type] %s dim %d added %d to %d by %d", typestr, uidx, start, end, stride));
     } else if (typestr == "INT16") {
         int16_t start = as<int16_t>(starts);
         int16_t end   = as<int16_t>(ends);
         int16_t stride = (strides == R_NilValue) ? 0 : as<int16_t>(strides);
         subarr->add_range(uidx, start, end, stride);
-        spdl::debug("[libtiledb_subarry_add_range_with type] {} dim {} added {} to {} by {}", typestr, uidx, start, end, stride);
+        spdl::debug(tfm::format("[libtiledb_subarry_add_range_with type] %s dim %d added %d to %d by %d", typestr, uidx, start, end, stride));
     } else if (typestr == "UINT16") {
         uint16_t start = as<uint16_t>(starts);
         uint16_t end   = as<uint16_t>(ends);
         uint16_t stride = (strides == R_NilValue) ? 0 : as<uint16_t>(strides);
         subarr->add_range(uidx, start, end, stride);
-        spdl::debug("[libtiledb_subarry_add_range_with type] {} dim {} added {} to {} by {}", typestr, uidx, start, end, stride);
+        spdl::debug(tfm::format("[libtiledb_subarry_add_range_with type] %s dim %d added %d to %d by %d", typestr, uidx, start, end, stride));
     } else if (typestr == "INT8") {
         int8_t start = as<int16_t>(starts);
         int8_t end   = as<int16_t>(ends);
         int8_t stride = (strides == R_NilValue) ? 0 : as<int16_t>(strides);
         subarr->add_range(uidx, start, end, stride);
-        spdl::debug("[libtiledb_subarry_add_range_with type] {} dim {} added {} to {} by {}", typestr, uidx, start, end, stride);
+        spdl::debug(tfm::format("[libtiledb_subarry_add_range_with type] %s dim %d added %d to %d by %d", typestr, uidx, start, end, stride));
     } else if (typestr == "UINT8") {
         uint8_t start = as<uint16_t>(starts);
         uint8_t end   = as<uint16_t>(ends);
         uint8_t stride = (strides == R_NilValue) ? 0 : as<uint16_t>(strides);
         subarr->add_range(uidx, start, end, stride);
-        spdl::debug("[libtiledb_subarry_add_range_with type] {} dim {} added {} to {} by {}", typestr, uidx, start, end, stride);
+        spdl::debug(tfm::format("[libtiledb_subarry_add_range_with type] %s dim %d added %d to %d by %d", typestr, uidx, start, end, stride));
     } else if (typestr == "DATETIME_YEAR"  ||
                typestr == "DATETIME_MONTH" ||
                typestr == "DATETIME_WEEK"  ||
@@ -3531,7 +3541,7 @@ XPtr<tiledb::Subarray> libtiledb_subarray_add_range_with_type(XPtr<tiledb::Subar
         int64_t end = makeScalarInteger64(as<double>(ends));
         int64_t stride = (strides == R_NilValue) ? 0 : makeScalarInteger64(as<double>(strides));
         subarr->add_range(uidx, start, end, stride);
-        spdl::debug("[libtiledb_subarry_add_range_with type] {} dim {} added {} to {} by {}", typestr, uidx, start, end, stride);
+        spdl::debug(tfm::format("[libtiledb_subarry_add_range_with type] %s dim %d added %d to %d by %d", typestr, uidx, start, end, stride));
 #if TILEDB_VERSION >= TileDB_Version(2,0,0)
     } else if (typestr == "ASCII" || typestr == "CHAR") {
         std::string start = as<std::string>(starts);
@@ -3540,14 +3550,14 @@ XPtr<tiledb::Subarray> libtiledb_subarray_add_range_with_type(XPtr<tiledb::Subar
             Rcpp::stop("Non-empty stride for string not supported yet.");
         }
         subarr->add_range(uidx, start, end);
-        spdl::debug("[libtiledb_subarry_add_range_with type] {} dim {} added {} to {}", typestr, uidx, start, end);
+        spdl::debug(tfm::format("[libtiledb_subarry_add_range_with type] %s dim %d added %s to %s", typestr, uidx, start, end));
 #endif
     } else if (typestr == "FLOAT32") {
         float start = as<float>(starts);
         float end = as<float>(ends);
         float stride = (strides == R_NilValue) ? 0 : Rcpp::as<float>(strides);
         subarr->add_range(uidx, start, end, stride);
-        spdl::debug("[libtiledb_subarry_add_range_with type] {} dim {} added {} to {} by {}", typestr, uidx, start, end, stride);
+        spdl::debug(tfm::format("[libtiledb_subarry_add_range_with type] %s dim %d added %d to %f by %f", typestr, uidx, start, end, stride));
     } else {
         Rcpp::stop("Invalid data type for adding range to query: '%s'", Rcpp::type2name(starts));
     }
@@ -3838,6 +3848,14 @@ void libtiledb_query_condition_init(XPtr<tiledb::QueryCondition> query_cond,
     } else if (cond_val_type == "BOOL") {
         bool v = as<bool>(condition_value);
         uint64_t cond_val_size = sizeof(bool);
+        query_cond->init(attr_name, (void*) &v, cond_val_size, op);
+    } else if (cond_val_type == "DATETIME_MS") {
+        int64_t v = static_cast<int64_t>(as<double>(condition_value) * 1000);
+        uint64_t cond_val_size = sizeof(int64_t);
+        query_cond->init(attr_name, (void*) &v, cond_val_size, op);
+    } else if (cond_val_type == "DATETIME_DAY") {
+        int64_t v = static_cast<int64_t>(as<double>(condition_value));
+        uint64_t cond_val_size = sizeof(int64_t);
         query_cond->init(attr_name, (void*) &v, cond_val_size, op);
     } else {
         Rcpp::stop("Currently unsupported type: %s", cond_val_type);

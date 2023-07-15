@@ -39,8 +39,6 @@ describes the selected points for dimension i}
 
 \item{\code{encryption_key}}{A character value}
 
-\item{\code{timestamp}}{A POSIXct datetime variable (deprecated, use timestamp_start)}
-
 \item{\code{as.matrix}}{A logical value}
 
 \item{\code{as.array}}{A logical value}
@@ -54,7 +52,9 @@ describes the selected points for dimension i}
 \item{\code{return_as}}{A character value with the desired \code{tiledb_array} conversion,
 permitted values are \sQuote{asis} (default, returning a list of columns),
 \sQuote{array}, \sQuote{matrix},\sQuote{data.frame}, \sQuote{data.table}
-or \sQuote{tibble}; the latter two require the respective packages installed}
+\sQuote{tibble}, \sQuote{arrow_table} or \sQuote{arrow} (where the last two are synomyms);
+note that \sQuote{data.table}, \sQuote{tibble} and \sQuote{arrow} require the respective
+packages to installed.}
 
 \item{\code{query_statistics}}{A logical value, defaults to \sQuote{FALSE}; if \sQuote{TRUE} the
 query statistics are returned (as a JSON string) via the attribute

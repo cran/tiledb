@@ -1,6 +1,6 @@
 #  MIT License
 #
-#  Copyright (c) 2017-2022 TileDB Inc.
+#  Copyright (c) 2017-2023 TileDB Inc.
 #
 #  Permission is hereby granted, free of charge, to any person obtaining a copy
 #  of this software and associated documentation files (the "Software"), to deal
@@ -62,7 +62,7 @@
         packageStartupMessage("TileDB R ", packageVersion("tiledb"),
                               " with TileDB Embedded ", format(tiledb_version(TRUE)),
                               " on ", utils::osVersion,
-                              ". See https://tiledb.com for more information.")
+                              ".\nSee https://tiledb.com for more information about TileDB.")
     }
 }
 
@@ -87,7 +87,9 @@ inlineCxxPlugin <- function(...) {
 .set_compile_link_options <- function(cppflag, ldflag) {
     if (missing(cppflag) && missing(ldflag)) {
         pkgcfg <- unname(Sys.which("pkg-config"))
-        have_tiledb_pkgcfg <- isTRUE(pkgcfg != "" && system2(pkgcfg, c("tiledb", "--exists")) == 0)
+        have_tiledb_pkgcfg <- isTRUE(Sys.info()[["sysname"]] != "Windows" &&
+                                     pkgcfg != "" &&
+                                     system2(pkgcfg, c("tiledb", "--exists")) == 0)
         if ((tiledb <- Sys.getenv("TILEDB_INSTALL_DIR", "")) != "") {
             .pkgenv[["tiledb_cppflag"]] <- sprintf("-I%s/include", tiledb)
             .pkgenv[["tiledb_ldflag"]] <- sprintf("-L%s -ltiledb", tiledb)

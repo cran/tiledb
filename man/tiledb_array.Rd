@@ -18,7 +18,6 @@ tiledb_array(
   query_layout = character(),
   datetimes_as_int64 = FALSE,
   encryption_key = character(),
-  timestamp = as.POSIXct(double(), origin = "1970-01-01"),
   as.matrix = FALSE,
   as.array = FALSE,
   query_condition = new("tiledb_query_condition"),
@@ -69,9 +68,6 @@ representation as \sQuote{raw} \code{integer64} and not as \code{Date},
 \item{encryption_key}{optional A character value with an AES-256 encryption key
 in case the array was written with encryption.}
 
-\item{timestamp}{optional A POSIXct Datetime value determining where in time the array is
-to be openened. Deprecated, use \sQuote{timestamp_start} instead}
-
 \item{as.matrix}{optional logical switch, defaults to "FALSE"; currently limited to dense
 matrices; in the case of multiple attributes in query a list of matrices is returned}
 
@@ -89,9 +85,10 @@ until which the array is to be openened. No fragments written earlier later be c
 
 \item{return_as}{optional A character value with the desired \code{tiledb_array} conversion,
 permitted values are \sQuote{asis} (default, returning a list of columns), \sQuote{array},
-\sQuote{matrix},\sQuote{data.frame}, \sQuote{data.table} or \sQuote{tibble}; the latter
-two require the respective packages installed. The existing \code{as.*} arguments take precedent
-over this.}
+\sQuote{matrix},\sQuote{data.frame}, \sQuote{data.table}, \sQuote{tibble}, \sQuote{arrow_table},
+or \sQuote{arrow} (as an alias for \sQuote{arrow_table}; here \sQuote{data.table},
+\sQuote{tibble} and \sQuote{arrow} require the respective packages to be installed.
+The existing \code{as.*} arguments take precedent over this.}
 
 \item{query_statistics}{optional A logical value, defaults to \sQuote{FALSE}; if \sQuote{TRUE} the
 query statistics are returned (as a JSON string) via the attribute

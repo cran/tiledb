@@ -73,7 +73,7 @@ tiledb_query_set_layout(qry, "UNORDERED")
 tiledb_query_submit(qry)
 tiledb_query_finalize(qry)
 
-#arr <- tiledb_array(tmp, as.data.frame=TRUE)
+#arr <- tiledb_array(tmp, return_as="data.frame")
 #print(arr[])
 
 
@@ -162,7 +162,7 @@ tiledb_query_set_layout(qry, "UNORDERED")
 tiledb_query_submit(qry)
 tiledb_query_finalize(qry)
 
-arr <- tiledb_array(tmp, as.data.frame=TRUE)
+arr <- tiledb_array(tmp, return_as="data.frame")
 df <- arr[]
 
 for (i in 1:10) {
@@ -177,6 +177,31 @@ for (i in c(1:7,9:10)) {
     expect_equivalent(df[,i], 1:10)
 }
 expect_equivalent(df[,8], as.integer64(1:10))
+
+
+## test support for return_as="arrow"
+if (!requireNamespace("palmerpenguins", quietly=TRUE)) exit_file("remainder needs 'palmerpenguins'")
+library(palmerpenguins)
+uri <- tempfile()
+fromDataFrame(penguins, uri, col_index = c("species", "year"))
+for (arg in c("arrow", "arrow_table")) {
+    res <- tiledb_array(uri, return_as=arg)[]
+    expect_true(inherits(res, "Table"))
+    expect_true(inherits(res, "ArrowTabular"))
+    expect_true(inherits(res, "ArrowObject"))
+    expect_equal(res$num_rows, 344)
+    expect_equal(res$num_columns, 8)
+}
+
+## test support for return as Date (GH Issue 533)
+uri <- tempfile()
+D <- data.frame(val = 100 + 0:4,
+                dat = Sys.Date() + seq(-4,0))
+fromDataFrame(D, uri, col_index = 1)
+at <- tiledb_array(uri, return_as = "arrow")[]
+expect_true(inherits(at, "Table"))
+chk <- data.frame(at)
+expect_equal(D, chk)
 
 ## detaching arrow should not be necessary as we generally do not need to unload
 ## packages but had been seen as beneficial in some instanced so there is now an option

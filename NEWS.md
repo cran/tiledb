@@ -1,4 +1,53 @@
-# tiledb ongoing development
+# tilebd 0.20.0
+
+* This release of the R package builds against [TileDB 2.16.0](https://github.com/TileDB-Inc/TileDB/releases/tag/2.16.0), and has also been tested against earlier releases as well as the development version (#551, #559, #563)
+
+## Improvements
+
+* The startup message is now reformated across two shorter lines (#545)
+
+* Support for returning 'Arrow Table' objects has been added (#548)
+
+* Use of TileDB Embedded was upgraded to release 2.15.3 (#551)
+
+* Date columns can now be exported to Arrow as well (#554)
+
+* Array writes which set timestamps now take advantage of the new temporal policy API (#558)
+
+* Displaying a schema is now more readable with additional linebreaks (#560)
+
+* Attempts to select on dimensions that do not exist now error out with a message (#561)
+
+* Integer64 values can now be written to array metadata (#564)
+
+* Date and POSIXct attributes are now supported in query conditions (#568)
+
+## Bug Fixes
+
+* Consolidation and vacuum calls now reflect the state of the global context object (#547)
+
+* Pointers to 'Arrow Table' objects representing the table columns are now in external pointers too (#550)
+
+* The documentation for 'Dimensions' was corrected in two spots in its wording / grammar (#552)
+
+## Build and Test Systems
+
+* 'sudo' mode is reenabled for package 'bspm' used in the continuous integration at GitHub Actions (#549)
+
+* Compilation on Linux systems as old as Ubuntu 18.04 without a `filesystem` header is now possible (#556)
+
+## Deprecations
+
+* The boolean arguments `as.data.frame`, `as.matrix` and `as.array` to the `tiledb_array()` accessor are deprecated in favor of the more general `return_as="..."` form. (#567)
+
+## Removals
+
+* The `timestamp` argument to `tiledb_array`, deprecated in favor of `timestamp_end` (and `timestamp_start`) in July 2021, has been removed (#566).
+
+
+# tiledb 0.19.1
+
+* This release of the R package builds against [TileDB 2.15.2](https://github.com/TileDB-Inc/TileDB/releases/tag/2.15.2), and has also been tested against earlier releases as well as the development version (#534, #541).
 
 ## Improvements
 

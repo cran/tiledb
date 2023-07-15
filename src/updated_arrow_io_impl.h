@@ -204,8 +204,10 @@ ArrowInfo tiledb_buffer_arrow_fmt(BufferInfo bufferinfo, bool use_list = true) {
       return ArrowInfo("f");
     case TILEDB_FLOAT64:
       return ArrowInfo("g");
+#if TILEDB_VERSION >= TileDB_Version(2,7,0)
     case TILEDB_BLOB:
       return ArrowInfo("B");
+#endif
     case TILEDB_INT8:
       return ArrowInfo("c");
     case TILEDB_UINT8:
@@ -287,8 +289,10 @@ TypeInfo arrow_type_to_tiledb(ArrowSchema* arw_schema) {
     return {TILEDB_FLOAT32, 4, 1, large, nullable};
   else if (fmt == "g")
     return {TILEDB_FLOAT64, 8, 1, large, nullable};
+#if TILEDB_VERSION >= TileDB_Version(2,7,0)
   else if (fmt == "B")
     return {TILEDB_BLOB, 1, 1, large, nullable};
+#endif
   else if (fmt == "c")
     return {TILEDB_INT8, 1, 1, large, nullable};
   else if (fmt == "C")
@@ -632,12 +636,7 @@ void ArrowImporter::import_(
     std::string name, ArrowArray* arw_array, ArrowSchema* arw_schema) {
   auto typeinfo = arrow_type_to_tiledb(arw_schema);
 
-  std::cout << "Name " << name << " "
-            << "cell_val_num " << (typeinfo.cell_val_num == TILEDB_VAR_NUM ? "NA" : std::to_string(typeinfo.cell_val_num)) << " "
-            << "nullable " << (typeinfo.nullable ? "yes" : "no") << " "
-            << "buf[0] null " << (arw_array->buffers[0] != nullptr ? "yes" : "no") << std::endl;
   // buffer conversion
-
   if (typeinfo.cell_val_num == TILEDB_VAR_NUM) {
     assert(arw_array->n_buffers == 3);
 
