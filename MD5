@@ -1,7 +1,7 @@
-fd67d8ee8ca89b61b4ffeda2eda17800 *DESCRIPTION
+c86a7590dc49f82d6e790a672b13b1f6 *DESCRIPTION
 e829c3b63cbb3ae914d6385c9cb49ad0 *LICENSE
 442bee5e8a6cc38991897756810bedd6 *NAMESPACE
-dd23e424b26aee7b48e9af479b68b283 *NEWS.md
+a264b1828bd593be92bcd86a8b0585d6 *NEWS.md
 1903922332d635f910d67f3f56bd5a07 *R/AllGenerics.R
 95626a252e22fb261b8bf441989aa742 *R/Array.R
 4487a4e58996198651504ad3655ded9c *R/ArraySchema.R
@@ -109,7 +109,7 @@ bd36be3b67a81f798dbbcaecfe672f33 *inst/sampledata/bankSample.rds
 35d02b78ecd4d087fb4603d4337c2d98 *inst/scripts/legacy_validity_convert.r
 6dd81acfaddb85cfc0d89143380f5ea0 *inst/tinytest/test_arrayschema.R
 526f0a4b5fcefb2f9cf3d3470b65a551 *inst/tinytest/test_arrayschemaevolution.R
-04b3add2be88d25348bb99d8b3845828 *inst/tinytest/test_arrowio.R
+492daf1bd20993f61f2837f9c3984a94 *inst/tinytest/test_arrowio.R
 ac3cd344019c39da1cd9c3c56ed234be *inst/tinytest/test_attr.R
 94117b2a8345a8aab344f6ea4d45d327 *inst/tinytest/test_config.R
 09f6b52a9af0e46638113da01a0f328b *inst/tinytest/test_ctx.R
@@ -451,7 +451,7 @@ db80fcc676c287edf96f7bb1c972a6a0 *src/Makevars.win
 bbcf3ab39f51e3754430dc3afb1ae467 *src/RcppExports.cpp
 866b3c1d043e5c33d8795d53ad85a1dc *src/array_buffers.h
 c0dd9aff971edea24f8c3e90c8c3ba46 *src/arrow_adapter.h
-903e523bb1e5372d5e7debd6e334adb1 *src/arrowio.cpp
+7c0eb793fa9b107ecf4e0fa8a68a432c *src/arrowio.cpp
 2b2984d1d279b46e006f4c346c9c9329 *src/batched.cpp
 922b021e99e8a22047f2d08accc36506 *src/column_buffer.cpp
 8118ab381d617866a90df931c6c220c5 *src/column_buffer.h

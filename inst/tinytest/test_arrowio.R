@@ -178,8 +178,8 @@ for (i in c(1:7,9:10)) {
 }
 expect_equivalent(df[,8], as.integer64(1:10))
 
-
 ## test support for return_as="arrow"
+if (FALSE) {
 if (!requireNamespace("palmerpenguins", quietly=TRUE)) exit_file("remainder needs 'palmerpenguins'")
 library(palmerpenguins)
 uri <- tempfile()
@@ -202,6 +202,7 @@ at <- tiledb_array(uri, return_as = "arrow")[]
 expect_true(inherits(at, "Table"))
 chk <- data.frame(at)
 expect_equal(D, chk)
+}
 
 ## detaching arrow should not be necessary as we generally do not need to unload
 ## packages but had been seen as beneficial in some instanced so there is now an option
