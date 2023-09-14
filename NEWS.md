@@ -1,3 +1,16 @@
+# tiledb 0.21.0
+
+* This release of the R package builds against [TileDB 2.17.0](https://github.com/TileDB-Inc/TileDB/releases/tag/2.17.0), and has also been tested against earlier releases as well as the development version (#585, #587)
+
+## Improvements
+
+* Built-time configuration of TileDB Embedded can now be accessed as a JSON string (#584)
+
+* Enumeration types (i.e. what R calls `factor` variables) are now supported (#562)
+
+* Enumeration support has been extended to `ordered` types (#586)
+
+
 # tiledb 0.20.3
 
 * This release of the R package builds against [TileDB 2.16.2](https://github.com/TileDB-Inc/TileDB/releases/tag/2.16.2), and has also been tested against earlier releases as well as the development version (#582)

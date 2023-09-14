@@ -1,6 +1,6 @@
 Package: tiledb
 Type: Package
-Version: 0.20.3
+Version: 0.21.0
 Title: Universal Storage Engine for Sparse and Dense Multidimensional
         Arrays
 Authors@R: c(person("TileDB, Inc.", role = c("aut", "cph")),
@@ -33,9 +33,9 @@ VignetteBuilder: simplermarkdown
 RoxygenNote: 7.2.3
 Encoding: UTF-8
 NeedsCompilation: yes
-Packaged: 2023-08-04 16:51:26 UTC; edd
+Packaged: 2023-09-14 16:21:25 UTC; edd
 Author: TileDB, Inc. [aut, cph],
   Dirk Eddelbuettel [cre]
 Maintainer: Dirk Eddelbuettel <dirk@tiledb.com>
 Repository: CRAN
-Date/Publication: 2023-08-07 12:00:02 UTC
+Date/Publication: 2023-09-14 20:50:02 UTC
