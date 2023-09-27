@@ -923,6 +923,23 @@ setMethod("[", "tiledb_array",
           if (use_arrow) {
               rl <- libtiledb_to_arrow(abptr, qryptr, dictionaries)
               at <- .as_arrow_table(rl)
+
+              ## special case from schema evolution could have added twice so correcting
+              for (n in colnames(at)) {
+                  v <- at[[n]]$as_vector()
+                  lvls <- levels(v)
+                  if (inherits(v, "factor")) {
+                      vec <- as.integer(v)
+                      vec[vec == - .Machine$integer.max] <- NA_integer_
+                      if (min(vec, na.rm=TRUE) == 2 && max(vec, na.rm=TRUE) == length(lvls) + 1) {
+                          vec <- vec - 1L
+                          attr(vec, "levels") <- attr(v, "levels")
+                          class(vec) <- class(v)
+                          at[[n]] <- vec
+                      }
+                  }
+              }
+
               ## if dictionaries are to be injected at the R level, this does it
               #for (n in names(dictionaries)) {
               #    if (!is.null(dictionaries[[n]])) {
@@ -988,10 +1005,13 @@ setMethod("[", "tiledb_array",
                       if (!is.null(dictionaries[[name]])) { 	# if there is a dictionary
                           dct <- dictionaries[[name]]           # access it from utility
                           ord <- ordered_dict[[name]]
-                          ## the following expands out to a char vector first; we can do better
-                          ##   col <- factor(dct[col+1], levels=dct)
-                          ## so we do it "by hand"
+
                           col <- col + 1L # adjust for zero-index C/C++ layer
+
+                          ## special case from schema evolution could have added twice so correct
+                          if (min(col, na.rm=TRUE) == 2 && max(col, na.rm=TRUE) == length(dct) + 1)
+                              col <- col - 1L
+
                           attr(col, "levels") <- dct
                           attr(col, "class")  <- if (ord) c("ordered", "factor") else "factor"
                       }
