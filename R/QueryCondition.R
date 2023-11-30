@@ -102,11 +102,21 @@ tiledb_query_condition_combine <- function(lhs, rhs, op) {
 
 #' Create a 'tiledb_query_condition' object from an expression
 #'
-#' The grammar for query conditions is at present constraint to six operators
-#' and three boolean types.
+#' The grammar for query conditions is at present constraint to eight operators (\code{">"},
+#' \code{">="}, \code{"<"}, \code{"<="}, \code{"=="}, \code{"!="}, \code{"%in%"}, \code{"%nin%"}),
+#' and three boolean operators (\code{"&&"}, also as \code{"&"}, (\code{"||"}, also as \code{"|"},
+#' and \code{"!"} for negation.  Note that we locally define \code{"%nin%"} as \code{Negate()} call
+#' around \code{%in%)} which extends R a little for this use case.
+#'
+#' Expressions are parsed locally by this function. The \code{debug=TRUE} option may help if an issue
+#' has to be diagnosed. In most cases of an errroneous parse, it generally helps to supply the
+#' \code{tiledb_array} providing schema information. One example are numeric and integer columns where
+#' the data type is difficult to guess. Also, when using the \code{"%in%"} or \code{"%nin%"} operators,
+#' the argument is mandatory.
 #'
 #' @param expr An expression that is understood by the TileDB grammar for query conditions.
-#' @param ta An optional tiledb_array object that the query condition is applied to
+#' @param ta A tiledb_array object that the query condition is applied to; this argument is optional
+#' in some cases but required in some others.
 #' @param debug A boolean toogle to enable more verbose operations, defaults
 #' to 'FALSE'.
 #' @param strict A boolean toogle to, if set, errors if a non-existing attribute is selected
@@ -127,14 +137,33 @@ tiledb_query_condition_combine <- function(lhs, rhs, op) {
 parse_query_condition <- function(expr, ta=NULL, debug=FALSE, strict=TRUE, use_int64=FALSE) {
     .hasArray <- !is.null(ta) && is(ta, "tiledb_array")
     if (.hasArray && length(ta@sil) == 0) ta@sil <- .fill_schema_info_list(ta@uri)
-    .isComparisonOperator <- function(x) tolower(as.character(x)) %in% c(">", ">=", "<", "<=", "==", "!=", "%in%")
+    `%!in%` <- Negate(`%in%`)
+    .isComparisonOperator <- function(x) tolower(as.character(x)) %in% c(">", ">=", "<", "<=", "==", "!=", "%in%", "%nin%")
     .isBooleanOperator <- function(x) as.character(x) %in% c("&&", "||", "!", "&", "|")
     .isAscii <- function(x) grepl("^[[:alnum:]_]+$", x)
     .isInteger <- function(x) grepl("^[[:digit:]]+$", as.character(x))
     .isDouble <- function(x) grepl("^[[:digit:]\\.]+$", as.character(x)) && length(grepRaw(".", as.character(x), fixed = TRUE, all = TRUE)) == 1
-    .isInOperator <- function(x) tolower(as.character(x)) == "%in%"
+    .isInOperator <- function(x) tolower(as.character(x)) %in% c("%in%", "%nin%")
     .errorFunction <- if (strict) stop else warning
-    .getType <- function(x, use_int64=FALSE) {
+    .getInd <- function(attr, ta) {
+        if (isFALSE(.hasArray)) stop("The 'ta' argument is required for this type of parse", call. = FALSE)
+        ind <- match(attr, ta@sil$names)
+        if (!is.finite(ind)) {
+            .errorFunction("No attribute '", attr, "' present.", call. = FALSE)
+            return(NULL)
+        }
+        if (ta@sil$status[ind] != 2) {
+            .errorFunction("Argument '", attr, "' is not an attribute.", call. = FALSE)
+            return(NULL)
+        }
+        ind
+    }
+    .getType <- function(x, tp, use_int64=FALSE) {
+        if (.hasArray) {
+            ind <- .getInd(tp, ta)
+            dtype <- ta@sil$types[ind]
+            return(dtype)
+        }
         if (isTRUE(.isInteger(x))) { if (use_int64) "INT64" else "INT32" }
         else if (isTRUE(.isDouble(x))) "FLOAT64"
         else "ASCII"
@@ -174,14 +203,21 @@ parse_query_condition <- function(expr, ta=NULL, debug=FALSE, strict=TRUE, use_i
                            " ", as.character(x[1]),
                            " [", as.character(x[3]), "]\n", sep="")
             attr <- as.character(x[2])
+            op <- tolower(as.character(x[1]))
+            tdbop <- if (op == "%in%") "IN" else "NOT_IN"
+            ind <- .getInd(attr, ta)
+            dtype <- ta@sil$types[ind]
+            is_enum <- ta@sil$enum[ind]
             vals <- eval(parse(text=as.character(x[3])))
-            eqconds <- Map(.neweqcond, vals, attr)
-            orcond <- Reduce(.neworcond, eqconds)
+            if (dtype == "INT32" && !is_enum) vals <- if (use_int64) bit64::as.integer64(vals) else as.integer(vals)
+            return(tiledb_query_condition_create(attr, vals, tdbop))
+            #eqconds <- Map(.neweqcond, vals, attr)
+            #orcond <- Reduce(.neworcond, eqconds)
         } else if (.isComparisonOperator(x[1])) {
             op <- as.character(x[1])
             attr <- as.character(x[2])
             ch <- as.character(x[3])
-            dtype <- .getType(ch, use_int64)
+            dtype <- .getType(ch, attr, use_int64)
             is_enum <- FALSE # default is no
             if (.hasArray) {
                 ind <- match(attr, ta@sil$names)
@@ -200,8 +236,8 @@ parse_query_condition <- function(expr, ta=NULL, debug=FALSE, strict=TRUE, use_i
                            op, " (aka ", .mapOpToCharacter(op), ")",
                            " [",ch, "] ", dtype, "\n", sep="")
 
-            ## take care of factor (aka "enum" case) and set the daat type to ASCII
-            if (dtype == "INT32" && is_enum) {
+            ## take care of factor (aka "enum" case) and set the data type to ASCII
+            if (dtype %in% c("INT8", "INT16", "INT32", "INT64", "UINT8", "UINT16", "UINT32", "UINT64") && is_enum) {
                 if (debug) cat("   [factor column] ", ch, " ", attr, " ", dtype, " --> ASCII", " ", is_enum, "\n")
                 dtype <- "ASCII"
             }
@@ -238,7 +274,31 @@ parse_query_condition <- function(expr, ta=NULL, debug=FALSE, strict=TRUE, use_i
 tiledb_query_condition_set_use_enumeration <- function(qc, use_enum, ctx = tiledb_get_context()) {
     stopifnot("Argument 'qc' must be a query condition object" = is(qc, "tiledb_query_condition"),
               "Argument 'use_enum' must be logical" = is.logical(use_enum),
-              "The argument must be a ctx object" = is(ctx, "tiledb_ctx"),
+              "The 'ctx' argument must be a context object" = is(ctx, "tiledb_ctx"),
               "This function needs TileDB 2.17.0 or later" = tiledb_version(TRUE) >= "2.17.0")
     libtiledb_query_condition_set_use_enumeration(ctx@ptr, qc@ptr, use_enum)
+}
+
+#' create a query condition for vector 'IN' and 'NOT_IN' operations
+#'
+#' Uses \sQuote{IN} and \sQuote{NOT_IN} operators on given attribute
+#' @param name A character value with the scheme attribute name
+#' @param values A vector wiith the given values, supported types are integer, double,
+#' integer64 and charactor
+#' @param op (optional) A character value with the chosen set operation, this must be one of
+#' \sQuote{IN} or \sQuote{NOT_IN}; default to \sQuote{IN}
+#' @param ctx (optional) A TileDB Ctx object; if not supplied the default
+#' context object is retrieved
+#' @return A query condition object is returned
+#' @export
+tiledb_query_condition_create <- function(name, values, op = "IN", ctx = tiledb_get_context()) {
+    stopifnot("Argument 'name' must be character" = is.character(name),
+              "Argument 'values' must be int, double, int64 ir char" =
+                  (is.numeric(values) || bit64::is.integer64(values) || is.character(values)),
+              "Argument 'op' must be one of 'IN' or 'NOT_IN'" = op %in% c("IN", "NOT_IN"),
+              "The 'ctx' argument must be a context object" = is(ctx, "tiledb_ctx"),
+              "This function needs TileDB 2.17.0 or later" = tiledb_version(TRUE) >= "2.17.0")
+    ptr <- libtiledb_query_condition_create(ctx@ptr, name, values, op)
+    qc <- new("tiledb_query_condition", ptr = ptr, init = TRUE)
+    invisible(qc)
 }

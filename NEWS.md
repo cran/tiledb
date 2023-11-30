@@ -1,3 +1,87 @@
+# tiledb 0.22.0
+
+* This release of the R package builds against [TileDB 2.18.0](https://github.com/TileDB-Inc/TileDB/releases/tag/2.18.0), [TileDB 2.18.1](https://github.com/TileDB-Inc/TileDB/releases/tag/2.18.1),  [TileDB 2.18.2](https://github.com/TileDB-Inc/TileDB/releases/tag/2.18.2) and has also been tested against earlier releases as well as the development version (#620,#621,#624)
+
+## Improvements
+
+* Use of TileDB Embedded was upgraded to release 2.18.0 (#620), 2.18.1 (#621), and 2.18.2 (#624)
+
+* Support for Aggregates has been added (#623)
+
+## Bug Fixes
+
+* When using serializing via VFS (as added in #608) the filehandles is now properly released (#619)
+
+## Build and Test Systems
+
+* Some tests were refactored slightly for greater robustness (#618)
+
+* Support for download and build with an external TileDB Core source tarball has been added (#622)
+
+## Documentation
+
+* The README now contains badges for the r-universe and Anaconda versions (in addition to CRAN) (#617)
+
+
+# tiledb 0.21.3
+
+* This release of the R package builds against [TileDB 2.17.4](https://github.com/TileDB-Inc/TileDB/releases/tag/2.17.4), and has also been tested against earlier releases as well as the development version (#611)
+
+## Improvements
+
+* Query conditioning parsing now supports `factor` index columns other than the standard `integer` type (#614)
+
+## Build and Test Systems
+
+* The nighly valgrind run was updated to include release 2.18 (#615)
+
+## Documentation
+
+* The pkgdown documentation has been updated for release 0.21.2 (#613) and release 0.21.3 (#616)
+
+
+# tiledb 0.21.2
+
+* This release of the R package builds against [TileDB 2.17.4](https://github.com/TileDB-Inc/TileDB/releases/tag/2.17.4), and has also been tested against earlier releases as well as the development version (#611)
+
+## Improvements
+
+* Set conditions are supported in query condition expressions (#597)
+
+* Query conditions expression parsing via `parse_query_conditions` was extended simmilarly (#598)
+
+* Array fragment deletions uses a new static method (with TileDB 2.18.0 or later) (#599)
+
+* The included `nanoarrow` header and source file have been updated to release 0.3.0 (#600)
+
+* Query conditions expression parsing requirements are stated and tested more clearly (#601)
+
+* Use of TileDB Embedded was upgraded to release 2.17.2 (#602)
+
+* Enumeration (aka 'factor') support has been extended for 'empty' creation and subsequent extension with new levelss (#605)
+
+* Use of TileDB Embedded was upgraded to release 2.17.3 (#606)
+
+* Factor variables with (unlikely) int64 indices are supported (#607)
+
+* R objects can be (de-)serialized to and from VFS paths (#608)
+
+* Enumeration support has been extended to some cases only supported by Arrow (#609)
+
+* Use of TileDB Embedded was upgraded to release 2.17.4 (#611)
+
+## Bug Fixes
+
+* The DESCRIPTION file now correctly refers to macOS 10.14 (#596)
+
+* The (explicitly) 'batched reader now ensure a correct layout for sparse arrays (#610)
+
+## Build and Test Systems
+
+* The nighly valgrind run was updated to include release 2.17 (#603)
+
+
+
 # tiledb 0.21.1
 
 * This release of the R package builds against [TileDB 2.17.1](https://github.com/TileDB-Inc/TileDB/releases/tag/2.17.1), and has also been tested against earlier releases as well as the development version (#593)

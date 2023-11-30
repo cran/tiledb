@@ -1589,6 +1589,68 @@ bool libtiledb_attribute_has_enumeration(XPtr<tiledb::Context> ctx,
 }
 
 // [[Rcpp::export]]
+Rcpp::String libtiledb_attribute_get_enumeration_type(XPtr<tiledb::Context> ctx,
+                                                      XPtr<tiledb::Attribute> attr,
+                                                      XPtr<tiledb::Array> arr) {
+
+    check_xptr_tag<tiledb::Context>(ctx);
+    check_xptr_tag<tiledb::Attribute>(attr);
+    check_xptr_tag<tiledb::Array>(arr);
+#if TILEDB_VERSION >= TileDB_Version(2,17,0)
+    auto enmrname = tiledb::AttributeExperimental::get_enumeration_name(*ctx.get(), *attr.get());
+    if (enmrname == std::nullopt) {
+        Rcpp::stop("No enumeration name for attribute");
+    }
+    auto enmr = tiledb::ArrayExperimental::get_enumeration(*ctx.get(), *arr.get(), enmrname.value());
+    if (enmr.ptr() == nullptr) {
+        Rcpp::stop("No enumeration for given attribute.");
+    }
+    Rcpp::String res = Rcpp::as<Rcpp::String>(Rcpp::wrap(_tiledb_datatype_to_string(enmr.type())));
+#else
+    Rcpp::String res = Rcpp::as<Rcpp::String>(NA_STRING);
+#endif
+    return res;
+}
+
+// [[Rcpp::export]]
+SEXP libtiledb_attribute_get_enumeration_vector(XPtr<tiledb::Context> ctx,
+                                                XPtr<tiledb::Attribute> attr,
+                                                XPtr<tiledb::Array> arr) {
+    check_xptr_tag<tiledb::Context>(ctx);
+    check_xptr_tag<tiledb::Attribute>(attr);
+    check_xptr_tag<tiledb::Array>(arr);
+    SEXP res = R_NilValue;
+#if TILEDB_VERSION >= TileDB_Version(2,17,0)
+    auto enmrname = tiledb::AttributeExperimental::get_enumeration_name(*ctx.get(), *attr.get());
+    if (enmrname == std::nullopt) {
+        Rcpp::stop("No enumeration name for attribute");
+    }
+    auto enmr = tiledb::ArrayExperimental::get_enumeration(*ctx.get(), *arr.get(), enmrname.value());
+    if (enmr.ptr() == nullptr) {
+        Rcpp::stop("No enumeration for given attribute.");
+    }
+    auto dtype = enmr.type();
+    if (dtype == TILEDB_FLOAT32 || dtype == TILEDB_FLOAT64) {
+        auto v = enmr.as_vector<double>();
+        res = Rcpp::wrap(v);
+    } else if (dtype == TILEDB_INT8 || dtype == TILEDB_INT16 || dtype == TILEDB_INT32 ||
+               dtype == TILEDB_UINT8 || dtype == TILEDB_UINT16 || dtype == TILEDB_UINT32) {
+        auto v = enmr.as_vector<int32_t>();
+        res = Rcpp::wrap(v);
+    } else if (dtype == TILEDB_INT64 || dtype == TILEDB_UINT64) {
+        auto v = enmr.as_vector<int64_t>();
+        res = Rcpp::toInteger64(v);
+    } else if (dtype == TILEDB_BOOL) {
+        auto v = enmr.as_vector<bool>();
+        res = Rcpp::wrap(v);
+    } else {
+        Rcpp::stop("Unsupported non-string type '%s'", _tiledb_datatype_to_string(dtype));
+    }
+#endif
+    return res;
+}
+
+// [[Rcpp::export]]
 std::vector<std::string> libtiledb_attribute_get_enumeration(XPtr<tiledb::Context> ctx,
                                                              XPtr<tiledb::Attribute> attr,
                                                              XPtr<tiledb::Array> arr) {
@@ -1609,6 +1671,7 @@ std::vector<std::string> libtiledb_attribute_get_enumeration(XPtr<tiledb::Contex
 #endif
     return res;
 }
+
 
 // [[Rcpp::export]]
 XPtr<tiledb::Attribute> libtiledb_attribute_set_enumeration(XPtr<tiledb::Context> ctx,
@@ -1995,6 +2058,31 @@ XPtr<tiledb::ArraySchema> libtiledb_array_schema_set_enumeration(XPtr<tiledb::Co
     return schema;
 }
 
+// [[Rcpp::export]]
+XPtr<tiledb::ArraySchema>
+libtiledb_array_schema_set_enumeration_empty(XPtr<tiledb::Context> ctx,
+                                             XPtr<tiledb::ArraySchema> schema,
+                                             XPtr<tiledb::Attribute> attr,
+                                             const std::string enum_name,
+                                             const std::string type_str,
+                                             int cell_val_num,
+                                             bool ordered) {
+    check_xptr_tag<tiledb::Context>(ctx);
+    check_xptr_tag<tiledb::ArraySchema>(schema);
+    check_xptr_tag<tiledb::Attribute>(attr);
+#if TILEDB_VERSION >= TileDB_Version(2,17,3)
+    tiledb_datatype_t type = _string_to_tiledb_datatype(type_str);
+    uint32_t num = static_cast<uint64_t>(cell_val_num);
+    if (cell_val_num == R_NaInt) {
+        num = TILEDB_VAR_NUM;           // R's NA is different from TileDB's NA
+    }
+    auto enumeration = tiledb::Enumeration::create_empty(*ctx.get(), enum_name, type, num, ordered);
+    tiledb::ArraySchemaExperimental::add_enumeration(*ctx.get(), *schema.get(), enumeration);
+    tiledb::AttributeExperimental::set_enumeration_name(*ctx.get(), *attr.get(), enum_name);
+#endif
+    return schema;
+}
+
 
 /**
  * TileDB Array Schema Evolution
@@ -2060,11 +2148,55 @@ libtiledb_array_schema_evolution_add_enumeration(XPtr<tiledb::Context> ctx,
 
 //[[Rcpp::export]]
 XPtr<tiledb::ArraySchemaEvolution>
+libtiledb_array_schema_evolution_add_enumeration_empty(XPtr<tiledb::Context> ctx,
+                                                       XPtr<tiledb::ArraySchemaEvolution> ase,
+                                                       const std::string & enum_name,
+                                                       const std::string type_str,
+                                                       int cell_val_num,
+                                                       bool ordered = false) {
+    check_xptr_tag<tiledb::Context>(ctx);
+    check_xptr_tag<tiledb::ArraySchemaEvolution>(ase);
+#if TILEDB_VERSION >= TileDB_Version(2,17,3)
+    tiledb_datatype_t type = _string_to_tiledb_datatype(type_str);
+    uint32_t num = static_cast<uint32_t>(cell_val_num);
+    auto enumeration = tiledb::Enumeration::create_empty(*ctx.get(), enum_name, type, num, ordered);
+    tiledb::ArraySchemaEvolution res = ase->add_enumeration(enumeration);
+    auto ptr = new tiledb::ArraySchemaEvolution(res);
+    return make_xptr<tiledb::ArraySchemaEvolution>(ptr);
+#endif
+    return ase;
+}
+
+
+//[[Rcpp::export]]
+XPtr<tiledb::ArraySchemaEvolution>
 libtiledb_array_schema_evolution_drop_enumeration(XPtr<tiledb::ArraySchemaEvolution> ase,
                                                   const std::string & attrname) {
     check_xptr_tag<tiledb::ArraySchemaEvolution>(ase);
 #if TILEDB_VERSION >= TileDB_Version(2,17,0)
     tiledb::ArraySchemaEvolution res = ase->drop_attribute(attrname);
+    auto ptr = new tiledb::ArraySchemaEvolution(res);
+    return make_xptr<tiledb::ArraySchemaEvolution>(ptr);
+#endif
+    return ase;
+}
+
+//[[Rcpp::export]]
+XPtr<tiledb::ArraySchemaEvolution>
+libtiledb_array_schema_evolution_extend_enumeration(XPtr<tiledb::Context> ctx,
+                                                    XPtr<tiledb::ArraySchemaEvolution> ase,
+                                                    XPtr<tiledb::Array> array,
+                                                    const std::string & enum_name,
+                                                    std::vector<std::string> new_values,
+                                                    bool nullable = false,
+                                                    bool ordered = false) {
+    check_xptr_tag<tiledb::Context>(ctx);
+    check_xptr_tag<tiledb::ArraySchemaEvolution>(ase);
+    check_xptr_tag<tiledb::Array>(array);
+#if TILEDB_VERSION >= TileDB_Version(2,17,3)
+    auto old_enumeration = tiledb::ArrayExperimental::get_enumeration(*ctx.get(), *array.get(), enum_name);
+    auto new_enumeration = old_enumeration.extend(new_values);
+    tiledb::ArraySchemaEvolution res = ase->extend_enumeration(new_enumeration);
     auto ptr = new tiledb::ArraySchemaEvolution(res);
     return make_xptr<tiledb::ArraySchemaEvolution>(ptr);
 #endif
@@ -2605,14 +2737,19 @@ Rcpp::Datetime libtiledb_array_open_timestamp_end(XPtr<tiledb::Array> array) {
 }
 
 // [[Rcpp::export]]
-void libtiledb_array_delete_fragments(XPtr<tiledb::Array> array,
+void libtiledb_array_delete_fragments(XPtr<tiledb::Context> ctx, XPtr<tiledb::Array> array,
                                       Rcpp::Datetime tstamp_start, Rcpp::Datetime tstamp_end) {
 #if TILEDB_VERSION >= TileDB_Version(2,12,0)
+    check_xptr_tag<tiledb::Context>(ctx);
     check_xptr_tag<tiledb::Array>(array);
     const std::string uri = array->uri();
     uint64_t ts_ms_st = static_cast<uint64_t>(std::round(tstamp_start.getFractionalTimestamp() * 1000));
     uint64_t ts_ms_en = static_cast<uint64_t>(std::round(tstamp_end.getFractionalTimestamp() * 1000));
+#if TILEDB_VERSION >= TileDB_Version(2,18,0)
+    tiledb::Array::delete_fragments(*ctx.get(), uri, ts_ms_st, ts_ms_en);
+#else
     array->delete_fragments(uri, ts_ms_st, ts_ms_en);
+#endif
 #endif
 }
 
@@ -3744,6 +3881,112 @@ XPtr<tiledb::Context> libtiledb_query_get_ctx(XPtr<tiledb::Query> query) {
     return make_xptr<tiledb::Context>(new tiledb::Context(ctx));
 }
 
+template <typename T>
+SEXP apply_unary_aggregate(XPtr<tiledb::Query> query, std::string operator_name, bool nullable = false) {
+#if TILEDB_VERSION >= TileDB_Version(2,18,0)
+    T result = 0;
+    std::vector<uint8_t> nulls = { 0 };
+    uint64_t size = 1;
+    query->set_data_buffer(operator_name, &result, size);
+    if (nullable) query->set_validity_buffer(operator_name, nulls);
+    query->submit();
+    SEXP res = Rcpp::wrap(result);
+    return res;
+#else
+    return Rcpp::wrap(R_NaReal);
+#endif
+}
+
+// [[Rcpp::export]]
+SEXP libtiledb_query_apply_aggregate(XPtr<tiledb::Query> query,
+                                     std::string attribute_name,
+                                     std::string operator_name,
+                                     bool nullable = false) {
+#if TILEDB_VERSION >= TileDB_Version(2,18,0)
+    check_xptr_tag<tiledb::Query>(query);
+    tiledb::QueryChannel channel = tiledb::QueryExperimental::get_default_channel(*query.get());
+    if (operator_name == "Sum") {
+        tiledb::ChannelOperation operation = tiledb::QueryExperimental::create_unary_aggregate<tiledb::SumOperator>(*query.get(), attribute_name);
+        channel.apply_aggregate(operator_name, operation);
+    } else if (operator_name == "Min") {
+        tiledb::ChannelOperation operation = tiledb::QueryExperimental::create_unary_aggregate<tiledb::MinOperator>(*query.get(), attribute_name);
+        channel.apply_aggregate(operator_name, operation);
+    } else if (operator_name == "Max") {
+        tiledb::ChannelOperation operation = tiledb::QueryExperimental::create_unary_aggregate<tiledb::MaxOperator>(*query.get(), attribute_name);
+        channel.apply_aggregate(operator_name, operation);
+    } else if (operator_name == "Mean") {
+        tiledb::ChannelOperation operation = tiledb::QueryExperimental::create_unary_aggregate<tiledb::MeanOperator>(*query.get(), attribute_name);
+        channel.apply_aggregate(operator_name, operation);
+    } else if (operator_name == "NullCount") {
+        tiledb::ChannelOperation operation = tiledb::QueryExperimental::create_unary_aggregate<tiledb::NullCountOperator>(*query.get(), attribute_name);
+        channel.apply_aggregate(operator_name, operation);
+    } else if (operator_name == "Count") {
+        channel.apply_aggregate(operator_name, tiledb::CountOperation());
+    } else {
+        Rcpp::stop("Invalid aggregation operator '%s' specified.", operator_name.c_str());
+    }
+    std::vector<uint8_t> nulls = { 0 };
+    uint64_t size = 1;
+    if (operator_name == "NullCount" || operator_name == "Count") {
+        // Count and null count take uint64_t.
+        uint64_t result = 0;
+        query->set_data_buffer(operator_name, &result, size);
+        if (nullable && operator_name != "NullCount") {   // no validity buffer for NullCount
+            query->set_validity_buffer(operator_name, nulls);
+        }
+        query->submit();
+        return Rcpp::wrap(result);
+    } else if (operator_name == "Mean") {
+        // Mean always takes in a double.
+        return apply_unary_aggregate<double>(query, operator_name, nullable);
+    } else if (operator_name == "Sum") {
+        // Sum will take int64_t for signed integers, uint64_t for unsigned integers
+        // and double for floating point values.
+        tiledb::Context ctx = query->ctx();
+        auto arr = query->array();
+        auto sch = tiledb::ArraySchema(ctx, arr.uri());
+        auto attr = tiledb::Attribute(sch.attribute(attribute_name));
+        std::string type_name = _tiledb_datatype_to_string(attr.type());
+        if (type_name == "INT8" || type_name == "INT16" ||
+            type_name == "INT32" || type_name == "INT64") {
+            return apply_unary_aggregate<int64_t>(query, operator_name, nullable);
+        } else if (type_name == "UINT8" || type_name == "UINT16" ||
+                   type_name == "UINT32" || type_name == "UINT64") {
+            return apply_unary_aggregate<uint64_t>(query, operator_name, nullable);
+        } else if (type_name == "FLOAT32" || type_name == "FLOAT64") {
+            return apply_unary_aggregate<double>(query, operator_name, nullable);
+        } else {
+            Rcpp::stop("'Sum' operator not valid for attribute '%s' of type '%s'",
+                       attribute_name, type_name);
+        }
+    } else if (operator_name == "Min" || operator_name == "Max") {
+        // Min/max will take whatever the datatype of the column is.
+        tiledb::Context ctx = query->ctx();
+        auto arr = query->array();
+        auto sch = tiledb::ArraySchema(ctx, arr.uri());
+        auto attr = tiledb::Attribute(sch.attribute(attribute_name));
+        std::string type_name = _tiledb_datatype_to_string(attr.type());
+        switch (attr.type()) {
+        case TILEDB_INT8:    return apply_unary_aggregate<int16_t>(query, operator_name, nullable);  // int8_t bites char
+        case TILEDB_INT16:   return apply_unary_aggregate<int16_t>(query, operator_name, nullable);
+        case TILEDB_INT32:   return apply_unary_aggregate<int32_t>(query, operator_name, nullable);
+        case TILEDB_INT64:   return apply_unary_aggregate<int64_t>(query, operator_name, nullable);
+        case TILEDB_UINT8:   return apply_unary_aggregate<uint16_t>(query, operator_name, nullable); // uint8_t bites char
+        case TILEDB_UINT16:  return apply_unary_aggregate<uint16_t>(query, operator_name, nullable);
+        case TILEDB_UINT32:  return apply_unary_aggregate<uint32_t>(query, operator_name, nullable);
+        case TILEDB_UINT64:  return apply_unary_aggregate<uint64_t>(query, operator_name, nullable);
+        case TILEDB_FLOAT32: return apply_unary_aggregate<float>(query, operator_name, nullable);
+        case TILEDB_FLOAT64: return apply_unary_aggregate<double>(query, operator_name, nullable);
+        default: Rcpp::stop("'%s' is not defined for attribute '%s' of type '%s'",
+                            operator_name, attribute_name, type_name);
+        }
+    } else {
+        Rcpp::stop("'%s' is not implemented for '%s'", operator_name, attribute_name);
+    }
+#else
+    return Rcpp::wrap(R_NaReal);
+#endif
+}
 
 /**
  * Query Condition
@@ -3762,6 +4005,12 @@ const char* _tiledb_query_condition_op_to_string(tiledb_query_condition_op_t op)
         return "EQ";
     case TILEDB_NE:
         return "NE";
+#if TILEDB_VERSION >= TileDB_Version(2,17,0)
+    case TILEDB_IN:
+        return "IN";
+    case TILEDB_NOT_IN:
+        return "NOT_IN";
+#endif
     default:
         Rcpp::stop("Unknown condition op (%d)", op);
     }
@@ -3780,6 +4029,12 @@ tiledb_query_condition_op_t _tiledb_query_string_to_condition_op(const std::stri
         return TILEDB_EQ;
     } else if (opstr == "NE") {
         return TILEDB_NE;
+#if TILEDB_VERSION >= TileDB_Version(2,17,0)
+    } else if (opstr == "IN") {
+        return TILEDB_IN;
+    } else if (opstr == "NOT_IN") {
+        return TILEDB_NOT_IN;
+#endif
     } else {
         Rcpp::stop("Unknown TileDB op string '%s'", opstr.c_str());
     }
@@ -3891,6 +4146,39 @@ void libtiledb_query_condition_set_use_enumeration(XPtr<tiledb::Context> ctx,
 #if TILEDB_VERSION >= TileDB_Version(2,17,0)
     tiledb::QueryConditionExperimental::set_use_enumeration(*ctx.get(), *cond.get(), use_enumeration);
 #endif
+}
+
+// [[Rcpp::export]]
+XPtr<tiledb::QueryCondition>
+libtiledb_query_condition_create(XPtr<tiledb::Context> ctx, const std::string& name,
+                                 SEXP vec, const std::string& cond_op_string) {
+    check_xptr_tag<tiledb::Context>(ctx);
+#if TILEDB_VERSION >= TileDB_Version(2,17,0)
+    tiledb_query_condition_op_t op = _tiledb_query_string_to_condition_op(cond_op_string);
+    // consider three cases of 'vec' based on R types:  int, double and int64-as-double
+    if (TYPEOF(vec) == INTSXP) {
+        std::vector<int32_t> iv = Rcpp::as<std::vector<int32_t>>(vec);
+        auto qc = tiledb::QueryConditionExperimental::create<int32_t>(*ctx.get(), name, iv, op);
+        return make_xptr<tiledb::QueryCondition>(new tiledb::QueryCondition(qc));
+    } else if (TYPEOF(vec) == REALSXP) {
+        if (Rcpp::isInteger64(vec)) {
+            std::vector<int64_t> dv = Rcpp::fromInteger64(Rcpp::NumericVector(vec));
+            auto qc = tiledb::QueryConditionExperimental::create<int64_t>(*ctx.get(), name, dv, op);
+            return make_xptr<tiledb::QueryCondition>(new tiledb::QueryCondition(qc));
+        } else {
+            std::vector<double> dv = Rcpp::as<std::vector<double>>(vec);
+            auto qc = tiledb::QueryConditionExperimental::create<double>(*ctx.get(), name, dv, op);
+            return make_xptr<tiledb::QueryCondition>(new tiledb::QueryCondition(qc));
+        }
+    } else if (TYPEOF(vec) == STRSXP) {
+        std::vector<std::string> sv = Rcpp::as<std::vector<std::string>>(vec);
+        auto qc = tiledb::QueryConditionExperimental::create(*ctx.get(), name, sv, op);
+        return make_xptr<tiledb::QueryCondition>(new tiledb::QueryCondition(qc));
+    } else {
+        Rcpp::stop("No support (yet) for type '%s'.", Rcpp::type2name(vec));
+    }
+#endif
+    return make_xptr<tiledb::QueryCondition>(R_NilValue);
 }
 
 
@@ -4142,11 +4430,15 @@ XPtr<vfs_fh_t> libtiledb_vfs_open(XPtr<tiledb::Context> ctxxp, XPtr<tiledb::VFS>
   check_xptr_tag<tiledb::VFS>(vfsxp);
   std::shared_ptr<tiledb_ctx_t> ctx = ctxxp.get()->ptr();
   std::shared_ptr<tiledb_vfs_t> vfs = vfsxp.get()->ptr();
+#if TILEDB_VERSION >= TileDB_Version(2,15,0)
+  tiledb_vfs_fh_handle_t *fh = nullptr;
+#else
   tiledb_vfs_fh_t *fh = nullptr;
+#endif
   tiledb_vfs_mode_t vfsmode = _string_to_tiledb_vfs_mode_t(mode);
   tiledb_vfs_open(ctx.get(), vfs.get(), uri.c_str(), vfsmode, &fh);
   XPtr<vfs_fh_t> ptr = make_xptr<vfs_fh_t>(new vfs_fh_t);
-  ptr->fh = static_cast<void*>(fh);
+  ptr->fh = fh;
   return ptr;
 }
 
@@ -4155,7 +4447,7 @@ void libtiledb_vfs_close(XPtr<tiledb::Context> ctxxp, XPtr<vfs_fh_t> fh) {
   check_xptr_tag<tiledb::Context>(ctxxp);
   check_xptr_tag<vfs_fh_t>(fh);
   std::shared_ptr<tiledb_ctx_t> ctx = ctxxp.get()->ptr();
-  tiledb_vfs_close(ctx.get(), static_cast<tiledb_vfs_fh_t*>(fh->fh));
+  tiledb_vfs_close(ctx.get(), fh->fh);
 }
 
 // [[Rcpp::export]]
@@ -4164,8 +4456,7 @@ void libtiledb_vfs_write(XPtr<tiledb::Context> ctxxp, XPtr<vfs_fh_t> fh,
   check_xptr_tag<tiledb::Context>(ctxxp);
   check_xptr_tag<vfs_fh_t>(fh);
   std::shared_ptr<tiledb_ctx_t> ctx = ctxxp.get()->ptr();
-  tiledb_vfs_write(ctx.get(), static_cast<tiledb_vfs_fh_t*>(fh->fh),
-                   &(vec[0]), vec.size()*sizeof(int));
+  tiledb_vfs_write(ctx.get(), fh->fh, &(vec[0]), vec.size()*sizeof(int));
 }
 
 // [[Rcpp::export]]
@@ -4177,7 +4468,7 @@ Rcpp::IntegerVector libtiledb_vfs_read(XPtr<tiledb::Context> ctxxp, XPtr<vfs_fh_
   std::int64_t offs = fromInteger64(offset);
   std::int64_t nb = fromInteger64(nbytes);
   Rcpp::IntegerVector buf(nb/4);
-  tiledb_vfs_read(ctx.get(), static_cast<tiledb_vfs_fh_t*>(fh->fh), offs, &(buf[0]), nb);
+  tiledb_vfs_read(ctx.get(), fh->fh, offs, &(buf[0]), nb);
   return buf;
 }
 
@@ -4186,7 +4477,7 @@ void libtiledb_vfs_sync(XPtr<tiledb::Context> ctxxp, XPtr<vfs_fh_t> fh) {
   check_xptr_tag<tiledb::Context>(ctxxp);
   check_xptr_tag<vfs_fh_t>(fh);
   std::shared_ptr<tiledb_ctx_t> ctx = ctxxp.get()->ptr();
-  tiledb_vfs_sync(ctx.get(), static_cast<tiledb_vfs_fh_t*>(fh->fh));
+  tiledb_vfs_sync(ctx.get(), fh->fh);
 }
 
 // [[Rcpp::export]]
@@ -4199,6 +4490,24 @@ double libtiledb_vfs_dir_size(XPtr<tiledb::VFS> vfs, std::string uri) {
 std::vector<std::string> libtiledb_vfs_ls(XPtr<tiledb::VFS> vfs, std::string uri) {
     check_xptr_tag<tiledb::VFS>(vfs);
     return vfs->ls(uri);
+}
+
+// [[Rcpp::export]]
+std::string libtiledb_vfs_copy_file(XPtr<tiledb::VFS> vfs, std::string old_uri, std::string new_uri) {
+    check_xptr_tag<tiledb::VFS>(vfs);
+    vfs->copy_file(old_uri, new_uri);
+    return new_uri;
+}
+
+// [[Rcpp::export]]
+void libtiledb_vfs_fh_free(XPtr<vfs_fh_t> fhxp) {
+    check_xptr_tag<vfs_fh_t>(fhxp);
+    spdl::trace("[libtiledb_vfs_clear_handle] entered");
+    vfs_fh_t* strptr = fhxp.get();
+#if TILEDB_VERSION >= TileDB_Version(2,15,0)
+    tiledb_vfs_fh_handle_t *fh = strptr->fh;
+    tiledb_vfs_fh_free(&fh);
+#endif
 }
 
 /**

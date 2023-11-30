@@ -302,6 +302,14 @@ libtiledb_attribute_has_enumeration <- function(ctx, attr) {
     .Call(`_tiledb_libtiledb_attribute_has_enumeration`, ctx, attr)
 }
 
+libtiledb_attribute_get_enumeration_type <- function(ctx, attr, arr) {
+    .Call(`_tiledb_libtiledb_attribute_get_enumeration_type`, ctx, attr, arr)
+}
+
+libtiledb_attribute_get_enumeration_vector <- function(ctx, attr, arr) {
+    .Call(`_tiledb_libtiledb_attribute_get_enumeration_vector`, ctx, attr, arr)
+}
+
 libtiledb_attribute_get_enumeration <- function(ctx, attr, arr) {
     .Call(`_tiledb_libtiledb_attribute_get_enumeration`, ctx, attr, arr)
 }
@@ -442,6 +450,10 @@ libtiledb_array_schema_set_enumeration <- function(ctx, schema, attr, enum_name,
     .Call(`_tiledb_libtiledb_array_schema_set_enumeration`, ctx, schema, attr, enum_name, values, nullable, ordered)
 }
 
+libtiledb_array_schema_set_enumeration_empty <- function(ctx, schema, attr, enum_name, type_str, cell_val_num, ordered) {
+    .Call(`_tiledb_libtiledb_array_schema_set_enumeration_empty`, ctx, schema, attr, enum_name, type_str, cell_val_num, ordered)
+}
+
 libtiledb_array_schema_evolution <- function(ctx) {
     .Call(`_tiledb_libtiledb_array_schema_evolution`, ctx)
 }
@@ -462,8 +474,16 @@ libtiledb_array_schema_evolution_add_enumeration <- function(ctx, ase, enum_name
     .Call(`_tiledb_libtiledb_array_schema_evolution_add_enumeration`, ctx, ase, enum_name, values, nullable, ordered)
 }
 
+libtiledb_array_schema_evolution_add_enumeration_empty <- function(ctx, ase, enum_name, type_str, cell_val_num, ordered = FALSE) {
+    .Call(`_tiledb_libtiledb_array_schema_evolution_add_enumeration_empty`, ctx, ase, enum_name, type_str, cell_val_num, ordered)
+}
+
 libtiledb_array_schema_evolution_drop_enumeration <- function(ase, attrname) {
     .Call(`_tiledb_libtiledb_array_schema_evolution_drop_enumeration`, ase, attrname)
+}
+
+libtiledb_array_schema_evolution_extend_enumeration <- function(ctx, ase, array, enum_name, new_values, nullable = FALSE, ordered = FALSE) {
+    .Call(`_tiledb_libtiledb_array_schema_evolution_extend_enumeration`, ctx, ase, array, enum_name, new_values, nullable, ordered)
 }
 
 libtiledb_array_create <- function(uri, schema) {
@@ -590,8 +610,8 @@ libtiledb_array_open_timestamp_end <- function(array) {
     .Call(`_tiledb_libtiledb_array_open_timestamp_end`, array)
 }
 
-libtiledb_array_delete_fragments <- function(array, tstamp_start, tstamp_end) {
-    invisible(.Call(`_tiledb_libtiledb_array_delete_fragments`, array, tstamp_start, tstamp_end))
+libtiledb_array_delete_fragments <- function(ctx, array, tstamp_start, tstamp_end) {
+    invisible(.Call(`_tiledb_libtiledb_array_delete_fragments`, ctx, array, tstamp_start, tstamp_end))
 }
 
 libtiledb_array_has_enumeration <- function(ctx, arr, name) {
@@ -794,6 +814,10 @@ libtiledb_query_get_ctx <- function(query) {
     .Call(`_tiledb_libtiledb_query_get_ctx`, query)
 }
 
+libtiledb_query_apply_aggregate <- function(query, attribute_name, operator_name, nullable = FALSE) {
+    .Call(`_tiledb_libtiledb_query_apply_aggregate`, query, attribute_name, operator_name, nullable)
+}
+
 libtiledb_query_condition <- function(ctx) {
     .Call(`_tiledb_libtiledb_query_condition`, ctx)
 }
@@ -808,6 +832,10 @@ libtiledb_query_condition_combine <- function(lhs, rhs, str) {
 
 libtiledb_query_condition_set_use_enumeration <- function(ctx, cond, use_enumeration) {
     invisible(.Call(`_tiledb_libtiledb_query_condition_set_use_enumeration`, ctx, cond, use_enumeration))
+}
+
+libtiledb_query_condition_create <- function(ctx, name, vec, cond_op_string) {
+    .Call(`_tiledb_libtiledb_query_condition_create`, ctx, name, vec, cond_op_string)
 }
 
 libtiledb_zip_coords_numeric <- function(coords, coord_length) {
@@ -924,6 +952,14 @@ libtiledb_vfs_dir_size <- function(vfs, uri) {
 
 libtiledb_vfs_ls <- function(vfs, uri) {
     .Call(`_tiledb_libtiledb_vfs_ls`, vfs, uri)
+}
+
+libtiledb_vfs_copy_file <- function(vfs, old_uri, new_uri) {
+    .Call(`_tiledb_libtiledb_vfs_copy_file`, vfs, old_uri, new_uri)
+}
+
+libtiledb_vfs_fh_free <- function(fhxp) {
+    invisible(.Call(`_tiledb_libtiledb_vfs_fh_free`, fhxp))
 }
 
 libtiledb_stats_enable <- function() {

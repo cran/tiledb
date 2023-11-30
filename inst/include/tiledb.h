@@ -7,13 +7,9 @@
 
 #include <tiledb/tiledb>
 #if TILEDB_VERSION_MAJOR == 2 && TILEDB_VERSION_MINOR >= 4
-#include <tiledb/tiledb_experimental>
-#endif
-#if TILEDB_VERSION_MAJOR == 2 && TILEDB_VERSION_MINOR >= 17
-#include <tiledb/array_experimental.h>
-#include <tiledb/attribute_experimental.h>
-#include <tiledb/enumeration_experimental.h>
-#include <tiledb/query_condition_experimental.h>
+  // this header includes the other experimental headers
+  // condition on the appropriate version is still done in each function
+  #include <tiledb/tiledb_experimental>
 #endif
 
 // Use the 'finalizer on exit' toggle in the XPtr template to ensure
@@ -76,7 +72,11 @@ typedef std::unordered_map<std::string, std::shared_ptr<tiledb::ColumnBuffer>> m
 
 // C++ compiler complains about missing delete functionality when we use tiledb_vfs_fh_t directly
 struct vfs_fh {
-   void *fh;
+#if TILEDB_VERSION_MAJOR == 2 && TILEDB_VERSION_MINOR >= 15
+    tiledb_vfs_fh_handle_t* fh;
+#else
+    tiledb_vfs_fh_t* fh;
+#endif
 };
 typedef struct vfs_fh vfs_fh_t;
 
