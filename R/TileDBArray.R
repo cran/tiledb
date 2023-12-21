@@ -63,6 +63,7 @@
 #' \code{/dev/shm}) for writing out results buffers (for internal use / testing)
 #' @slot buffers An optional list with full pathnames of shared memory buffers to read data from
 #' @slot strings_as_factors An optional logical to convert character columns to factor type
+#' @slot keep_open An optional logical to not close after read or write
 #' @slot ptr External pointer to the underlying implementation
 #' @exportClass tiledb_array
 setClass("tiledb_array",
@@ -85,6 +86,7 @@ setClass("tiledb_array",
                       return_as = "character",
                       query_statistics = "logical",
                       strings_as_factors = "logical",
+                      keep_open = "logical",
                       sil = "list",
                       dumpbuffers = "character",
                       buffers = "list",
@@ -135,6 +137,7 @@ setClass("tiledb_array",
 #' \sQuote{query_statistics} of the return object.
 #' @param strings_as_factors An optional logical to convert character columns to factor type; defaults
 #' to the value of \code{getOption("stringsAsFactors", FALSE)}.
+#' @param keep_open An optional logical to not close after read or write
 #' @param sil optional A list, by default empty to store schema information when query objects are
 #' parsed.
 #' @param dumpbuffers An optional character variable with a directory name (relative to
@@ -163,14 +166,15 @@ tiledb_array <- function(uri,
                          return_as = get_return_as_preference(),
                          query_statistics = FALSE,
                          strings_as_factors = getOption("stringsAsFactors", FALSE),
+                         keep_open = FALSE,
                          sil = list(),
                          dumpbuffers = character(),
                          buffers = list(),
                          ctx = tiledb_get_context()) {
-  stopifnot(`Argument 'ctx' must be a tiledb_ctx object` = is(ctx, "tiledb_ctx"),
-            `Argument 'uri' must be a string scalar` = !missing(uri) && is.scalar(uri, "character"),
-            `At most one argument of as.data.frame, as.matrix and as.array can be selected` = sum(as.data.frame, as.matrix, as.array) <= 1,
-            `Argument 'as.matrix' cannot be selected for sparse arrays` = !(isTRUE(is.sparse) && as.matrix))
+  stopifnot("Argument 'ctx' must be a tiledb_ctx object" = is(ctx, "tiledb_ctx"),
+            "Argument 'uri' must be a string scalar" = !missing(uri) && is.scalar(uri, "character"),
+            "At most one argument of as.data.frame, as.matrix and as.array can be selected" = sum(as.data.frame, as.matrix, as.array) <= 1,
+            "Argument 'as.matrix' cannot be selected for sparse arrays" = !(isTRUE(is.sparse) && as.matrix))
   query_type <- match.arg(query_type)
   spdl::debug("[tiledb_array] query is {}", query_type)
   if (sum(as.data.frame, as.matrix, as.array) == 1 && return_as != "asis")
@@ -205,7 +209,7 @@ tiledb_array <- function(uri,
     }
   }
   is.sparse <- is_sparse_status
-  array_xptr <- libtiledb_array_close(array_xptr)
+  if (!keep_open) array_xptr <- libtiledb_array_close(array_xptr)
   new("tiledb_array",
       ctx = ctx,
       uri = uri,
@@ -226,6 +230,7 @@ tiledb_array <- function(uri,
       return_as = return_as,
       query_statistics = query_statistics,
       strings_as_factors = strings_as_factors,
+      keep_open = keep_open,
       sil = sil,
       dumpbuffers = dumpbuffers,
       buffers = buffers,
@@ -307,6 +312,7 @@ setMethod("show", signature = "tiledb_array",
      ,"  return_as          = '", object@return_as, "'\n"
      ,"  query_statistics   = ", if (object@query_statistics) "TRUE" else "FALSE", "\n"
      ,"  strings_as_factors = ", if (object@strings_as_factors) "TRUE" else "FALSE", "\n"
+     ,"  keep_open          = ", if (object@keep_open) "TRUE" else "FALSE", "\n"
      ,sep="")
 })
 
@@ -441,6 +447,11 @@ setValidity("tiledb_array", function(object) {
   if (!is.logical(object@strings_as_factors)) {
     valid <- FALSE
     msg <- c(msg, "The 'strings_as_factors' slot does not contain a logical value.")
+  }
+
+  if (!is.logical(object@keep_open)) {
+    valid <- FALSE
+    msg <- c(msg, "The 'keep_open' slot does not contain a logical value.")
   }
 
   if (valid) TRUE else msg
@@ -961,7 +972,7 @@ setMethod("[", "tiledb_array",
 
           ## close array
           if (status == "COMPLETE") {
-              libtiledb_array_close(arrptr)
+              if (!x@keep_open) libtiledb_array_close(arrptr)
               .pkgenv[["query_status"]] <- status
               finished <- TRUE
           }
@@ -1250,23 +1261,27 @@ setMethod("[<-", "tiledb_array",
   dimtypes <- sapply(dims, function(d) libtiledb_dim_get_datatype(d@ptr))
   dimvarnum <- sapply(dims, function(d) libtiledb_dim_get_cell_val_num(d@ptr))
   dimnullable <- sapply(dims, function(d) FALSE)
+  dimdictionary <- sapply(dims, function(d) FALSE)
 
   attrs <- tiledb::attrs(schema(x))
   attrnames <- unname(sapply(attrs, function(a) libtiledb_attribute_get_name(a@ptr)))
   attrtypes <- unname(sapply(attrs, function(a) libtiledb_attribute_get_type(a@ptr)))
   attrvarnum <- unname(sapply(attrs, function(a) libtiledb_attribute_get_cell_val_num(a@ptr)))
   attrnullable <- unname(sapply(attrs, function(a) libtiledb_attribute_get_nullable(a@ptr)))
+  attrdictionary <- unname(sapply(attrs, function(a) libtiledb_attribute_has_enumeration(ctx@ptr, a@ptr)))
 
   if (length(attrnames) > 0) {
       allnames <- c(dimnames, attrnames)
       alltypes <- c(dimtypes, attrtypes)
       allvarnum <- c(dimvarnum, attrvarnum)
       allnullable <- c(dimnullable, attrnullable)
+      alldictionary <- c(dimdictionary, attrdictionary)
   } else {
       allnames <- dimnames
       alltypes <- dimtypes
       allvarnum <- dimvarnum
       allnullable <- dimnullable
+      alldictionary <- dimdictionary
   }
 
   ## check we have complete columns (as we cannot write subset of attributes)
@@ -1325,6 +1340,7 @@ setMethod("[<-", "tiledb_array",
       allnames <- attrnames
       alltypes <- attrtypes
       allnullable <- attrnullable
+      alldictionary <- attrdictionary
     }
 
   ## Case 4: dense, list on RHS e.g. the ex_1.R example
@@ -1342,6 +1358,7 @@ setMethod("[<-", "tiledb_array",
     allnames <- attrnames
     alltypes <- attrtypes
     allnullable <- attrnullable
+    alldictionary <- attrdictionary
   }
 
   nc <- if (is.list(value)) length(value) else ncol(value)
@@ -1381,6 +1398,38 @@ setMethod("[<-", "tiledb_array",
     for (colnam in allnames) {
       ## when an index column is use this may be unordered to remap to position in 'nm' names
       k <- match(colnam, nm)
+
+      if (alldictionary[k]) {
+          spdl::trace("[tiledb_array] '[<-' column {} ({}) is factor", colnam, k)
+          new_levels <- levels(value[[k]])
+
+          attr <- attrs[[allnames[k]]]
+          tpstr <- tiledb_attribute_get_enumeration_type_ptr(attr, arrptr)
+          if (tpstr %in% c("ASCII", "UTF8")) {
+              dictionary <- tiledb_attribute_get_enumeration_ptr(attr, arrptr)
+          } else if (tpstr %in% c("FLOAT32", "FLOAT64", "BOOL", "UINT8", "UINT16", "UINT32", "UINT64",
+                                  "INT8", "INT16", "INT32", "INT64")) {
+              dictionary <- tiledb_attribute_get_enumeration_vector_ptr(attr, arrptr)
+          } else {
+              stop("Unsupported enumeration vector payload of type '%s'", tpstr, call. = FALSE)
+          }
+          added_enums <- setdiff(new_levels, dictionary)
+          if (length(added_enums) > 0) {
+              spdl::debug("[tiledb_array] '[<-' Adding levels {}", paste(added_enums, collapse=","))
+              levels <- unique(c(dictionary, new_levels))
+              is_ordered <- tiledb_attribute_is_ordered_enumeration_ptr(attr, arrptr)
+              value[[k]] <- factor(value[[k]], levels = levels, ordered = is_ordered)
+              spdl::trace("[tiledb_array] '[<-' releveled column {} {}", k, is_ordered)
+              ase <- tiledb_array_schema_evolution()
+              if (!tiledb_array_is_open(x))
+                  arr <- tiledb_array_open(x)
+              else
+                  arr <- x
+              ase <- tiledb_array_schema_evolution_extend_enumeration(ase, arr, allnames[[k]], added_enums)
+              tiledb::tiledb_array_schema_evolution_array_evolve(ase, uri)
+          }
+      }
+
       if (alltypes[k] %in% c("CHAR", "ASCII", "UTF8")) { # variable length
         txtvec <- as.character(value[[k]])
         spdl::debug("[tiledb_array] '[<-' alloc char buffer {} '{}': {}", k, colnam, alltypes[k])
@@ -1410,7 +1459,7 @@ setMethod("[<-", "tiledb_array",
     }
 
     qryptr <- libtiledb_query_submit(qryptr)
-    libtiledb_array_close(arrptr)
+    if (!x@keep_open) libtiledb_array_close(arrptr)
 
   }
   invisible(x)

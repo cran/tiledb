@@ -1,3 +1,34 @@
+# tiledb 0.23.0
+
+* This release of the R package builds against [TileDB 2.19.0](https://github.com/TileDB-Inc/TileDB/releases/tag/2.19.0), and has also been tested against earlier releases as well as the development version (#641)
+
+## Improvements
+
+* A TileDB Array can now be opened in 'keep open' mode for subsequent use without re-opening (#630)
+
+* Arrays with factor (or ordered) variables now grow their factor levels in appending writes (#639)
+
+* Initialization of object walk order in recursive mode is now more explicit (#640)
+
+* Use of TileDB Embedded was upgraded to release 2.18.3 (#638), and 2.19.0 (#641)
+
+## Bug Fixes
+
+* The read buffer is now correctly sized when implementing VFS serialization (#631)
+
+## Build and Test Systems
+
+* Builds from TileDB Core non-release tarballs are now supported via new configure option (#627)
+
+* Tests are more careful about using suggested packages only when present (#632)
+
+* When building TileDB Core, shared linking is now requested explicitly (#634)
+
+* Nightly automated checks now include Core release-2.19 and add the 'curl' binary (#635)
+
+* Builds on maOS now set release 11 ('Big Sur') as the required minimum version (#636)
+
+
 # tiledb 0.22.0
 
 * This release of the R package builds against [TileDB 2.18.0](https://github.com/TileDB-Inc/TileDB/releases/tag/2.18.0), [TileDB 2.18.1](https://github.com/TileDB-Inc/TileDB/releases/tag/2.18.1),  [TileDB 2.18.2](https://github.com/TileDB-Inc/TileDB/releases/tag/2.18.2) and has also been tested against earlier releases as well as the development version (#620,#621,#624)
@@ -20,7 +51,7 @@
 
 ## Documentation
 
-* The README now contains badges for the r-universe and Anaconda versions (in addition to CRAN) (#617)
+* The README now contains a badge for the r-universe version (in addition to CRAN) (#617)
 
 
 # tiledb 0.21.3
