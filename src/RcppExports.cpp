@@ -115,7 +115,7 @@ BEGIN_RCPP
 END_RCPP
 }
 // libtiledb_to_arrow
-Rcpp::List libtiledb_to_arrow(Rcpp::XPtr<tiledb::ArrayBuffers> ab, Rcpp::XPtr<tiledb::Query> qry, Rcpp::List dicts);
+nanoarrowXPtr libtiledb_to_arrow(Rcpp::XPtr<tiledb::ArrayBuffers> ab, Rcpp::XPtr<tiledb::Query> qry, Rcpp::List dicts);
 RcppExport SEXP _tiledb_libtiledb_to_arrow(SEXP abSEXP, SEXP qrySEXP, SEXP dictsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
@@ -1845,6 +1845,19 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< XPtr<tiledb::Array> >::type array(arraySEXP);
     rcpp_result_gen = Rcpp::wrap(libtiledb_array_has_enumeration_vector(ctx, array));
     return rcpp_result_gen;
+END_RCPP
+}
+// libtiledb_array_upgrade_version
+void libtiledb_array_upgrade_version(XPtr<tiledb::Context> ctx, XPtr<tiledb::Array> array, std::string& uri, Rcpp::Nullable<XPtr<tiledb::Config>> cfg);
+RcppExport SEXP _tiledb_libtiledb_array_upgrade_version(SEXP ctxSEXP, SEXP arraySEXP, SEXP uriSEXP, SEXP cfgSEXP) {
+BEGIN_RCPP
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< XPtr<tiledb::Context> >::type ctx(ctxSEXP);
+    Rcpp::traits::input_parameter< XPtr<tiledb::Array> >::type array(arraySEXP);
+    Rcpp::traits::input_parameter< std::string& >::type uri(uriSEXP);
+    Rcpp::traits::input_parameter< Rcpp::Nullable<XPtr<tiledb::Config>> >::type cfg(cfgSEXP);
+    libtiledb_array_upgrade_version(ctx, array, uri, cfg);
+    return R_NilValue;
 END_RCPP
 }
 // libtiledb_query
@@ -3737,6 +3750,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_tiledb_libtiledb_array_has_enumeration", (DL_FUNC) &_tiledb_libtiledb_array_has_enumeration, 3},
     {"_tiledb_libtiledb_array_get_enumeration", (DL_FUNC) &_tiledb_libtiledb_array_get_enumeration, 3},
     {"_tiledb_libtiledb_array_has_enumeration_vector", (DL_FUNC) &_tiledb_libtiledb_array_has_enumeration_vector, 2},
+    {"_tiledb_libtiledb_array_upgrade_version", (DL_FUNC) &_tiledb_libtiledb_array_upgrade_version, 4},
     {"_tiledb_libtiledb_query", (DL_FUNC) &_tiledb_libtiledb_query, 3},
     {"_tiledb_libtiledb_query_type", (DL_FUNC) &_tiledb_libtiledb_query_type, 1},
     {"_tiledb_libtiledb_query_set_layout", (DL_FUNC) &_tiledb_libtiledb_query_set_layout, 2},

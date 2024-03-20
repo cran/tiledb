@@ -1,9 +1,7 @@
 library(tinytest)
 library(tiledb)
 
-isOldWindows <- Sys.info()[["sysname"]] == "Windows" && grepl('Windows Server 2008', osVersion)
 isWindows <- Sys.info()[["sysname"]] == "Windows"
-if (isOldWindows) exit_file("skip this file on old Windows releases")
 
 #if (Sys.getenv("_RUNNING_UNDER_VALGRIND_", "FALSE") == "TRUE" && Sys.Date() < as.Date("2022-08-06")) exit_file("Skipping under valgrind until Aug 6")
 
@@ -525,6 +523,17 @@ res <- tiledb_array(uri, return_as="data.frame", query_condition=qc)[]
 expect_true(all(res$year != "2008"))
 expect_true(all(res$island == "Torgersen"))
 
+## For TileDB 2.21.* and later, do not fail on non-existing values
+if (tiledb_version(TRUE) >= "2.21.0") {
+    ## Non-existing values no longer throw
+    expect_silent(res <- tiledb_array(uri, return_as="data.frame",
+                                      query_condition=parse_query_condition(island == "Frobnidang"))[])
+    expect_equal(nrow(res), 0)
+    ## And empty results, even when not from enums, work fine too
+    expect_silent(res <- tiledb_array(uri, return_as="data.frame",
+                                      query_condition=parse_query_condition(year == 2024))[])
+    expect_equal(nrow(res), 0)
+}
 
 ## int64
 df <- data.frame(ind=1:10, val=as.integer64(1:10))

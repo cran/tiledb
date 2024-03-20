@@ -1,9 +1,6 @@
 library(tinytest)
 library(tiledb)
 
-isOldWindows <- Sys.info()[["sysname"]] == "Windows" && grepl('Windows Server 2008', osVersion)
-if (isOldWindows) exit_file("skip this file on old Windows releases")
-
 tiledb_ctx(limitTileDBCores())
 
 .createArray <- function(tmp) {
@@ -292,3 +289,22 @@ expect_silent(tiledb_query_set_subarray(qry, c(1L,5L), "INT32"))
 expect_silent(tiledb_query_submit(qry))
 expect_silent(tiledb_query_finalize(qry))
 expect_equal(tiledb_query_status(qry), "COMPLETE")
+
+
+uri <- tempfile()
+pp <- palmerpenguins::penguins
+fromDataFrame(pp, uri, sparse = TRUE, col_index = c("species", "year"))
+## dim 1: species
+qry <- tiledb_query(tiledb_array(uri), "READ")
+expect_equal(tiledb_query_get_range_num(qry, 1), 1)
+qry <- tiledb_query(tiledb_array(uri), "READ")
+expect_equal(tiledb_query_get_range_var(qry, 1, 1), c("", ""))
+qry <- tiledb_query(tiledb_array(uri), "READ")
+expect_error(tiledb_query_get_range_var(qry, 1, 2))  # wrong range
+## dim 2: year
+qry <- tiledb_query(tiledb_array(uri), "READ")
+expect_equal(tiledb_query_get_range_num(qry, 2), 1)
+qry <- tiledb_query(tiledb_array(uri), "READ")
+expect_equal(tiledb_query_get_range(qry, 2, 1), c(2007, 2009, 0))
+qry <- tiledb_query(tiledb_array(uri), "READ")
+expect_error(tiledb_query_get_range(qry, 2, 2))  # wrong range
