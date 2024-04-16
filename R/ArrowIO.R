@@ -27,12 +27,12 @@
 ##' @param query A TileDB Query object
 ##' @param name A character variable identifying the buffer
 ##' @param ctx tiledb_ctx object (optional)
-##' @return A two-element vector where the two elements are
-##' external pointers to the Arrow array and schema
+##' @return A \code{nanoarrow} object (which is an external pointer to an Arrow Array
+##' with the Arrow Schema stored as the external pointer tag) classed as an S3 object
 ##' @export
 tiledb_query_export_buffer <- function(query, name, ctx = tiledb_get_context()) {
-    stopifnot(`The 'query' argument must be a tiledb query` = is(query, "tiledb_query"),
-              `The 'name' argument must be character` = is.character(name))
+    stopifnot("The 'query' argument must be a tiledb query" = is(query, "tiledb_query"),
+              "The 'name' argument must be character" = is.character(name))
     res <- libtiledb_query_export_buffer(ctx@ptr, query@ptr, name)
     res
 }
@@ -43,46 +43,53 @@ tiledb_query_export_buffer <- function(query, name, ctx = tiledb_get_context()) 
 ##' from two Arrow exerternal pointers.
 ##' @param query A TileDB Query object
 ##' @param name A character variable identifying the buffer
-##' @param arrowpointers A two-element list vector with two external pointers
-##' to an Arrow Array and Schema, respectively
+##' @param nanoarrowptr A \code{nanoarrow} object (which is an external pointer to an Arrow Array
+##' with the Arrow Schema stored as the external pointer tag) classed as an S3 object
 ##' @param ctx tiledb_ctx object (optional)
 ##' @return The update Query external pointer is returned
 ##' @export
-tiledb_query_import_buffer <- function(query, name, arrowpointers, ctx = tiledb_get_context()) {
-    stopifnot(`The 'query' argument must be a tiledb query` = is(query, "tiledb_query"),
-              `The 'name' argument must be character` = is.character(name),
-              `The 'arrowpointers' argument must be list of length two` = is.list(arrowpointers) && length(arrowpointers)==2)
-    query@ptr <- libtiledb_query_import_buffer(ctx@ptr, query@ptr, name, arrowpointers)
+tiledb_query_import_buffer <- function(query, name, nanoarrowptr, ctx = tiledb_get_context()) {
+    stopifnot("The 'query' argument must be a tiledb query" = is(query, "tiledb_query"),
+              "The 'name' argument must be character" = is.character(name),
+              "The 'nanoarrowptr' argument must be an 'nanoarrow' array object" =
+                  inherits(nanoarrowptr, "nanoarrow_array"))
+    query@ptr <- libtiledb_query_import_buffer(ctx@ptr, query@ptr, name, nanoarrowptr)
     query
 }
 
-##' Allocate (or Release) Arrow Array and Schema Pointers
+##' (Deprecated) Allocate (or Release) Arrow Array and Schema Pointers
 ##'
 ##' These functions allocate (and free) appropriate pointer objects
-##' for, respectively, Arrow array and schema objects.
+##' for, respectively, Arrow array and schema objects. These functions are
+##' deprecated and will be removed, it is recommended to rely directly on
+##' the `nanoarrow` replacements.
 ##' @param ptr A external pointer object previously allocated with these functions
 ##' @return The allocating functions return the requested pointer
 ##' @export
 tiledb_arrow_array_ptr <- function() {
-    res <- .allocate_arrow_array_as_xptr()
+    .Deprecated(msg="tiledb_arrow_array_ptr() is deprecated, please use nanoarrow::nanoarrow_allocate_array() instead.")
+    res <- nanoarrow::nanoarrow_allocate_array()
 }
 
 ##' @rdname tiledb_arrow_array_ptr
 ##' @export
 tiledb_arrow_schema_ptr <- function() {
-    res <- .allocate_arrow_schema_as_xptr()
+    .Deprecated(msg="tiledb_arrow_schema_ptr() is deprecated, please use nanoarrow::nanoarrow_allocate_schema() instead.")
+    res <- nanoarrow::nanoarrow_allocate_schema()
 }
 
 ##' @rdname tiledb_arrow_array_ptr
 ##' @export
 tiledb_arrow_array_del <- function(ptr) {
-    .delete_arrow_array_from_xptr(ptr)
+    .Deprecated(msg="tiledb_arrow_array_del() is deprecated, please use nanoarrow::nanoarrow_pointer_release() instead.")
+    nanoarrow::nanoarrow_pointer_release(ptr)
 }
 
 ##' @rdname tiledb_arrow_array_ptr
 ##' @export
 tiledb_arrow_schema_del <- function(ptr) {
-    .delete_arrow_schema_from_xptr(ptr)
+    .Deprecated(msg="tiledb_arrow_schema_del() is deprecated, please use nanoarrow::nanoarrow_pointer_release() instead.")
+    nanoarrow::nanoarrow_pointer_release(ptr)
 }
 
 ##' @noRd

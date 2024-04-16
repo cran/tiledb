@@ -1,5 +1,40 @@
 # tiledb 0.25.0
 
+* This release of the R package builds against [TileDB 2.22.0](https://github.com/TileDB-Inc/TileDB/releases/tag/2.22.0), and has also been tested against earlier releases as well as the development version (#679, #686, #693, #696)
+
+## Improvements
+
+* The display of a `filter_list` is now labeled correctly as a filter list (@cgiachalis in #681 addressing #678)
+
+* The Arrow integration has been simplified using [nanoarrow](https://github.com/apache/arrow-nanoarrow) returning a single `nanoarrow` object; an unexported helper function `nanoarrow2list()` is provided to matching the previous interface (#682, #685)
+
+* An new accessor for recursive listings of (currently S3-only) URI is now available (with TileDB Core >= 2.22.0) (#691)
+
+* Initial support for TILEDB_GEOM_WKB and TILEB_GEOM_WKT has been added (with TileDB Core >= 2.21.0) (#692)
+
+## Bug Fixes
+
+* The column headers now correspond to the column content in the two-column `data.frame` returns by `tiledb_object_walk` (#684 closing #683)
+
+## Build and Test Systems
+
+* The `configure` and `Makevars.in` received a minor update correcting small issues (#680)
+
+* The nightly valgrind run was updated to include release 2.22.0 (#687), release 2.19 and 2.20 have been removed (#695)
+
+## Documentation
+
+* A number of minor typographical and grammar errors in the function documentation has been corrected (@cgiachalis in #681)
+
+## Deprecations
+
+* Functions `tiledb_arrow_array_ptr()`, `tiledb_arrow_schmea_ptr()`, `tiledb_arrow_array_del()` and `tiledb_arrow_schema_del()` are deprecated (in favor of using the corresponding `nanoarrow` functions) and will be removed in a future release (#685)
+
+* The function `tiledb_query_submit_async()` is marked as deprecated (as is the underlying C++ function) and slated for removal in a future release (#694)
+
+
+# tiledb 0.25.0
+
 * This release of the R package builds against [TileDB 2.21.0](https://github.com/TileDB-Inc/TileDB/releases/tag/2.21.0), and has also been tested against earlier releases as well as the development version (#661, #666, #668, #676, #677)
 
 ## Improvements
@@ -14,7 +49,7 @@
 
 * The `tiledb_get_query_range_var()` accessor now correctly calls the range getter for variable-sized dimensions (#662)
 
-* The nighly valgrind check now installs to require `nanoarrow` package (#664)
+* The nightly valgrind check now installs to require `nanoarrow` package (#664)
 
 * Variable cell numbers can now set consistently for all attribute types (#670)
 
@@ -22,7 +57,7 @@
 
 ## Build and Test Systems
 
-* The nighly valgrind run was updated to include release 2.21 (#669)
+* The nightly valgrind run was updated to include release 2.21 (#669)
 
 * Unit tests have been added for the TileDB 'object' functions (#671, #672)
 
@@ -49,7 +84,7 @@
 
 ## Build and Test Systems
 
-* The nighly valgrind run was updated to include release 2.20 (#649)
+* The nightly valgrind run was updated to include release 2.20 (#649)
 
 ## Documentation
 
@@ -122,7 +157,7 @@
 
 ## Build and Test Systems
 
-* The nighly valgrind run was updated to include release 2.18 (#615)
+* The nightly valgrind run was updated to include release 2.18 (#615)
 
 ## Documentation
 
@@ -167,7 +202,7 @@
 
 ## Build and Test Systems
 
-* The nighly valgrind run was updated to include release 2.17 (#603)
+* The nightly valgrind run was updated to include release 2.17 (#603)
 
 
 

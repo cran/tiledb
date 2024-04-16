@@ -98,6 +98,12 @@ const char* _tiledb_datatype_to_string(tiledb_datatype_t dtype) {
     case TILEDB_BOOL:
       return "BOOL";
 #endif
+#if TILEDB_VERSION >= TileDB_Version(2,21,0)
+    case TILEDB_GEOM_WKB:
+      return "GEOM_WKB";
+    case TILEDB_GEOM_WKT:
+      return "GEOM_WKT";
+#endif
     default:
       Rcpp::stop("unknown tiledb_datatype_t (%d)", dtype);
   }
@@ -161,6 +167,12 @@ tiledb_datatype_t _string_to_tiledb_datatype(std::string typestr) {
 #if TILEDB_VERSION >= TileDB_Version(2,10,0)
   } else if (typestr == "BOOL") {
     return TILEDB_BOOL;
+#endif
+#if TILEDB_VERSION >= TileDB_Version(2,21,0)
+  } else if (typestr == "GEOM_WKB") {
+    return TILEDB_GEOM_WKB;
+  } else if (typestr == "GEOM_WKT") {
+    return TILEDB_GEOM_WKT;
 #endif
   } else {
     Rcpp::stop("Unknown TileDB type '%s'", typestr.c_str());
@@ -3185,7 +3197,12 @@ XPtr<query_buf_t> libtiledb_query_buffer_alloc_ptr(std::string domaintype,
      buf->size = sizeof(int16_t);
   } else if (domaintype == "INT8" || domaintype == "UINT8") {
      buf->size = sizeof(int8_t);
-  } else if (domaintype == "BLOB") {
+  } else if (domaintype == "BLOB"
+#if TILEDB_VERSION >= TileDB_Version(2,21,0)
+             || domaintype == "GEOM_WKB"
+             || domaintype == "GEOM_WKT"
+#endif
+             ) {
      buf->size = sizeof(int8_t);
 #if TILEDB_VERSION >= TileDB_Version(2,10,0)
   } else if (domaintype == "BOOL") {
@@ -3540,14 +3557,6 @@ XPtr<tiledb::Query> libtiledb_query_submit(XPtr<tiledb::Query> query) {
   check_xptr_tag<tiledb::Query>(query);
   spdl::trace("[libtiledb_query_submit]");
   query->submit();
-  return query;
-}
-
-// [[Rcpp::export]]
-XPtr<tiledb::Query> libtiledb_query_submit_async(XPtr<tiledb::Query> query) {
-  check_xptr_tag<tiledb::Query>(query);
-  spdl::trace("[libtiledb_query_submit_async]");
-  query->submit_async();
   return query;
 }
 
@@ -4324,8 +4333,8 @@ DataFrame libtiledb_object_walk(XPtr<tiledb::Context> ctx,
         uris.push_back(object.uri());
         types.push_back(_object_type_to_string(object.type()));
     }
-    return Rcpp::DataFrame::create(Rcpp::Named("TYPE") = uris,
-                                   Rcpp::Named("URI") = types);
+    return Rcpp::DataFrame::create(Rcpp::Named("TYPE") = types,
+                                   Rcpp::Named("URI") = uris);
 }
 
 /**
@@ -4525,6 +4534,38 @@ void libtiledb_vfs_fh_free(XPtr<vfs_fh_t> fhxp) {
 #if TILEDB_VERSION >= TileDB_Version(2,15,0)
     tiledb_vfs_fh_handle_t *fh = strptr->fh;
     tiledb_vfs_fh_free(&fh);
+#endif
+}
+
+// [[Rcpp::export]]
+Rcpp::DataFrame libtiledb_vfs_ls_recursive(XPtr<tiledb::Context> ctx,
+                                           XPtr<tiledb::VFS> vfs,
+                                           const std::string& uri) {
+    check_xptr_tag<tiledb::Context>(ctx);
+    check_xptr_tag<tiledb::VFS>(vfs);
+
+#if TILEDB_VERSION >= TileDB_Version(2,22,0)
+    // standard / default list object (a vector of a pair<string, uint64_t?>) and callback
+    tiledb::VFSExperimental::LsObjects ls_objects;
+    tiledb::VFSExperimental::LsCallback cb = [&](const std::string_view& path, uint64_t size) {
+        ls_objects.emplace_back(path, size);
+        return true;  // Continue traversal to next entry.
+    };
+    tiledb::VFSExperimental::ls_recursive(*ctx.get(), *vfs.get(), uri, cb);
+
+    size_t n = ls_objects.size();
+    Rcpp::CharacterVector path(n);
+    std::vector<int64_t> size(n);
+    for (size_t i=0; i<n; i++) {
+        auto obj = ls_objects[i];
+        path[i] = obj.first;
+        size[i] = static_cast<int64_t>(obj.second);
+    }
+    return Rcpp::DataFrame::create(Rcpp::Named("path") = path,
+                                   Rcpp::Named("size") = Rcpp::toInteger64(size));
+#else
+    return Rcpp::DataFrame::create(Rcpp::Named("path") = Rcpp::CharacterVector(),
+                                   Rcpp::Named("size") = Rcpp::NumericVector());
 #endif
 }
 
