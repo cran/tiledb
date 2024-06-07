@@ -1,2 +1,2 @@
-version: 2.23.0
-sha: 152093b
+version: 2.24.0
+sha: ff3879b
