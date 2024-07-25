@@ -38,13 +38,25 @@
 #' }
 #'
 #' @export
-tiledb_array_create <- function(uri, schema, encryption_key) {
+tiledb_array_create <- function(uri, schema, encryption_key) { #, ctx = tiledb_get_context()) {
     stopifnot("The 'uri' argument must be a string scalar" = !missing(uri) && is.scalar(uri, "character"),
               "The 'schema' argument must be a tiledb_array_schema object" = !missing(schema) && is(schema, "tiledb_array_schema"))
-    if (missing(encryption_key)) {
-        invisible(libtiledb_array_create(uri, schema@ptr))
+    if (!missing(encryption_key)) {
+        ## old interface
+        needreset <- FALSE
+        config <- oldconfig <- tiledb_config()
+        if (config["sm.encryption_type"] != "AES_256_GCM" ||
+            config["sm.encryption_key"] != encryption_key) {
+            config["sm.encryption_type"] <- "AES_256_GCM"
+            config["sm.encryption_key"] <- encryption_key
+            ctx <- tiledb::tiledb_ctx(config)
+            needreset <- TRUE
+        }
+        uri <- libtiledb_array_create(uri, schema@ptr)
+        if (needreset) ctx <- tiledb::tiledb_ctx(oldconfig)
+        invisible(uri)
     } else {
-        invisible(libtiledb_array_create_with_key(uri, schema@ptr, encryption_key))
+        invisible(libtiledb_array_create(uri, schema@ptr))
     }
 }
 
@@ -160,6 +172,24 @@ tiledb_array_delete_fragments <- function(arr, ts_start, ts_end, ctx = tiledb_ge
               "The 'ts_start' argument must be a time object" = inherits(ts_start, "POSIXct"),
               "The 'ts_end' argument must be a time object" = inherits(ts_end, "POSIXct"))
     libtiledb_array_delete_fragments(ctx@ptr, arr@ptr, ts_start, ts_end)
+    invisible(TRUE)
+}
+
+##' Delete fragments written given by their URIs
+##'
+##' @param arr A TileDB Array object as for example returned by \code{tiledb_array()}
+##' @param fragments A character vector with fragment URIs
+##' @param ctx A tiledb_ctx object (optional)
+##' @return A boolean indicating success
+##' @export
+tiledb_array_delete_fragments_list <- function(arr, fragments, ctx = tiledb_get_context()) {
+    stopifnot("The 'arr' argument must be a tiledb_array object" = .isArray(arr),
+              "The 'fragments' argument must be a character vector" = is.character(fragments))
+    if (tiledb_version(TRUE) >= "2.18.0") {
+        libtiledb_array_delete_fragments_list(ctx@ptr, arr@ptr, fragments)
+    } else {
+        message("This function is only available with TileDB 2.18.0 or later")
+    }
     invisible(TRUE)
 }
 

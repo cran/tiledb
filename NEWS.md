@@ -1,3 +1,44 @@
+# tiledb 0.29.0
+
+* This release of the R package builds against [TileDB 2.25.0](https://github.com/TileDB-Inc/TileDB/releases/tag/2.25.0), and has also been tested against earlier releases as well as the development version (#728, #736)
+
+## Improvements
+
+* Three deprecated calls to `dump()` methods for TileDB Embedded objects now use the preferred streaming alternatives (#727)
+
+* Two already deprecated functions that are removed in TileDB 2.26.0 are no longer used (#732)
+
+* The vendored [nanoarrow](https://github.com/apache/arrow-nanoarrow) has been updated to its release [0.5.0](https://github.com/apache/arrow-nanoarrow/releases/tag/apache-arrow-nanoarrow-0.5.0) (#733)
+
+* Fragments can now be removed by supplying a vector of fragment URIs (#734)
+
+* `NDRectangle` and `CurrentDomain` objects are supported (with 2.25.0 or newer) and can be used with `ArraySchema` and `ArraySchemeEvolution` domain of (#735, #737)
+
+## Build and Test Systems
+
+* The nighly valgrind matrix now includes release 2.25.0 (#729)
+
+
+# tiledb 0.28.2
+
+* This release of the R package builds against [TileDB 2.24.2](https://github.com/TileDB-Inc/TileDB/releases/tag/2.24.2), and has also been tested against earlier releases as well as the development version (#725)
+
+
+# tiledb 0.28.1
+
+* This release of the R package builds against [TileDB 2.24.1](https://github.com/TileDB-Inc/TileDB/releases/tag/2.24.1), and has also been tested against earlier releases as well as the development version (#714, #715, #717, #724)
+
+## Improvements
+
+* When creating arrays with `fromDataFrame`, start and/or end timestamps can now be specified (#719)
+
+## Build and Test Systems
+
+* The nighly continuous integration matrix now included Core release 2.24.0 and 2.22.0 is dropped (#721)
+
+* The Conda build is now accomodating the change from #710 (#722)
+
+
 # tiledb 0.28.0
 
 * This release of the R package builds against [TileDB 2.24.0](https://github.com/TileDB-Inc/TileDB/releases/tag/2.24.0), and has also been tested against earlier releases as well as the development version (#714, #715, #717)

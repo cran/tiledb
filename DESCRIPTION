@@ -1,6 +1,6 @@
 Package: tiledb
 Type: Package
-Version: 0.28.0
+Version: 0.29.0
 Title: Modern Database Engine for Complex Data Based on
         Multi-Dimensional Arrays
 Authors@R: c(person("TileDB, Inc.", role = c("aut", "cph")),
@@ -31,12 +31,12 @@ LinkingTo: Rcpp, RcppInt64, nanoarrow
 Suggests: tinytest, simplermarkdown, curl, bit64, Matrix,
         palmerpenguins, nycflights13, data.table, tibble, arrow
 VignetteBuilder: simplermarkdown
-RoxygenNote: 7.3.1
+RoxygenNote: 7.3.2
 Encoding: UTF-8
 NeedsCompilation: yes
-Packaged: 2024-06-07 12:19:19 UTC; edd
+Packaged: 2024-07-25 20:28:48 UTC; edd
 Author: TileDB, Inc. [aut, cph],
   Dirk Eddelbuettel [cre]
 Maintainer: Dirk Eddelbuettel <dirk@tiledb.com>
 Repository: CRAN
-Date/Publication: 2024-06-07 12:50:02 UTC
+Date/Publication: 2024-07-25 21:10:02 UTC
