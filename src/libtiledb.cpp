@@ -4942,7 +4942,13 @@ std::string libtiledb_fragment_info_to_vacuum_uri(XPtr<tiledb::FragmentInfo> fi,
 // [[Rcpp::export]]
 void libtiledb_fragment_info_dump(XPtr<tiledb::FragmentInfo> fi) {
     check_xptr_tag<tiledb::FragmentInfo>(fi);
-    return fi->dump();
+#if TILEDB_VERSION >= TileDB_Version(2,27,0)
+    std::stringstream ss;
+    ss << *fi;
+    Rcpp::Rcout << ss.str();
+#else
+    fi->dump();
+#endif
 }
 
 // [[Rcpp::export]]
@@ -5449,7 +5455,33 @@ XPtr<tiledb::NDRectangle> libtiledb_ndrectangle_set_range(XPtr<tiledb::NDRectang
                                 static_cast<uint64_t>(Rcpp::fromInteger64(Rcpp::as<double>(start))),
                                 static_cast<uint64_t>(Rcpp::fromInteger64(Rcpp::as<double>(end))));
     } else if (dtype == TILEDB_INT32) {
-        ndr->set_range<int32_t>(dimname, as<int32_t>(start), as<int32_t>(end));
+        ndr->set_range<int32_t>(dimname, Rcpp::as<int32_t>(start), Rcpp::as<int32_t>(end));
+    } else if (dtype == TILEDB_UINT32) {
+        ndr->set_range<uint32_t>(dimname,
+                                 static_cast<uint32_t>(Rcpp::as<int32_t>(start)),
+                                 static_cast<uint32_t>(Rcpp::as<int32_t>(end)));
+    } else if (dtype == TILEDB_INT16) {
+        ndr->set_range<int16_t>(dimname,
+                                static_cast<int16_t>(Rcpp::as<int32_t>(start)),
+                                static_cast<int16_t>(Rcpp::as<int32_t>(end)));
+    } else if (dtype == TILEDB_UINT16) {
+        ndr->set_range<uint16_t>(dimname,
+                                 static_cast<uint16_t>(Rcpp::as<int32_t>(start)),
+                                 static_cast<uint16_t>(Rcpp::as<int32_t>(end)));
+    } else if (dtype == TILEDB_INT8) {
+        ndr->set_range<int8_t>(dimname,
+                               static_cast<int8_t>(Rcpp::as<int32_t>(start)),
+                               static_cast<int8_t>(Rcpp::as<int32_t>(end)));
+    } else if (dtype == TILEDB_UINT8) {
+        ndr->set_range<uint8_t>(dimname,
+                                static_cast<uint8_t>(Rcpp::as<int32_t>(start)),
+                                static_cast<uint8_t>(Rcpp::as<int32_t>(end)));
+    } else if (dtype == TILEDB_FLOAT64) {
+        ndr->set_range<double>(dimname, Rcpp::as<double>(start), Rcpp::as<double>(end));
+    } else if (dtype == TILEDB_FLOAT32) {
+        ndr->set_range<float>(dimname,
+                              static_cast<float>(Rcpp::as<double>(start)),
+                              static_cast<float>(Rcpp::as<double>(end)));
     } else {
         Rcpp::stop("Domain datatype '%s' of dimname '%s' is not currently supported",
                    _tiledb_datatype_to_string(dtype), dimname);
@@ -5466,23 +5498,84 @@ SEXP libtiledb_ndrectangle_get_range(XPtr<tiledb::NDRectangle> ndr,
 #if TILEDB_VERSION >= TileDB_Version(2,25,0)
     if (dtype == "CHAR" || dtype == "ASCII" || dtype == "UTF8") {
         auto range = ndr->range<std::string>(dimname);
-        return Rcpp::CharacterVector::create(std::get<0>(range), std::get<1>(range));
+        return Rcpp::CharacterVector::create(range[0], range[1]);
     } else if (dtype == "INT64") {
         auto range = ndr->range<int64_t>(dimname);
-        return Rcpp::toInteger64( std::vector<int64_t>{ std::get<0>(range), std::get<1>(range) } );
+        return Rcpp::toInteger64( std::vector<int64_t>{range[0], range[1] } );
     } else if (dtype == "UINT64") {
         auto range = ndr->range<uint64_t>(dimname);
-        return Rcpp::toInteger64( std::vector<int64_t>{ static_cast<int64_t>(std::get<0>(range)),
-                                                        static_cast<int64_t>(std::get<1>(range)) } );
+        return Rcpp::toInteger64( std::vector<int64_t>{ static_cast<int64_t>(range[0]),
+                                                        static_cast<int64_t>(range[1]) } );
     } else if (dtype == "INT32") {
         auto range = ndr->range<int32_t>(dimname);
-        return Rcpp::IntegerVector::create( std::get<0>(range), std::get<1>(range) );
+        return Rcpp::IntegerVector::create(range[0], range[1]);
+    } else if (dtype == "UINT32") {
+        auto range = ndr->range<uint32_t>(dimname);
+        return Rcpp::IntegerVector::create( static_cast<int32_t>(range[0]),
+                                            static_cast<int32_t>(range[1]) );
+    } else if (dtype == "INT16") {
+        auto range = ndr->range<int16_t>(dimname);
+        return Rcpp::IntegerVector::create( static_cast<int32_t>(range[0]),
+                                            static_cast<int32_t>(range[1]) );
+    } else if (dtype == "UINT16") {
+        auto range = ndr->range<uint16_t>(dimname);
+        return Rcpp::IntegerVector::create( static_cast<int32_t>(range[0]),
+                                            static_cast<int32_t>(range[1]) );
+    } else if (dtype == "INT8") {
+        auto range = ndr->range<int8_t>(dimname);
+        return Rcpp::IntegerVector::create( static_cast<int32_t>(range[0]),
+                                            static_cast<int32_t>(range[1]) );
+    } else if (dtype == "UINT8") {
+        auto range = ndr->range<uint8_t>(dimname);
+        return Rcpp::IntegerVector::create( static_cast<int32_t>(range[0]),
+                                            static_cast<int32_t>(range[1]) );
+    } else if (dtype == "FLOAT64") {
+        auto range = ndr->range<double>(dimname);
+        return Rcpp::NumericVector::create(range[0], range[1]);
+    } else if (dtype == "FLOAT32") {
+        auto range = ndr->range<float>(dimname);
+        return Rcpp::NumericVector::create( static_cast<double>(range[0]),
+                                            static_cast<double>(range[1]));
     } else {
         Rcpp::stop("Domain datatype '%s' of dimname '%s' is not currently supported", dtype, dimname);
     }
 #endif
     return R_NilValue;          // not reached
 }
+
+// [[Rcpp::export]]
+int libtiledb_ndrectangle_dim_num(XPtr<tiledb::NDRectangle> ndr) {
+    check_xptr_tag<tiledb::NDRectangle>(ndr);
+#if TILEDB_VERSION >= TileDB_Version(2,26,0)
+    return static_cast<int32_t>(ndr->dim_num());
+#else
+    return R_NaInt;
+#endif
+}
+
+// [[Rcpp::export]]
+std::string libtiledb_ndrectangle_datatype(XPtr<tiledb::NDRectangle> ndr, const std::string& name) {
+    check_xptr_tag<tiledb::NDRectangle>(ndr);
+#if TILEDB_VERSION >= TileDB_Version(2,26,0)
+    return _tiledb_datatype_to_string(ndr->range_dtype(name));
+#else
+    Rcpp::stop("This function requires TileDB 2.26.0 or later.");
+    return std::string{Rcpp::as<std::string>(R_NaString)}; // not reached
+#endif
+}
+
+// [[Rcpp::export]]
+std::string libtiledb_ndrectangle_datatype_by_ind(XPtr<tiledb::NDRectangle> ndr, int dim) {
+    check_xptr_tag<tiledb::NDRectangle>(ndr);
+#if TILEDB_VERSION >= TileDB_Version(2,26,0)
+    return _tiledb_datatype_to_string(ndr->range_dtype(static_cast<uint32_t>(dim)));
+#else
+    Rcpp::stop("This function requires TileDB 2.26.0 or later.");
+    return std::string{Rcpp::as<std::string>(R_NaString)}; // not reached
+#endif
+}
+
+
 
 
 

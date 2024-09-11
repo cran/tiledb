@@ -1,3 +1,36 @@
+# tiledb 0.30.0
+
+* This release of the R package builds against [TileDB 2.26.0](https://github.com/TileDB-Inc/TileDB/releases/tag/2.26.0), and has also been tested against earlier releases as well as the development version (#745, #749, #750, #754, #755)
+
+## Improvements
+
+* Error messages displayed when a mismatched external pointer is detected now show both expected and encountered types (#740)
+
+* `NDRectangle` objects can now instantiate from more domain data types (#741, #742)
+
+* `NDRectangle` objects can now return their number of dimensions and dimension data types (#743)
+
+* `FragmentInfo` objects are dump via the `<<` stringstream operator instead of a now-deprecated `dump()` method (#753)
+
+## Documentation
+
+* The documentation website now uses favicon symbols for all pages rendered (#739)
+
+## Build and Test Systems
+
+* The nighly valgrind matrix now includes release 2.26.0 (#744)
+
+* The continuous integration script has been updated reflecting external changes (#746)
+
+## Removals
+
+* Boolean arguments `as.data.frame`, `as.matrix` and `as.array` to the `tiledb_array()` accessor, deprecated in release 0.20.0 in July 2023 in favor of the more general `return_as="..."` form, have been removed. (#751)
+
+## Deprecation
+
+* As BioConductor package \pkg{TileDBArray} still relies on `as.data.frame` it was temporarily re-admitted as an argument. It is expected to be removed following the upcoming 3.20 release of BioConducto.r (#752)
+
+
 # tiledb 0.29.0
 
 * This release of the R package builds against [TileDB 2.25.0](https://github.com/TileDB-Inc/TileDB/releases/tag/2.25.0), and has also been tested against earlier releases as well as the development version (#728, #736)
