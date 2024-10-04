@@ -1,3 +1,16 @@
+# tiledb 0.30.2
+
+* This release of the R package builds against [TileDB 2.26.2](https://github.com/TileDB-Inc/TileDB/releases/tag/2.26.2), and has also been tested against earlier releases as well as the development version (#757)
+
+* Fix MacOS `rpath` ([#760](https://github.com/TileDB-Inc/TileDB-R/issues/758))
+
+* Fix "Can't read domain for dimensions of type UINT16" ([#758](https://github.com/TileDB-Inc/TileDB-R/issues/758))
+
+# tiledb 0.30.1
+
+* This release of the R package builds against [TileDB 2.26.1](https://github.com/TileDB-Inc/TileDB/releases/tag/2.26.1), and has also been tested against earlier releases as well as the development version (#757)
+
+
 # tiledb 0.30.0
 
 * This release of the R package builds against [TileDB 2.26.0](https://github.com/TileDB-Inc/TileDB/releases/tag/2.26.0), and has also been tested against earlier releases as well as the development version (#745, #749, #750, #754, #755)

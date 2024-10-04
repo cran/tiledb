@@ -33,7 +33,7 @@ div.sourceCode { overflow: auto; }
 }
 @media print {
 pre > code.sourceCode { white-space: pre-wrap; }
-pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+pre > code.sourceCode > span { display: inline-block; text-indent: -5em; padding-left: 5em; }
 }
 pre.numberSource code
 { counter-reset: source-line 0; }
@@ -182,20 +182,20 @@ package</a>, on Linux and macOS via the <a href="https://anaconda.org/conda-forg
 from source.</p>
 <p>Documentation for the TileDB R package is available via the
 <code>help()</code> function from within R as well as via the <a href="https://tiledb-inc.github.io/TileDB-R/">package documentation</a>
-and an <a href="https://github.com/TileDB-Inc/TileDB-R/tree/master/inst/notebooks">introductory
+and an <a href="https://github.com/TileDB-Inc/TileDB-R/tree/main/inst/notebooks">introductory
 notebook</a>. Documentation about TileDB itself is <a href="https://docs.tiledb.com/main/">also available</a>.</p>
 <p>Several “quickstart” examples that are discussed on the website are
-available in the <a href="https://github.com/TileDB-Inc/TileDB-R/tree/master/inst/examples">examples</a>
+available in the <a href="https://github.com/TileDB-Inc/TileDB-R/tree/main/inst/examples">examples</a>
 directory. This vignette discusses similar examples.</p>
 <p>In the following examples, the URIs describing arrays point to local
 file system object. When TileDB has been built with S3 support, and with
 proper AWS credentials in the usual environment variables, URIs such as
 <code>s3://some/data/bucket</code> can be used where a local file would
-be used. See the script <a href="https://github.com/TileDB-Inc/TileDB-R/blob/master/inst/examples/ex_S3.R">ex_S3.R</a>
+be used. See the script <a href="https://github.com/TileDB-Inc/TileDB-R/blob/main/inst/examples/ex_S3.R">ex_S3.R</a>
 for an example.</p>
 <h1 id="dense-arrays">Dense Arrays</h1>
 <h2 id="preliminaries">Preliminaries</h2>
-<p>These illustrations use the array created by the file <a href="https://github.com/TileDB-Inc/TileDB-R/blob/master/inst/examples/ex_1.R">ex_1.R</a>
+<p>These illustrations use the array created by the file <a href="https://github.com/TileDB-Inc/TileDB-R/blob/main/inst/examples/ex_1.R">ex_1.R</a>
 which one can run from within R, or on the command-line. To follow along
 with discussion that follows, it helps to run the example once to create
 the array after possibly adjusting the array location path from its
@@ -203,8 +203,8 @@ default value (using the current directory or, if set as an option, an
 override).</p>
 <h2 id="basic-reading-of-dense-arrays">Basic Reading of Dense
 Arrays</h2>
-<p>The file <a href="https://github.com/TileDB-Inc/TileDB-R/blob/master/inst/examples/ex_1.R">ex_1.R</a>
-in the examples directory is a simple yet complete example extending <a href="https://github.com/TileDB-Inc/TileDB-R/blob/master/inst/examples/quickstart_dense.R">quickstart_dense.R</a>
+<p>The file <a href="https://github.com/TileDB-Inc/TileDB-R/blob/main/inst/examples/ex_1.R">ex_1.R</a>
+in the examples directory is a simple yet complete example extending <a href="https://github.com/TileDB-Inc/TileDB-R/blob/main/inst/examples/quickstart_dense.R">quickstart_dense.R</a>
 by adding a second and third attribute. In this as well as the following
 examples we will use <code>tiledb_array()</code> to access the array;
 the older variants <code>tiledb_dense()</code> and
@@ -342,7 +342,7 @@ rows and column but this can be overridden.</p>
 <span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a><span class="sc">&gt;</span></span></code></pre></div>
 <p>Attributes can be selected similarly.</p>
 <h2 id="datetime-attributes">Date(time) Attributes</h2>
-<p>Similar to the dense array case described earlier, the file <a href="https://github.com/TileDB-Inc/TileDB-R/blob/master/inst/examples/ex_2.R">ex_2.R</a>
+<p>Similar to the dense array case described earlier, the file <a href="https://github.com/TileDB-Inc/TileDB-R/blob/main/inst/examples/ex_2.R">ex_2.R</a>
 illustrates some basic operations on sparse arrays. It also shows date
 and datetime types instead of just integer and double precision
 floats.</p>
@@ -374,7 +374,7 @@ as well as character dimension.</p>
 (<em>e.g.</em> <code>help(&quot;tiledb_array&quot;)</code> shows information for
 the <code>tiledb_array()</code> function) as well as via a <a href="https://tiledb-inc.github.io/TileDB-R/">website regrouping all
 documentation</a>. Extended <a href="https://tiledb-inc.github.io/TileDB-R/documentation.html">API
-documentation</a> is available, as is a <a href="https://github.com/TileDB-Inc/TileDB-R/tree/master/inst/examples">examples/</a>
+documentation</a> is available, as is a <a href="https://github.com/TileDB-Inc/TileDB-R/tree/main/inst/examples">examples/</a>
 directory.</p>
 <p>TileDB itself has extensive <a href="https://docs.tiledb.com/developer/installation">installation</a>,
 and <a href="https://docs.tiledb.com/developer/">overall

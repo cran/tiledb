@@ -1,10 +1,12 @@
 Package: tiledb
 Type: Package
-Version: 0.30.0
+Version: 0.30.2
 Title: Modern Database Engine for Complex Data Based on
         Multi-Dimensional Arrays
-Authors@R: c(person("TileDB, Inc.", role = c("aut", "cph")),
-  person("Dirk", "Eddelbuettel", email = "dirk@tiledb.com", role = "cre"))
+Authors@R: c(
+  person("TileDB, Inc.", role = c("aut", "cph")),
+  person("Dirk", "Eddelbuettel", email = "dirk@tiledb.com", role = "aut"),
+  person("Isaiah", "Norton", email = "isaiah@tiledb.com", role = "cre"))
 Description: The modern database 'TileDB' introduces a powerful on-disk
   format for storing and accessing any complex data based on multi-dimensional
   arrays. It supports dense and sparse arrays, dataframes and key-values stores,
@@ -34,9 +36,10 @@ VignetteBuilder: simplermarkdown
 RoxygenNote: 7.3.2
 Encoding: UTF-8
 NeedsCompilation: yes
-Packaged: 2024-09-11 11:39:02 UTC; edd
+Packaged: 2024-10-03 22:25:05 UTC; inorton
 Author: TileDB, Inc. [aut, cph],
-  Dirk Eddelbuettel [cre]
-Maintainer: Dirk Eddelbuettel <dirk@tiledb.com>
+  Dirk Eddelbuettel [aut],
+  Isaiah Norton [cre]
+Maintainer: Isaiah Norton <isaiah@tiledb.com>
 Repository: CRAN
-Date/Publication: 2024-09-11 12:20:02 UTC
+Date/Publication: 2024-10-04 15:20:06 UTC
