@@ -44,19 +44,28 @@ tiledb_array_schema(
 
 \item{ctx}{tiledb_ctx object (optional)}
 }
+\value{
+An object of class \code{tiledb_array_schema}.
+}
 \description{
 Constructs a \code{tiledb_array_schema} object
 }
 \examples{
-\dontshow{ctx <- tiledb_ctx(limitTileDBCores())}
+\dontshow{
+ctx <- tiledb_ctx(limitTileDBCores())
+}
 schema <- tiledb_array_schema(
-              dom = tiledb_domain(
-                        dims = c(tiledb_dim("rows", c(1L, 4L), 4L, "INT32"),
-                                 tiledb_dim("cols", c(1L, 4L), 4L, "INT32"))),
-              attrs = c(tiledb_attr("a", type = "INT32")),
-              cell_order = "COL_MAJOR",
-              tile_order = "COL_MAJOR",
-              sparse = FALSE)
+  dom = tiledb_domain(
+    dims = c(
+      tiledb_dim("rows", c(1L, 4L), 4L, "INT32"),
+      tiledb_dim("cols", c(1L, 4L), 4L, "INT32")
+    )
+  ),
+  attrs = c(tiledb_attr("a", type = "INT32")),
+  cell_order = "COL_MAJOR",
+  tile_order = "COL_MAJOR",
+  sparse = FALSE
+)
 schema
 
 }

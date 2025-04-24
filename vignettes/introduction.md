@@ -261,7 +261,7 @@ and [overall documentation](https://docs.tiledb.com/developer/) as well as a [su
 
 [cran_tiledb]: https://cran.r-project.org/package=tiledb
 [tiledb-r_docs]: https://tiledb-inc.github.io/TileDB-R/
-[api_documentation]: https://tiledb-inc.github.io/TileDB-R/documentation.html
+[api_documentation]: https://tiledb-inc.github.io/TileDB-R/articles/documentation.html
 [tiledb_examples]: https://github.com/TileDB-Inc/TileDB-R/tree/main/inst/examples
 [tiledb_notebook]: https://github.com/TileDB-Inc/TileDB-R/tree/main/inst/notebooks
 
@@ -270,4 +270,4 @@ and [overall documentation](https://docs.tiledb.com/developer/) as well as a [su
 [ex_s3]: https://github.com/TileDB-Inc/TileDB-R/blob/main/inst/examples/ex_S3.R
 
 [qs_dense]: https://github.com/TileDB-Inc/TileDB-R/blob/main/inst/examples/quickstart_dense.R
-[qs_sparse]: https://github.com/TileDB-Inc/TileDB/blob/dev/examples/cpp_api/quickstart_sparse.cc
+[qs_sparse]: https://github.com/TileDB-Inc/TileDB/blob/main/examples/cpp_api/quickstart_sparse.cc

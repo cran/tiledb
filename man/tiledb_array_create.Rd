@@ -12,13 +12,15 @@ tiledb_array_create(uri, schema, encryption_key)
 \item{schema}{tiledb_array_schema object}
 
 \item{encryption_key}{optional A character value with an AES-256 encryption key
-in case the array should be encryption.}
+in case the array should be encrypted.}
 }
 \description{
 Creates a new TileDB array given an input schema.
 }
 \examples{
-\dontshow{ctx <- tiledb_ctx(limitTileDBCores())}
+\dontshow{
+ctx <- tiledb_ctx(limitTileDBCores())
+}
 \dontrun{
 pth <- tempdir()
 dom <- tiledb_domain(dims = c(tiledb_dim("d1", c(1L, 10L), type = "INT32")))

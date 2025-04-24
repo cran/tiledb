@@ -7,7 +7,7 @@
 \S4method{name}{tiledb_dim}(object)
 }
 \arguments{
-\item{object}{\code{tiledb_dim} object}
+\item{object}{A \code{tiledb_dim} object}
 }
 \value{
 string name, empty string if the dimension is anonymous
@@ -16,7 +16,9 @@ string name, empty string if the dimension is anonymous
 Return the \code{tiledb_dim} name
 }
 \examples{
-\dontshow{ctx <- tiledb_ctx(limitTileDBCores())}
+\dontshow{
+ctx <- tiledb_ctx(limitTileDBCores())
+}
 d1 <- tiledb_dim("d1", c(1L, 10L))
 name(d1)
 

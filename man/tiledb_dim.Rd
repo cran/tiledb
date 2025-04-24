@@ -31,13 +31,15 @@ is no filter}
 \item{ctx}{tiledb_ctx object (optional)}
 }
 \value{
-\code{tiledb_dim} object
+A \code{tiledb_dim} object
 }
 \description{
 Constructs a \code{tiledb_dim} object
 }
 \examples{
-\dontshow{ctx <- tiledb_ctx(limitTileDBCores())}
+\dontshow{
+ctx <- tiledb_ctx(limitTileDBCores())
+}
 tiledb_dim(name = "d1", domain = c(1L, 10L), tile = 5L, type = "INT32")
 
 }

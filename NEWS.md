@@ -1,3 +1,22 @@
+# tiledb 0.31.1
+
+* Allow `parse_query_condition()` to work on dimensions when an array is passed
+* Add `tiledb_vfs_copy_dir()`, a wrapper for the `vfs_copy_dir()` function
+* Print values for `tiledb_schema_get_types()` and `tiledb_schema_get_names()` [#805](https://github.com/TileDB-Inc/TileDB-R/issues/805)
+* Add `tiledb_array_is_open_for_reading()/writing()` [#806](https://github.com/TileDB-Inc/TileDB-R/issues/806)
+* Fix static-linking checks for R >= 4.5
+
+# tiledb 0.31.0
+
+* Update docs with correct S4 methods
+* Run `clang-format` on non-autogen C++ source code
+* Update unit tests to expect dense current domain
+* Support parentheses in query conditions
+* memory alloc: Accomodate zero buffer size estimate v2
+* Apply `styler::style_pkg()`
+* Expose include/linking flags for re-using `libtiledb` in downstream packages
+* Use TileDB Core 2.27.0
+
 # tiledb 0.30.2
 
 * This release of the R package builds against [TileDB 2.26.2](https://github.com/TileDB-Inc/TileDB/releases/tag/2.26.2), and has also been tested against earlier releases as well as the development version (#757)

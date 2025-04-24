@@ -7,16 +7,18 @@
 \S4method{tiledb_ndim}{tiledb_dim}(object)
 }
 \arguments{
-\item{object}{tiledb_ndim object}
+\item{object}{A \code{tiledb_dim} object}
 }
 \value{
-1L
+An integer with the number of dimensions.
 }
 \description{
 Returns the number of dimensions for a tiledb domain object
 }
 \examples{
-\dontshow{ctx <- tiledb_ctx(limitTileDBCores())}
+\dontshow{
+ctx <- tiledb_ctx(limitTileDBCores())
+}
 d1 <- tiledb_dim("d1", c(1L, 10L), 10L)
 tiledb_ndim(d1)
 

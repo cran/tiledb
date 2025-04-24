@@ -7,7 +7,7 @@
 \method{is.anonymous}{tiledb_dim}(object)
 }
 \arguments{
-\item{object}{\code{tiledb_dim} object}
+\item{object}{A \code{tiledb_dim} object}
 }
 \value{
 TRUE or FALSE
@@ -16,7 +16,9 @@ TRUE or FALSE
 A TileDB dimension is anonymous if no name/label is defined
 }
 \examples{
-\dontshow{ctx <- tiledb_ctx(limitTileDBCores())}
+\dontshow{
+ctx <- tiledb_ctx(limitTileDBCores())
+}
 d1 <- tiledb_dim("d1", c(1L, 10L), 10L)
 is.anonymous(d1)
 

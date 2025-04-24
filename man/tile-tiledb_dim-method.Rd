@@ -7,16 +7,18 @@
 \S4method{tile}{tiledb_dim}(object)
 }
 \arguments{
-\item{object}{\code{tiledb_dim} object}
+\item{object}{A \code{tiledb_dim} object}
 }
 \value{
-a scalar tile extent
+A scalar tile extent
 }
 \description{
 Return the \code{tiledb_dim} tile extent
 }
 \examples{
-\dontshow{ctx <- tiledb_ctx(limitTileDBCores())}
+\dontshow{
+ctx <- tiledb_ctx(limitTileDBCores())
+}
 d1 <- tiledb_dim("d1", domain = c(5L, 10L), tile = 2L)
 tile(d1)
 

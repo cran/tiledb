@@ -7,23 +7,27 @@
 \S4method{attrs}{tiledb_array_schema,character}(object, idx, ...)
 }
 \arguments{
-\item{object}{tiledb_array_schema}
+\item{object}{A TileDB Schema object}
 
 \item{idx}{attribute name string}
 
 \item{...}{Extra parameter for method signature, currently unused.}
 }
 \value{
-a \code{tiledb_attr} object
+A \code{tiledb_attr} object
 }
 \description{
 Returns a \code{tiledb_attr} object associated with the \code{tiledb_array_schema} with a given name.
 }
 \examples{
-\dontshow{ctx <- tiledb_ctx(limitTileDBCores())}
+\dontshow{
+ctx <- tiledb_ctx(limitTileDBCores())
+}
 dom <- tiledb_domain(dims = c(tiledb_dim("d1", c(1L, 10L), type = "INT32")))
-sch <- tiledb_array_schema(dom, attrs = c(tiledb_attr("a1", type = "INT32"),
-                                               tiledb_attr("a2", type = "FLOAT64")))
+sch <- tiledb_array_schema(dom, attrs = c(
+  tiledb_attr("a1", type = "INT32"),
+  tiledb_attr("a2", type = "FLOAT64")
+))
 attrs(sch, "a2")
 
 }

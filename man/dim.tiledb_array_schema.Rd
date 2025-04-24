@@ -7,7 +7,7 @@
 \method{dim}{tiledb_array_schema}(x)
 }
 \arguments{
-\item{x}{tiledb_array_schema}
+\item{x}{A TileDB Schema object}
 }
 \value{
 a dimension vector
@@ -16,10 +16,14 @@ a dimension vector
 Only valid for integral (integer) domains
 }
 \examples{
-\dontshow{ctx <- tiledb_ctx(limitTileDBCores())}
+\dontshow{
+ctx <- tiledb_ctx(limitTileDBCores())
+}
 dom <- tiledb_domain(dims = c(tiledb_dim("d1", c(1L, 10L), type = "INT32")))
-sch <- tiledb_array_schema(dom, attrs = c(tiledb_attr("a1", type = "INT32"),
-                                          tiledb_attr("a2", type = "FLOAT64")))
+sch <- tiledb_array_schema(dom, attrs = c(
+  tiledb_attr("a1", type = "INT32"),
+  tiledb_attr("a2", type = "FLOAT64")
+))
 dim(sch)
 
 }

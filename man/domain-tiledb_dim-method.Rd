@@ -7,7 +7,7 @@
 \S4method{domain}{tiledb_dim}(object)
 }
 \arguments{
-\item{object}{\code{tiledb_dim} object}
+\item{object}{A \code{tiledb_dim} object}
 }
 \value{
 a vector of (lb, ub) inclusive domain of the dimension
@@ -16,7 +16,9 @@ a vector of (lb, ub) inclusive domain of the dimension
 Return the \code{tiledb_dim} domain
 }
 \examples{
-\dontshow{ctx <- tiledb_ctx(limitTileDBCores())}
+\dontshow{
+ctx <- tiledb_ctx(limitTileDBCores())
+}
 d1 <- tiledb_dim("d1", domain = c(5L, 10L))
 domain(d1)
 

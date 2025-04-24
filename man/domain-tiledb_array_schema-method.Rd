@@ -7,13 +7,18 @@
 \S4method{domain}{tiledb_array_schema}(object)
 }
 \arguments{
-\item{object}{tiledb_array_schema}
+\item{object}{A TileDB Schema object}
+}
+\value{
+A \code{tiledb_domain} object
 }
 \description{
 Returns the \code{tiledb_domain} object associated with a given \code{tiledb_array_schema}
 }
 \examples{
-\dontshow{ctx <- tiledb_ctx(limitTileDBCores())}
+\dontshow{
+ctx <- tiledb_ctx(limitTileDBCores())
+}
 dom <- tiledb_domain(dims = c(tiledb_dim("d1", c(1L, 10L), type = "INT32")))
 sch <- tiledb_array_schema(dom, attrs = c(tiledb_attr("a1", type = "INT32")))
 domain(sch)

@@ -1,11 +1,10 @@
 Package: tiledb
 Type: Package
-Version: 0.30.2
+Version: 0.31.1
 Title: Modern Database Engine for Complex Data Based on
         Multi-Dimensional Arrays
 Authors@R: c(
   person("TileDB, Inc.", role = c("aut", "cph")),
-  person("Dirk", "Eddelbuettel", email = "dirk@tiledb.com", role = "aut"),
   person("Isaiah", "Norton", email = "isaiah@tiledb.com", role = "cre"))
 Description: The modern database 'TileDB' introduces a powerful on-disk
   format for storing and accessing any complex data based on multi-dimensional
@@ -28,7 +27,8 @@ SystemRequirements: A C++17 compiler is required; on macOS compilation
         libraries are available at GitHub and are used if no TileDB
         installation is detected, and no other option to build or
         download was specified by the user.
-Imports: methods, Rcpp (>= 1.0.8), nanotime, spdl, nanoarrow
+Depends: R (>= 4.3)
+Imports: methods, Rcpp (>= 1.0.8), nanotime, spdl, nanoarrow, tools
 LinkingTo: Rcpp, RcppInt64, nanoarrow
 Suggests: tinytest, simplermarkdown, curl, bit64, Matrix,
         palmerpenguins, nycflights13, data.table, tibble, arrow
@@ -36,10 +36,9 @@ VignetteBuilder: simplermarkdown
 RoxygenNote: 7.3.2
 Encoding: UTF-8
 NeedsCompilation: yes
-Packaged: 2024-10-03 22:25:05 UTC; inorton
+Packaged: 2025-04-24 17:46:53 UTC; paul
 Author: TileDB, Inc. [aut, cph],
-  Dirk Eddelbuettel [aut],
   Isaiah Norton [cre]
 Maintainer: Isaiah Norton <isaiah@tiledb.com>
 Repository: CRAN
-Date/Publication: 2024-10-04 15:20:06 UTC
+Date/Publication: 2025-04-24 18:40:02 UTC

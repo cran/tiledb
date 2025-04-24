@@ -7,16 +7,18 @@
 \S4method{datatype}{tiledb_dim}(object)
 }
 \arguments{
-\item{object}{tiledb_dim object}
+\item{object}{A \code{tiledb_dim} object}
 }
 \value{
-tiledb datatype string
+A character string with tiledb's datatype.
 }
 \description{
 Return the \code{tiledb_dim} datatype
 }
 \examples{
-\dontshow{ctx <- tiledb_ctx(limitTileDBCores())}
+\dontshow{
+ctx <- tiledb_ctx(limitTileDBCores())
+}
 d1 <- tiledb_dim("d1", domain = c(5L, 10L), tile = 2L, type = "INT32")
 datatype(d1)
 

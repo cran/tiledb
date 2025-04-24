@@ -33,7 +33,7 @@ div.sourceCode { overflow: auto; }
 }
 @media print {
 pre > code.sourceCode { white-space: pre-wrap; }
-pre > code.sourceCode > span { display: inline-block; text-indent: -5em; padding-left: 5em; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
 }
 pre.numberSource code
 { counter-reset: source-line 0; }
@@ -297,7 +297,7 @@ at the R side:</p>
 Writing of Sparse Arrays</h2>
 <p><em>Simple Examples</em></p>
 <p>Basic reading returns the coordinates and any attributes. The
-following examples use the array created by the <a href="https://github.com/TileDB-Inc/TileDB/blob/dev/examples/cpp_api/quickstart_sparse.cc">quickstart_sparse</a>
+following examples use the array created by the <a href="https://github.com/TileDB-Inc/TileDB/blob/main/examples/cpp_api/quickstart_sparse.cc">quickstart_sparse</a>
 example.</p>
 <div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="sc">&gt;</span> A <span class="ot">&lt;-</span> <span class="fu">tiledb_array</span>(<span class="at">uri =</span> uri, <span class="at">is.sparse =</span> <span class="cn">TRUE</span>)</span>
 <span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="sc">&gt;</span> A[]</span>
@@ -373,7 +373,7 @@ as well as character dimension.</p>
 <p>The TileDB R package is documented via R help functions
 (<em>e.g.</em> <code>help(&quot;tiledb_array&quot;)</code> shows information for
 the <code>tiledb_array()</code> function) as well as via a <a href="https://tiledb-inc.github.io/TileDB-R/">website regrouping all
-documentation</a>. Extended <a href="https://tiledb-inc.github.io/TileDB-R/documentation.html">API
+documentation</a>. Extended <a href="https://tiledb-inc.github.io/TileDB-R/articles/documentation.html">API
 documentation</a> is available, as is a <a href="https://github.com/TileDB-Inc/TileDB-R/tree/main/inst/examples">examples/</a>
 directory.</p>
 <p>TileDB itself has extensive <a href="https://docs.tiledb.com/developer/installation">installation</a>,
