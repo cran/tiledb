@@ -1,7 +1,7 @@
-7080f7fd0869230e1e16ef573c08d964 *DESCRIPTION
+3aa3bbb8a581b2923a2b0615d5739213 *DESCRIPTION
 66f34cf69c708d74149204a4a4dce34c *LICENSE
 cde989e6fdb03f81c57eff8c9838f7d8 *NAMESPACE
-59ef46d7957d6a94812c8e5b7e2c5a1e *NEWS.md
+df5e09bd03b3909099d0302de988aa9f *NEWS.md
 1903922332d635f910d67f3f56bd5a07 *R/AllGenerics.R
 4963e31e366d3e6e7e4091c56a6c5b8f *R/Array.R
 47c33b44cb825b820c844135f5ff1194 *R/ArraySchema.R
@@ -38,8 +38,8 @@ cc1b642c3e9b72714dd05e9946851ac5 *R/Utils.R
 b408f1101e78c4f0223ead7957c252d5 *R/VFS.R
 51d0861b57d80ef187d228830b2ec49f *R/Version.R
 d651f1aa43b02be33d204f2850e1d0d5 *R/zzz.R
-5a63b287daa3501c03834522fb6f77a0 *README.md
-a2f42d8fda53eaa127b3737731027ce5 *build/vignette.rds
+c59135d0fec04654cdc5d4baa741099e *README.md
+dc0d24b32231201abb33397943fc0d26 *build/vignette.rds
 40a244c7e0702c7b8a4def035463b66a *cleanup
 238e6f0355d8a4d0009928f80113aa32 *configure
 5d64712913f9eb23681686f59ed5f216 *configure.ac
@@ -506,7 +506,7 @@ fa29ab38198f0e818683f296285a9410 *man/tiledb_vfs_write.Rd
 3f4d58d23568ef9c38802917d7896e1e *man/vfs_file.Rd
 98968bd89afea50ccdd7fc4e97873822 *src/Makevars.in
 f8c3374f0e5d637d6868453a60c46266 *src/Makevars.ucrt
-2f8434f0981ce908f020e0a28deacb34 *src/Makevars.win
+0e044d6f18fbd8ba3ff50bc9ea348fff *src/Makevars.win
 84bd7e9e6e74ce966ff2cbdf2da03f7f *src/RcppExports.cpp
 ee1f03089db517ac4b95372fe7c479e7 *src/array_buffers.h
 b5ce56bc3ff478075ac2293e6f546635 *src/arrow_adapter.h
@@ -547,7 +547,7 @@ e7e545570a033490f1491c6056310dad *tools/fetchTileDBLib.R
 77ab42e02328160fdbc5df4637caefc2 *tools/testBuildFromSource.sh
 04e59a8e5c1ef6ca3276b325124573ce *tools/testDownloadUrl.sh
 bb47e0122b9c2da217c016914849d19a *tools/testLocalPrebuilt.sh
-0f027834c989e4ac518fc7aaf61f5589 *tools/tiledbVersion.txt
+f1122981c679c074cef2c9b09c65ca5c *tools/tiledbVersion.txt
 18187721afef4974e667116da422beb4 *tools/winlibs.R
 24380be5d6de376cbbc8184ff889fcdd *vignettes/data-ingestion-from-sql.md
 bd58eb64578713961a2b8149a3980a85 *vignettes/documentation.md
