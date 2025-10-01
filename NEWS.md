@@ -1,6 +1,27 @@
+# tiledb 0.33.0
+
+* This release of the R package builds against [TileDB 2.29.0](https://github.com/TileDB-Inc/TileDB/releases/tag/2.29.0), and has also been tested against earlier releases as well as the development version
+
+## Improvements
+
+* Schema-dump output is no longer truncated in the case that there are any null fill values in the schema (@johnkerl in [#825](https://github.com/TileDB-Inc/TileDB-R/pull/825))
+
+* `tiledb_attr()` now prints the attribute object as expected and documentation has been corrected (@cgiachalis in [#823](https://github.com/TileDB-Inc/TileDB-R/pull/823))
+
+* `tiledb_attr()` now works when setting `ncells=NA` to signal variable length (@johnkerl in [#830](https://github.com/TileDB-Inc/TileDB-R/pull/830))
+
+* `tiledb_array()` now emits the correct error message when using `selected_points` argument (@cgiachalis in [#833](https://github.com/TileDB-Inc/TileDB-R/issues/833))
+
+* `tiledb_group_open()` now respects and defaults to the first option in `type` argument (@cgiachalis in [#838](https://github.com/TileDB-Inc/TileDB-R/issues/838))
+
+* `tiledb_config_unset()` now correctly returns the modified configuration object (@cgiachalis in [#841](https://github.com/TileDB-Inc/TileDB-R/issues/841))
+
+## Documentation
+
+*  The package documentation website was updated (@cgiachalis in [#822](https://github.com/TileDB-Inc/TileDB-R/pull/822), [#826](https://github.com/TileDB-Inc/TileDB-R/pull/826))
+
 # tiledb 0.32.0
 
-* Depend on TileDB Embedded 2.28.0-rc0 [#818](https://github.com/TileDB-Inc/TileDB-R/issues/818)
 * Depend on TileDB Embedded 2.28.0 [#820](https://github.com/TileDB-Inc/TileDB-R/issues/820)
 
 # tiledb 0.31.1
@@ -157,7 +178,7 @@
 
 ## Improvements
 
-* The display of a `filter_list` is now labeled correctly as a filter list (@cgiachalis in #681 addressing #678)
+* The display of a `filter_list` is now labelled correctly as a filter list (@cgiachalis in #681 addressing #678)
 
 * The Arrow integration has been simplified using [nanoarrow](https://github.com/apache/arrow-nanoarrow) returning a single `nanoarrow` object; an unexported helper function `nanoarrow2list()` is provided to matching the previous interface (#682, #685)
 

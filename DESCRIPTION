@@ -1,6 +1,6 @@
 Package: tiledb
 Type: Package
-Version: 0.32.0
+Version: 0.33.0
 Title: Modern Database Engine for Complex Data Based on
         Multi-Dimensional Arrays
 Authors@R: c(
@@ -36,9 +36,9 @@ VignetteBuilder: simplermarkdown
 RoxygenNote: 7.3.2
 Encoding: UTF-8
 NeedsCompilation: yes
-Packaged: 2025-05-14 14:58:26 UTC; ubuntu
+Packaged: 2025-09-30 17:58:21 UTC; root
 Author: TileDB, Inc. [aut, cph],
   Isaiah Norton [cre]
 Maintainer: Isaiah Norton <isaiah@tiledb.com>
 Repository: CRAN
-Date/Publication: 2025-05-15 18:00:02 UTC
+Date/Publication: 2025-10-01 00:10:02 UTC

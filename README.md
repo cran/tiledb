@@ -39,7 +39,7 @@ The most recent released version can be installed from
     > remotes::install_github("TileDB-Inc/TileDB-R")
     ...
     > library(tiledb)
-    TileDB R 0.32.0 with TileDB Embedded 2.28.0 on Ubuntu 24.04.
+    TileDB R 0.33.0 with TileDB Embedded 2.29.0 on Ubuntu 24.04.
     See https://tiledb.com for more information about TileDB.
     > help(package=tiledb)
 
@@ -61,7 +61,7 @@ of TileDB, but should also build against the newest development version.
 
 ## Copyright
 
-The TileDB R package is Copyright 2018-2024 TileDB, Inc
+The TileDB R package is Copyright 2018-2025 TileDB, Inc
 
 ## License
 
